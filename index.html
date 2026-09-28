@@ -185,6 +185,51 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
 .needle-shadow,.rpm-needle-shadow{opacity:.55;}
 .meter-needle-sweep .needle-face,.meter-needle-sweep .rpm-needle-face{filter:drop-shadow(0 0 3px rgba(255,255,255,.9));}
 .manual-km-note{font-size:.76rem;color:#64748b;}
+
+/* RPM is a true inset sub-meter inside the main speed meter.
+   Keep the original SVG/IDs intact so all existing live RPM calculations continue to work. */
+.sport-dial{position:relative;}
+.sport-dial > .sport-dial-sub{
+ position:absolute;
+ left:50%;
+ bottom:1.5%;
+ transform:translateX(-50%);
+ width:42% !important;
+ max-width:270px !important;
+ margin:0 !important;
+ z-index:4;
+ pointer-events:none;
+ filter:drop-shadow(0 2px 5px rgba(0,0,0,.45));
+}
+.sport-dial > .sport-dial-sub .sport-digital{
+ position:absolute;left:50%;bottom:7%;transform:translateX(-50%);
+ font-size:.55em;line-height:1;
+ white-space:nowrap;
+}
+.sport-dial > .sport-dial-sub .sport-digital-rpm{font-size:1.05em;}
+.sport-dial > .sport-dial-sub .sport-digital-unit{font-size:.68em;}
+
+/* Classic RPM tachometer is also inset inside the main speedometer. */
+.classic-main-col{position:relative;}
+.classic-main-col > .classic-dial-wrap.classic-dial-sub{
+ position:absolute;
+ left:50%;
+ top:53%;
+ transform:translateX(-50%);
+ width:42% !important;
+ max-width:145px !important;
+ margin:0 !important;
+ z-index:5;
+ pointer-events:none;
+ filter:drop-shadow(0 2px 5px rgba(0,0,0,.5));
+}
+.classic-main-col > .classic-dial-wrap.classic-dial-sub .classic-digital-overlay{
+ font-size:.48em;
+}
+@media(max-width:575.98px){
+ .sport-dial > .sport-dial-sub{width:43% !important;bottom:1%;}
+ .classic-main-col > .classic-dial-wrap.classic-dial-sub{width:43% !important;top:52%;}
+}
 </style>
 
 <style id="meter-context-icons">
@@ -755,7 +800,7 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
        <div class="sport-digital-unit">RPM</div>
       </div>
      </div>
-     <div class="w-100 small text-secondary text-center" style="font-size:.62rem;opacity:.75">Automatic transmission — gear shifts on its own as speed changes. Tap a drive mode above to change shift behaviour.</div>
+     <div class="w-100 small text-secondary text-center" style="font-size:.62rem;opacity:.75">Automatic transmission — gear shifts on its own as speed changes. RPM is an inset sub-meter. GPS auto-start / auto-pause / auto-save-stop remains active when Auto-detect is enabled.</div>
      <div id="meterLeds" class="sport-led-row"></div>
      <div class="sport-readouts">
       <div class="sport-readout"><div class="sport-readout-label"><i class="bi bi-speedometer2"></i> ODO</div><div class="sport-readout-value" id="meterOdo">0.0 km</div></div>
@@ -2185,26 +2230,41 @@ function tripGpsTick(pos){
  const p={lat:pos.coords.latitude,lon:pos.coords.longitude,acc:pos.coords.accuracy,time:Date.now()};
  if(!trip.running){ handleTripStandby(p); return; }
  const last=trip.points.at(-1);
- let speedKmh=0, dt=0;
+ let speedKmh=0, dt=0, d=0;
  if(last){
-   const d=hav(last,p); dt=(p.time-last.time)/1000; // seconds
+   d=hav(last,p); dt=(p.time-last.time)/1000;
    if(dt>0) speedKmh=(d*1000/dt)*3.6;
-   if(d>0.002 && d<1){ // ignore GPS noise jumps
-     if(speedKmh<PAUSE_SPEED){
-       if(!trip.paused && (Date.now()-trip.lastMoveAt)>PAUSE_AFTER_MS){
-         trip.paused=true; trip.idleSince=Date.now();
+
+   // Always evaluate the GPS speed, including when the device moved less than 2 m.
+   // The previous implementation skipped this case, which could prevent auto-pause
+   // when the vehicle was completely stationary and GPS jitter stayed below 2 m.
+   if(speedKmh<PAUSE_SPEED){
+     if(!trip.paused && !trip.pausedManually){
+       if(!trip.lastMoveAt) trip.lastMoveAt=p.time;
+       if((p.time-trip.lastMoveAt)>=PAUSE_AFTER_MS){
+         trip.paused=true; trip.idleSince=p.time;
          document.getElementById('pausedBanner').classList.remove('d-none');
-         document.getElementById('gpsStatus').innerHTML='<span class="gps-dot"></span> Auto-paused';
+         document.getElementById('gpsStatus').innerHTML='<span class="gps-dot"></span> Auto-paused — stationary';
          syncTripPauseButton();
        }
-     } else {
-       trip.lastMoveAt=Date.now(); trip.idleSince=null;
-       if(speedKmh>trip.maxSpeed) trip.maxSpeed=speedKmh;
-       // Only auto-resume if the pause was automatic — a manual pause waits for the user.
-       if(trip.paused && !trip.pausedManually){ trip.paused=false; document.getElementById('pausedBanner').classList.add('d-none'); document.getElementById('gpsStatus').innerHTML='<span class="gps-dot on"></span> GPS tracking'; syncTripPauseButton(); }
-       if(!trip.paused){ trip.km+=d; trip.tripB=(trip.tripB||0)+d; trip.movingMs+=dt*1000; }
+     }
+   }else{
+     trip.lastMoveAt=p.time; trip.idleSince=null;
+     if(speedKmh>trip.maxSpeed) trip.maxSpeed=speedKmh;
+     // Automatically resume only an automatic pause. Manual pause always requires Resume.
+     if(trip.paused && !trip.pausedManually){
+       trip.paused=false;
+       document.getElementById('pausedBanner').classList.add('d-none');
+       document.getElementById('gpsStatus').innerHTML='<span class="gps-dot on"></span> GPS tracking — movement detected';
+       syncTripPauseButton();
+     }
+     // Add only valid movement to the trip; small GPS jitter is ignored.
+     if(!trip.paused && d>0.002 && d<1){
+       trip.km+=d; trip.tripB=(trip.tripB||0)+d; trip.movingMs+=dt*1000;
      }
    }
+ }else{
+   trip.lastMoveAt=p.time;
  }
  trip.points.push(p);
  mapUpdate(p);
@@ -2217,9 +2277,8 @@ function tripGpsTick(pos){
  document.getElementById('tripCost').textContent=money(cost);
  document.getElementById('gpsInfo').textContent=`Lat ${p.lat.toFixed(5)} • Lon ${p.lon.toFixed(5)} • ±${Math.round(p.acc)}m`;
  updateTripMeter(speedKmh,p.acc);
- // Failsafe: if left paused for too long (forgot to press Stop), auto-save & finish so the trip is never lost.
- if(trip.paused && trip.idleSince && (Date.now()-trip.idleSince)>AUTO_STOP_IDLE_MS){ finishTrip('idle'); return; }
- // Periodic snapshot to localStorage so a closed tab/crash never loses progress.
+ // After prolonged automatic inactivity, save and finish the trip automatically.
+ if(trip.paused && trip.idleSince && (p.time-trip.idleSince)>AUTO_STOP_IDLE_MS){ finishTrip('idle'); return; }
  if(Date.now()-lastTripAutosave>AUTOSAVE_MS){ lastTripAutosave=Date.now(); autosaveActiveTrip(); }
 }
 
@@ -2233,8 +2292,11 @@ function handleTripStandby(p){
  }
  tripStandbyLastPoint=p;
  if(speedKmh>=AUTO_START_SPEED){
-   if(!tripStandbyMovingSince) tripStandbyMovingSince=Date.now();
-   if(Date.now()-tripStandbyMovingSince>=AUTO_START_AFTER_MS){ startTripInternal(true); }
+   if(!tripStandbyMovingSince) tripStandbyMovingSince=p.time;
+   if((p.time-tripStandbyMovingSince)>=AUTO_START_AFTER_MS){
+     startTripInternal(true);
+     openLiveMeter('trip');
+   }
  } else {
    tripStandbyMovingSince=null;
  }
