@@ -1644,6 +1644,22 @@ function estimateLiveMileage(v,speedKmh){
  if(!v) return 0;
  return Number(v.mileage)*liveEfficiencyFactor(speedKmh,v.type);
 }
+// Average Mileage is the arithmetic average of the live instant-mileage readings
+// captured during the current GPS trip. It is intentionally different from the
+// vehicle's rated mileage or the distance/fuel estimate.
+function averageLiveMileage(v,points,currentSpeedKmh){
+ if(!v) return 0;
+ const samples=(Array.isArray(points)?points:[])
+   .map(p=>Number(p?.speed))
+   .filter(s=>Number.isFinite(s)&&s>=0)
+   .map(s=>estimateLiveMileage(v,s))
+   .filter(m=>Number.isFinite(m)&&m>0);
+ if(Number.isFinite(Number(currentSpeedKmh))&&Number(currentSpeedKmh)>=0){
+   samples.push(estimateLiveMileage(v,Number(currentSpeedKmh)));
+ }
+ if(!samples.length) return Number(v.mileage)||0;
+ return samples.reduce((sum,m)=>sum+m,0)/samples.length;
+}
 function formatPace(avgSpeedKmh){
  if(!avgSpeedKmh||avgSpeedKmh<=0) return '--';
  const minPerKm=60/avgSpeedKmh;
@@ -1816,9 +1832,10 @@ function syncClassicMeter(kind,speedKmh,accuracy){
    const v=vehicle(document.getElementById('tripVehicle').value), last=trip.points.at(-1);
    const live=v?estimateLiveMileage(v,speedKmh):0, fuel=v?trip.km/Number(v.mileage):0, cost=v?fuel*Number(v.rate):0;
    const range=estimatedFuelRange(v,trip.km), avg=trip.movingMs>0?trip.km/(trip.movingMs/3600000):0;
+   const avgLive=averageLiveMileage(v,trip.points,speedKmh);
    const rpm=estimateEngineRpm(speedKmh,v), rpmMax={'Two Wheeler':10000,'Three Wheeler':6500,'Car':6500,'Pickup':5500,'Truck':3000,'Bus':2800,'Other':6000}[v?.type]||6000;
    classicVals={tripKm:trip.km,tripB:trip.tripB||0,timeStr:fmtTime(trip.movingMs),avgSpeed:avg,
-     avgMileage:(v&&fuel>0)?(trip.km/fuel).toFixed(1)+' km/L':(v&&Number(v.mileage)>0?Number(v.mileage).toFixed(1)+' km/L':'--'),
+     avgMileage:v&&avgLive>0?avgLive.toFixed(1)+' km/L':'--',
      liveEcon:v?live.toFixed(1)+' km/L':'--',fuelUsed:v?fuel.toFixed(2)+' L':'--',fuelCost:v?money(cost):'--',
      range:range.available?range.km.toFixed(0)+' km':'--',odo:estimatedOdometer(v,trip.km),
      coords:last?`${last.lat.toFixed(4)}° N, ${last.lon.toFixed(4)}° E`:'--',
