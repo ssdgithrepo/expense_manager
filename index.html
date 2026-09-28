@@ -1,0 +1,2281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SRD DriveLedger — Expense & GPS Tracker</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+:root{--brand:#0d6efd;--dark:#0b1320;--bg:#f4f7fb}
+body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif}
+.sidebar{min-height:100vh;background:linear-gradient(180deg,#0b1320,#152238);color:#fff;transition:width .25s ease,transform .3s ease;position:relative}
+.sidebar .nav-link{color:#cbd5e1;border-radius:10px;margin:3px 0;display:flex;align-items:center;white-space:nowrap;overflow:hidden}
+.sidebar .nav-link.active,.sidebar .nav-link:hover{background:#1d4ed8;color:#fff}
+.brand{font-weight:800;letter-spacing:.3px}.card{border:0;border-radius:16px;box-shadow:0 5px 22px rgba(15,23,42,.07)}
+.metric{font-size:1.7rem;font-weight:800}.muted{color:#64748b}.view{display:none}.view.active{display:block}
+.table-responsive{border-radius:12px}.gps-dot{width:11px;height:11px;border-radius:50%;display:inline-block;background:#dc3545}.gps-dot.on{background:#198754;box-shadow:0 0 0 5px rgba(25,135,84,.12)}
+.login-wrap{min-height:100vh;background:radial-gradient(circle at 10% 10%,#dbeafe,transparent 35%),radial-gradient(circle at 90% 90%,#dcfce7,transparent 35%),#f8fafc}
+.login-card{max-width:460px;width:100%;border-radius:24px}
+#sidebarToggle i{transition:transform .2s ease}
+.sidebar-backdrop{position:fixed;inset:0;background:rgba(2,6,23,.55);z-index:1040;opacity:0;pointer-events:none;transition:opacity .25s ease}
+.sidebar-backdrop.show{opacity:1;pointer-events:auto}
+@media(max-width:991.98px){
+  .sidebar{position:fixed;top:0;left:0;height:100vh;width:270px;max-width:82vw;transform:translateX(-105%);z-index:1050;overflow-y:auto;box-shadow:0 0 30px rgba(0,0,0,.35)}
+  .sidebar.show{transform:translateX(0)}
+  body.sidebar-open{overflow:hidden}
+}
+@media(min-width:992px){
+  .sidebar{position:fixed;top:0;left:0;height:100vh;width:270px;z-index:1030;overflow-y:auto}
+  main{margin-left:270px;width:calc(100% - 270px);max-width:calc(100% - 270px);flex:0 0 calc(100% - 270px)}
+  body.sidebar-collapsed .sidebar{flex:0 0 84px;max-width:84px;width:84px}
+  body.sidebar-collapsed main{margin-left:84px;flex:0 0 calc(100% - 84px);max-width:calc(100% - 84px);width:calc(100% - 84px)}
+  body.sidebar-collapsed .nav-label,body.sidebar-collapsed .brand-text,body.sidebar-collapsed .workspace-label,body.sidebar-collapsed #logoutBtn .btn-label{display:none}
+  body.sidebar-collapsed .sidebar .nav-link{justify-content:center}
+  body.sidebar-collapsed .sidebar .nav-link i{margin-right:0!important}
+  body.sidebar-collapsed #sidebarClose{display:none}
+}
+.app-header{position:sticky;top:0;z-index:1020;background:var(--bg);padding-top:.85rem;padding-bottom:.85rem;border-bottom:1px solid #e2e8f0}
+.meter-modal-content{background:linear-gradient(160deg,#0f172a,#1e293b);color:#e2e8f0;border-radius:22px;border:1px solid rgba(255,255,255,.08);box-shadow:0 0 50px rgba(13,110,253,.28)}
+.gauge-svg{width:100%;max-width:260px;height:auto;margin:0 auto;display:block}
+.meter-digital{font-family:'Courier New',monospace;font-size:2.5rem;font-weight:800;letter-spacing:2px;margin-top:-14px;transition:color .2s}
+.meter-unit{font-size:.9rem;margin-left:6px;opacity:.65;font-weight:600}
+.meter-leds{display:flex;justify-content:center;gap:4px;margin-top:6px;flex-wrap:wrap}
+.meter-led{width:8px;height:14px;border-radius:2px;background:#1e293b}
+.meter-led.on{box-shadow:0 0 9px currentColor}
+.meter-stat-label{font-size:.68rem;opacity:.6;text-transform:uppercase;letter-spacing:.6px}
+.meter-stat-val{font-weight:700;font-size:1.05rem}
+.meter-stats{background:rgba(255,255,255,.04);border-radius:14px;padding:.6rem .3rem}
+#meterMap{height:150px;border-radius:14px;margin-top:10px;overflow:hidden;background:#1e293b}
+.mapbox{height:260px;border-radius:16px;background:repeating-linear-gradient(45deg,#eef2f7,#eef2f7 10px,#e7edf5 10px,#e7edf5 20px);display:flex;align-items:center;justify-content:center;color:#64748b}
+#tripMap,#walkMap{height:320px;border-radius:16px;z-index:0}
+.footer{font-size:.8rem;color:#94a3b8}
+.mode-badge{font-size:.85rem;padding:.45rem .8rem;border-radius:30px}
+.mode-badge.walking{background:#dcfce7;color:#166534}
+.mode-badge.vehicle{background:#dbeafe;color:#1e3a8a}
+.mode-badge.idle{background:#f1f5f9;color:#475569}
+.paused-banner{background:#fff7ed;border:1px solid #fdba74;color:#9a3412;border-radius:12px;padding:.6rem .9rem;font-size:.85rem}
+.fuel-log-item{font-size:.82rem;border-bottom:1px dashed #e2e8f0;padding:.3rem 0}
+.hidden-mode{display:none!important}
+/* Full-screen live meter */
+#liveMeterModal.meter-fullscreen-host{padding:0!important}
+#liveMeterModal.meter-fullscreen-host .modal-dialog{width:100vw;max-width:none;height:100vh;margin:0}
+#liveMeterModal.meter-fullscreen-host .meter-modal-content{height:100vh;border-radius:0;display:flex;flex-direction:column}
+#liveMeterModal.meter-fullscreen-host .modal-body{overflow:auto;flex:1}
+.meter-fullscreen-btn{min-width:42px}
+.meter-background-status{font-size:.68rem;color:#94a3b8;display:inline-flex;align-items:center;gap:.3rem}
+.meter-range-source{font-size:.62rem;color:#94a3b8;margin-top:.15rem}
+@media(max-width:576px){
+ #liveMeterModal.meter-fullscreen-host .modal-body{padding-left:.45rem!important;padding-right:.45rem!important}
+ .meter-fullscreen-btn .btn-label{display:none}
+}
+
+/* ---------- Enhanced sports vehicle meter (additive layer) ---------- */
+.sport-meter-shell{position:relative;margin:0 auto;padding:10px 8px 4px;max-width:720px}
+.sport-meter-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:2px}
+.sport-meter-brand{font-size:.65rem;letter-spacing:2px;text-transform:uppercase;opacity:.5;font-weight:800}
+.sport-meter-gear{font-size:.72rem;letter-spacing:1px;color:#93c5fd;font-weight:800}
+.sport-dial{position:relative;width:min(100%,560px);margin:0 auto;aspect-ratio:2/1.08;overflow:hidden}
+.sport-dial svg{width:100%;height:100%;display:block;overflow:visible}
+.sport-dial .dial-track{fill:none;stroke:#1e293b;stroke-width:13;stroke-linecap:round}
+.sport-dial .dial-progress{fill:none;stroke:url(#sportSpeedGrad);stroke-width:13;stroke-linecap:round;filter:url(#sportGlow);transition:stroke-dashoffset .18s linear}
+.sport-dial .rpm-track{fill:none;stroke:#111827;stroke-width:8;stroke-linecap:round}
+.sport-dial .rpm-progress{fill:none;stroke:url(#sportRpmGrad);stroke-width:8;stroke-linecap:round;filter:url(#sportGlow);transition:stroke-dashoffset .22s linear}
+.sport-dial .dial-tick{stroke:#64748b;stroke-width:1.2}
+.sport-dial .dial-tick.major{stroke:#cbd5e1;stroke-width:2}
+.sport-dial .dial-number{fill:#cbd5e1;font-size:7px;font-weight:700;text-anchor:middle}
+.sport-dial .rpm-number{fill:#94a3b8;font-size:5px;font-weight:700;text-anchor:middle}
+.sport-dial .speed-needle{transition:filter .18s ease}
+.sport-dial .rpm-needle{transition:filter .22s ease}
+/* Rotation pivot for both needles comes only from the SVG rotate(angle,100,110) transform
+   attribute written every frame in animateAnalogNeedle() — that already fully defines the
+   center of rotation. No CSS transform-origin/transform-box or "transition:transform" must be
+   applied here: either one fights the per-frame attribute write and throws the needle's pivot
+   off the gauge center (or off-canvas entirely), which is what made it disappear/misbehave. */
+.sport-dial .needle{stroke:#f8fafc;stroke-width:2.8;stroke-linecap:round;filter:url(#sportGlow)}
+/* Realistic analog instrument needles: tapered, layered, counterbalanced and softly illuminated. */
+.sport-dial .needle-shadow,.sport-dial .rpm-needle-shadow{fill:rgba(0,0,0,.55);filter:url(#sportGlow)}
+.sport-dial .needle-face{fill:#f8fafc;filter:url(#sportGlow)}
+.sport-dial .rpm-needle-face{fill:#fb7185;filter:url(#sportGlow)}
+.sport-dial .hub-outer{fill:#020617;stroke:#94a3b8;stroke-width:1.5;filter:url(#sportGlow)}
+.sport-dial .hub{fill:#e2e8f0;stroke:#020617;stroke-width:1.5}
+.sport-dial .hub-cap{fill:#60a5fa;filter:url(#sportGlow)}
+@media (prefers-reduced-motion:reduce){.speed-needle,.sport-dial .rpm-needle{transition:none!important}}
+
+.sport-dial .needle-red{stroke:#fb7185;stroke-width:2;stroke-linecap:round;filter:url(#sportGlow)}
+.sport-digital{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);text-align:center;line-height:1}
+.sport-digital-speed{font-family:'Courier New',monospace;font-size:clamp(2.2rem,8vw,4.1rem);font-weight:900;letter-spacing:2px;text-shadow:0 0 18px var(--mode-color,rgba(96,165,250,.5))}
+.sport-digital-unit{font-size:.68rem;letter-spacing:2px;opacity:.55;font-weight:800}
+.sport-rpm-live{font-family:'Courier New',monospace;font-size:.72rem;letter-spacing:1px;color:#fb7185;font-weight:800;margin-top:6px}
+.sport-gear-pill{position:absolute;right:14%;bottom:10%;min-width:35px;height:35px;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:#020617;display:flex;align-items:center;justify-content:center;font-weight:900;color:#f8fafc;box-shadow:0 0 18px var(--mode-glow,rgba(59,130,246,.18))}
+.sport-led-row{display:flex;justify-content:center;gap:3px;margin:-4px auto 5px;max-width:360px}
+.sport-led{height:5px;flex:1;border-radius:8px;background:#1e293b;transition:all .15s ease}
+.sport-led.active{box-shadow:0 0 9px currentColor}
+.sport-readouts{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:8px}
+.sport-readout{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.055);border-radius:11px;padding:7px 5px;min-width:0}
+.sport-readout-label{font-size:.56rem;letter-spacing:.65px;text-transform:uppercase;color:#94a3b8;font-weight:800}
+.sport-readout-value{font-family:'Courier New',monospace;font-size:.9rem;font-weight:900;color:#f8fafc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sport-subgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:7px}
+.sport-sub{background:rgba(2,6,23,.38);border-radius:10px;padding:6px;text-align:center}
+.sport-sub b{display:block;font-family:'Courier New',monospace;font-size:.82rem}
+.sport-sub span{font-size:.52rem;text-transform:uppercase;letter-spacing:.5px;color:#64748b}
+.sport-eco{height:5px;border-radius:8px;background:#1e293b;overflow:hidden;margin-top:4px}
+.sport-eco>i{display:block;height:100%;width:0;border-radius:8px;transition:width .25s ease}
+.sport-gear-pill{transition:box-shadow .2s ease,transform .2s ease}
+.sport-gear-pill.gear-shift-flash{animation:gearShiftFlash .4s ease}
+@keyframes gearShiftFlash{0%{transform:scale(1.22);box-shadow:0 0 24px var(--mode-glow,rgba(96,165,250,.85))}100%{transform:scale(1);box-shadow:0 0 18px var(--mode-glow,rgba(59,130,246,.18))}}
+@media (prefers-reduced-motion:reduce){.sport-gear-pill.gear-shift-flash{animation:none}}
+.sport-mode-row{display:flex;justify-content:center;gap:14px;margin:1px 0 5px}
+.sport-mode-light{display:flex;flex-direction:column;align-items:center;gap:1px;font-size:.55rem;letter-spacing:.05em;font-weight:800;color:#475569;opacity:.4;transition:opacity .2s ease,filter .2s ease;cursor:pointer;user-select:none}
+.sport-mode-light i{font-size:.95rem}
+.sport-mode-light.active{opacity:1;color:var(--mode-color,#60a5fa);filter:drop-shadow(0 0 6px var(--mode-color,#60a5fa))}
+.sport-mode-light:hover{opacity:.75}
+@media(max-width:575.98px){
+ .sport-meter-shell{padding-left:0;padding-right:0}
+ .sport-readouts{grid-template-columns:repeat(2,1fr)}
+ .sport-dial{width:108%;margin-left:-4%}
+}
+
+.gmap-key-warning{border-radius:12px}
+.cat-row{display:flex;align-items:center;gap:.6rem;padding:.5rem 0;border-bottom:1px solid #eef2f7}
+.cat-row:last-child{border-bottom:0}
+.cat-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.05rem;flex:0 0 38px}
+.cat-bar{height:6px;border-radius:4px;background:#eef2f7;overflow:hidden;margin-top:4px}
+.cat-bar>span{display:block;height:100%;border-radius:4px}
+
+.speed-needle,.rpm-needle{transition:filter .25s ease;}
+/* Needle rotation center is already fixed at (100,110) via the SVG rotate() transform attribute
+   in buildMeterGauge()/animateAnalogNeedle() — no CSS transform-origin should be layered on top
+   of that, or the needle pivots around the wrong point and looks detached from the hub. */
+.needle-face,.rpm-needle-face{stroke:rgba(255,255,255,.75);stroke-width:.45;}
+.needle-shadow,.rpm-needle-shadow{opacity:.55;}
+.meter-needle-sweep .needle-face,.meter-needle-sweep .rpm-needle-face{filter:drop-shadow(0 0 3px rgba(255,255,255,.9));}
+.manual-km-note{font-size:.76rem;color:#64748b;}
+</style>
+
+<style id="meter-context-icons">
+.meter-context-icon{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:1.35em;height:1.35em;margin-right:.28em;vertical-align:-.18em;
+  border-radius:50%;font-size:.92em;line-height:1;
+}
+.sport-meter-top .meter-context-icon{font-size:1rem;margin-right:.35em}
+.sport-readout-label,.sport-sub span,.meter-stat-label{
+  display:flex;align-items:center;justify-content:center;gap:.2rem;
+}
+.meter-icon-title{display:inline-flex;align-items:center;gap:.35rem}
+.meter-icon-title i,.sport-readout-label i,.sport-sub span i,.meter-stat-label i{
+  opacity:.9;
+}
+.night-meter-mode .meter-context-icon,
+.night-meter-mode .meter-icon-title i,
+.night-meter-mode .sport-readout-label i,
+.night-meter-mode .sport-sub span i,
+.night-meter-mode .meter-stat-label i{
+  filter:drop-shadow(0 0 5px currentColor);
+}
+</style>
+<style id="night-meter-effects">
+/* Adaptive night illumination for the live vehicle meter */
+#liveMeterModal.night-meter-mode .modal-content,
+#liveMeterModal.night-meter-mode .sport-meter-shell,
+#liveMeterModal.night-meter-mode .meter-card{
+  background:radial-gradient(circle at 50% 35%,rgba(24,38,58,.96),rgba(4,8,14,.99) 72%) !important;
+  border-color:rgba(120,190,255,.30) !important;
+}
+#liveMeterModal.night-meter-mode .sport-meter-shell{
+  box-shadow:0 0 18px rgba(90,180,255,.16),inset 0 0 35px rgba(20,90,150,.10);
+}
+#liveMeterModal.night-meter-mode .sport-meter-brand,
+#liveMeterModal.night-meter-mode .sport-meter-top,
+#liveMeterModal.night-meter-mode .sport-dial,
+#liveMeterModal.night-meter-mode .meter-readout,
+#liveMeterModal.night-meter-mode .meter-card,
+#liveMeterModal.night-meter-mode .meter-stat,
+#liveMeterModal.night-meter-mode .meter-label,
+#liveMeterModal.night-meter-mode .meter-value{
+  text-shadow:0 0 7px rgba(120,205,255,.42);
+}
+#liveMeterModal.night-meter-mode .sport-dial{
+  box-shadow:0 0 12px rgba(50,170,255,.16), inset 0 0 24px rgba(20,110,190,.10);
+}
+#liveMeterModal.night-meter-mode .meter-led.on,
+#liveMeterModal.night-meter-mode .meter-led{
+  filter:drop-shadow(0 0 4px currentColor);
+}
+#liveMeterModal.night-meter-mode .meter-led.on{
+  animation:meterNightPulse 1.35s ease-in-out infinite;
+}
+#liveMeterModal.night-meter-mode .dial-progress,
+#liveMeterModal.night-meter-mode .rpm-progress,
+#liveMeterModal.night-meter-mode #meterValueArc{
+  filter:drop-shadow(0 0 5px currentColor) drop-shadow(0 0 11px currentColor);
+}
+#liveMeterModal.night-meter-mode .meter-needle,
+#liveMeterModal.night-meter-mode #meterNeedle,
+#liveMeterModal.night-meter-mode #meterRpmNeedle{
+  filter:drop-shadow(0 0 4px rgba(255,255,255,.9));
+}
+#liveMeterModal.night-meter-mode .meter-night-indicator{
+  display:inline-flex !important;
+}
+.meter-night-indicator{
+  display:none;align-items:center;gap:5px;font-size:.68rem;letter-spacing:.08em;
+  color:#9edcff;text-transform:uppercase;
+}
+.meter-night-indicator i{animation:nightLampPulse 1.8s ease-in-out infinite}
+@keyframes meterNightPulse{0%,100%{opacity:.72}50%{opacity:1;filter:drop-shadow(0 0 8px currentColor)}}
+@keyframes nightLampPulse{0%,100%{opacity:.55}50%{opacity:1;text-shadow:0 0 9px #8bd8ff}}
+@media (prefers-reduced-motion:reduce){
+ #liveMeterModal.night-meter-mode .meter-led.on,
+ #liveMeterModal.night-meter-mode .meter-night-indicator i{animation:none}
+}
+</style>
+<style id="classic-meter-styles">
+.classic-meter-shell{display:none;position:relative;margin:0 auto;max-width:760px;background:radial-gradient(ellipse at 50% 0%,#111827,#020617 70%);border-radius:26px;padding:12px 10px 10px;border:1px solid rgba(255,255,255,.07);box-shadow:inset 0 0 40px rgba(0,0,0,.6)}
+.classic-meter-shell.active{display:block}
+.classic-telltale-row{display:flex;justify-content:space-between;align-items:center;gap:3px;padding:2px 2px 8px;flex-wrap:nowrap;overflow-x:auto}
+.classic-telltale{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;color:#334155;background:rgba(255,255,255,.03);flex:0 0 auto}
+.classic-telltale.on{text-shadow:0 0 8px currentColor}
+.classic-gauges-row{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;margin-top:2px}
+.classic-gauge-block{display:flex;align-items:center;gap:4px;flex:1 1 240px;justify-content:center;max-width:300px}
+.classic-dial-col{display:flex;flex-direction:column;align-items:center;gap:3px}
+.classic-mini-label{font-size:.55rem;letter-spacing:.06em;color:#94a3b8;font-weight:800}
+.classic-mini-gauge{width:18px;height:110px;border-radius:10px;border:1.5px solid #334155;position:relative;background:linear-gradient(180deg,rgba(96,165,250,.10),rgba(2,6,23,.4));overflow:hidden}
+.classic-mini-fill{position:absolute;left:1px;right:1px;bottom:0;border-radius:9px;transition:height .4s ease;height:12%}
+.classic-mini-fill.temp{background:linear-gradient(180deg,#ef4444,#3b82f6)}
+.classic-mini-fill.fuel{background:linear-gradient(180deg,#facc15,#ef4444)}
+.classic-mini-needle{position:absolute;left:-3px;bottom:12%;width:0;height:0;border-top:5px solid transparent;border-bottom:5px solid transparent;border-left:7px solid #f8fafc;transition:bottom .4s ease;filter:drop-shadow(0 0 3px rgba(255,255,255,.6))}
+.classic-dial-wrap{position:relative;width:150px;max-width:42vw;aspect-ratio:1/1;margin:0 auto}
+.classic-dial-wrap svg{width:100%;height:100%;display:block;overflow:visible}
+.classic-dial-track{fill:none;stroke:#1e293b;stroke-width:9;stroke-linecap:round}
+.classic-dial-red{fill:none;stroke:#7f1d1d;stroke-width:9;stroke-linecap:round;opacity:.85}
+.classic-dial-tick{stroke:#475569;stroke-width:1}
+.classic-dial-tick.major{stroke:#cbd5e1;stroke-width:1.6}
+.classic-dial-number{fill:#e2e8f0;font-size:9px;font-weight:700;text-anchor:middle}
+.classic-needle{stroke:#ef4444;stroke-width:2.4;stroke-linecap:round;filter:drop-shadow(0 0 4px rgba(239,68,68,.7))}
+.classic-needle.speedo{stroke:#f8fafc;filter:drop-shadow(0 0 4px rgba(255,255,255,.6))}
+.classic-hub{fill:#0f172a;stroke:#64748b;stroke-width:1.2}
+.classic-digital-overlay,.classic-gear-overlay{position:absolute;left:50%;bottom:10%;transform:translateX(-50%);text-align:center;line-height:1.05}
+.classic-digital-value{font-family:'Courier New',monospace;font-weight:900;font-size:clamp(1.4rem,7vw,2rem);color:#f8fafc;text-shadow:0 0 12px rgba(96,165,250,.4)}
+.classic-digital-unit{font-size:.55rem;letter-spacing:.1em;color:#94a3b8;font-weight:800}
+.classic-gear-big{font-family:'Courier New',monospace;font-size:clamp(1.2rem,6vw,1.7rem);font-weight:900;color:#4ade80;text-shadow:0 0 10px rgba(74,222,128,.6)}
+.classic-gear-row{display:flex;justify-content:center;gap:6px;margin-top:2px;font-weight:800;font-size:.72rem;color:#475569}
+.classic-gear-row span.active{color:#4ade80;text-shadow:0 0 8px rgba(74,222,128,.7)}
+.classic-info-panel{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);border-radius:14px;padding:8px 10px;margin:8px 0;font-size:.74rem;color:#cbd5e1}
+.classic-info-top{display:flex;justify-content:space-between;align-items:center;font-size:.7rem;color:#7dd3fc}
+.classic-road{height:42px;border-radius:8px;margin:6px 0;background:linear-gradient(180deg,#0b1220,#111827);position:relative;overflow:hidden;display:flex;align-items:flex-end;justify-content:center}
+.classic-road::before{content:'';position:absolute;left:50%;top:0;bottom:0;width:2px;background:repeating-linear-gradient(180deg,#22c55e 0 8px,transparent 8px 16px);transform:translateX(-50%)}
+.classic-road i{font-size:1.1rem;color:#93c5fd;margin-bottom:4px;z-index:1}
+.classic-info-row{display:flex;justify-content:space-between;padding:2px 0;border-top:1px dashed rgba(255,255,255,.06)}
+.classic-info-row:first-child{border-top:0}
+.classic-info-row b{color:#f8fafc;font-weight:800}
+.classic-stat-bar{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:6px}
+@media(min-width:480px){.classic-stat-bar{grid-template-columns:repeat(5,1fr)}}
+.classic-stat{background:rgba(2,6,23,.4);border-radius:10px;padding:6px 4px;text-align:center}
+.classic-stat-label{font-size:.52rem;text-transform:uppercase;letter-spacing:.05em;color:#64748b;font-weight:800;display:flex;align-items:center;justify-content:center;gap:3px}
+.classic-stat-val{font-family:'Courier New',monospace;font-weight:800;font-size:.8rem;color:#f8fafc}
+.classic-control-bar{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:8px}
+.classic-mode-group,.classic-unit-group{display:inline-flex;background:rgba(255,255,255,.04);border-radius:20px;padding:3px;gap:2px}
+.classic-mode-btn{border:0;background:transparent;color:#94a3b8;font-size:.6rem;font-weight:800;letter-spacing:.03em;padding:5px 9px;border-radius:16px;transition:all .15s;cursor:pointer}
+.classic-mode-btn.active{background:#1d4ed8;color:#fff;box-shadow:0 0 10px rgba(29,78,216,.5)}
+.classic-gps-bars{display:inline-flex;align-items:flex-end;gap:1.5px;height:10px}
+.classic-gps-bars i{width:3px;background:#334155;border-radius:1px;display:inline-block}
+.classic-gps-bars i:nth-child(1){height:35%}.classic-gps-bars i:nth-child(2){height:55%}.classic-gps-bars i:nth-child(3){height:75%}.classic-gps-bars i:nth-child(4){height:100%}
+.classic-gps-bars i.on{background:#4ade80}
+.classic-tripb-row{display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.03);border-radius:12px;padding:6px 10px;margin-top:8px;font-size:.74rem;color:#cbd5e1}
+.classic-tripb-row button{font-size:.62rem;padding:3px 10px}
+@media(max-width:575.98px){
+ .classic-dial-wrap{width:120px}
+ .classic-mini-gauge{width:14px;height:88px}
+ .classic-dial-number{font-size:11px}
+}
+#liveMeterModal.night-meter-mode .classic-meter-shell{box-shadow:0 0 20px rgba(90,180,255,.14),inset 0 0 40px rgba(0,0,0,.7)}
+</style>
+</head>
+<body>
+<div id="loginScreen" class="login-wrap d-flex align-items-center justify-content-center p-3">
+  <div class="card login-card p-4 p-md-5">
+    <div class="text-center mb-4">
+      <div class="display-6 text-primary"><i class="bi bi-speedometer2"></i></div>
+      <h2 class="brand mb-1">SRD DriveLedger</h2>
+      <div class="muted">Daily Expenses • Vehicle • GPS Trips</div>
+    </div>
+    <div class="alert alert-info py-2"><i class="bi bi-info-circle"></i> Demo mode is enabled. No Google Sheet is required for testing.</div>
+    <label class="form-label">Username</label>
+    <input id="loginUser" class="form-control mb-3" value="demo">
+    <label class="form-label">Password</label>
+    <input id="loginPass" type="password" class="form-control mb-3" value="demo123">
+    <button id="loginBtn" class="btn btn-primary w-100 py-2"><i class="bi bi-box-arrow-in-right"></i> Sign in</button>
+    <div class="text-center mt-3 small text-muted">Demo admin: <b>admin</b> / <b>admin123</b><br>Demo subscriber: <b>demo</b> / <b>demo123</b></div><button id="resetDemoBtn" class="btn btn-sm btn-outline-secondary w-100 mt-3">Reset Demo Data</button>
+    <div class="text-center mt-4 footer">Powered by <b>SRD Sons Tech</b></div>
+  </div>
+</div>
+
+<div id="app" class="d-none">
+<div class="container-fluid">
+<div class="row">
+<aside id="sidebar" class="col-lg-2 sidebar p-3">
+  <button id="sidebarClose" class="btn-close btn-close-white d-lg-none position-absolute" style="top:1rem;right:1rem" aria-label="Close menu"></button>
+  <div class="d-flex align-items-center gap-2 mb-4"><i class="bi bi-geo-alt-fill fs-3 text-info"></i><div class="brand-text"><div class="brand">SRD DriveLedger</div><small class="text-secondary">SRD Sons Tech</small></div></div>
+  <div class="small text-uppercase text-secondary mb-2 workspace-label">Workspace</div>
+  <nav id="navUser" class="nav flex-column">
+    <a class="nav-link active" data-view="dashboard" title="Dashboard"><i class="bi bi-speedometer2 me-2"></i><span class="nav-label">Dashboard</span></a>
+    <a class="nav-link" data-view="expenses" title="Expenses"><i class="bi bi-receipt-cutoff me-2"></i><span class="nav-label">Expenses</span></a>
+    <a class="nav-link" data-view="vehicles" title="Vehicles"><i class="bi bi-car-front-fill me-2"></i><span class="nav-label">Vehicles</span></a>
+    <a class="nav-link" data-view="walking" title="Walking Profile"><i class="bi bi-person-walking me-2"></i><span class="nav-label">Walking Profile</span></a>
+    <a class="nav-link" data-view="trip" title="GPS Trip"><i class="bi bi-geo-alt-fill me-2"></i><span class="nav-label">GPS Trip</span></a>
+    <a class="nav-link" data-view="trips" title="Trip History"><i class="bi bi-clock-history me-2"></i><span class="nav-label">Trip History</span></a>
+    <a class="nav-link" data-view="reports" title="Reports"><i class="bi bi-bar-chart-fill me-2"></i><span class="nav-label">Reports</span></a>
+    <a class="nav-link" data-view="settings" title="Settings"><i class="bi bi-gear-fill me-2"></i><span class="nav-label">Settings</span></a>
+  </nav>
+  <nav id="navAdmin" class="nav flex-column d-none">
+    <div class="small text-uppercase text-secondary mt-3 mb-2 workspace-label">Master Admin</div>
+    <a class="nav-link" data-view="admin" title="Admin Console"><i class="bi bi-shield-lock-fill me-2"></i><span class="nav-label">Admin Console</span></a>
+  </nav>
+  <div class="mt-5 pt-5"><button id="logoutBtn" class="btn btn-outline-light w-100" title="Logout"><i class="bi bi-box-arrow-left"></i> <span class="nav-label btn-label">Logout</span></button></div>
+</aside>
+<div id="sidebarBackdrop" class="sidebar-backdrop d-lg-none"></div>
+
+<main class="col-lg-10 p-3 p-md-4">
+<header class="app-header d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <div class="d-flex align-items-center gap-2">
+    <button id="sidebarToggle" class="btn btn-light" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="sidebar" title="Toggle menu"><i class="bi bi-list fs-5"></i></button>
+    <div><h3 id="pageTitle" class="mb-1">Dashboard</h3><div class="muted small" id="welcome"></div></div>
+  </div>
+  <div class="d-flex gap-2 align-items-center"><span class="badge text-bg-success">Demo Mode</span><button class="btn btn-light" onclick="showView('settings')" title="Settings / Profile"><i class="bi bi-person-circle"></i></button></div>
+</header>
+
+<section id="dashboard" class="view active">
+ <div id="recoveryBanners"></div>
+ <div class="row g-3">
+  <div class="col-md-3"><div class="card p-3"><div class="muted">This Month Expense</div><div id="mExpense" class="metric">₹0</div><small class="text-success">All categories</small></div></div>
+  <div class="col-md-3"><div class="card p-3"><div class="muted">Distance</div><div id="mDistance" class="metric">0 km</div><small>Tracked trips</small></div></div>
+  <div class="col-md-3"><div class="card p-3"><div class="muted">Fuel Cost</div><div id="mFuel" class="metric">₹0</div><small>Estimated from mileage</small></div></div>
+  <div class="col-md-3"><div class="card p-3"><div class="muted">Active Vehicle</div><div id="mVehicle" class="metric">—</div><small>Selected vehicle</small></div></div>
+ </div>
+ <div class="row g-3 mt-1">
+  <div class="col-lg-7"><div class="card p-4"><div class="d-flex justify-content-between"><h5><i class="bi bi-receipt-cutoff me-2"></i>Recent Expenses</h5><button class="btn btn-sm btn-primary" onclick="showView('expenses')">Add expense</button></div><div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Date</th><th>Category</th><th>Note</th><th class="text-end">Amount</th></tr></thead><tbody id="recentExpenses"></tbody></table></div></div></div>
+  <div class="col-lg-5"><div class="card p-4"><h5><i class="bi bi-pie-chart-fill me-2"></i>Expenses by Category</h5><div class="muted small mb-2">Auto-calculated from every recorded expense</div><div id="categoryBreakdown"></div><div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top"><b>Total (all categories)</b><b id="categoryTotal" class="fs-5">₹0</b></div></div></div>
+ </div>
+ <div class="row g-3 mt-1">
+  <div class="col-12"><div class="card p-4"><h5><i class="bi bi-lightning-charge-fill me-2"></i>Quick Start</h5><div class="row g-2 mt-1"><div class="col-md-4"><button class="btn btn-outline-primary text-start w-100" onclick="showView('trip')"><i class="bi bi-play-circle me-2"></i>Start GPS trip</button></div><div class="col-md-4"><button class="btn btn-outline-primary text-start w-100" onclick="showView('expenses')"><i class="bi bi-plus-circle me-2"></i>Record expense</button></div><div class="col-md-4"><button class="btn btn-outline-primary text-start w-100" onclick="showView('vehicles')"><i class="bi bi-car-front me-2"></i>Add vehicle</button></div></div><hr><small class="muted">GPS uses your browser/device location permission and Google Maps. Keep this page active during a trip for the most reliable tracking.</small></div></div>
+ </div>
+</section>
+
+<section id="expenses" class="view">
+<div class="card p-4">
+ <div class="d-flex justify-content-between align-items-center mb-3"><h5 class="mb-0"><i class="bi bi-receipt-cutoff me-2"></i>Daily Expense Tracker</h5><button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#expenseModal"><i class="bi bi-plus"></i> Add Expense</button></div>
+ <div class="row g-2 mb-3"><div class="col-md-3"><input id="expenseSearch" class="form-control" placeholder="Search"></div><div class="col-md-3"><select id="expenseFilter" class="form-select"><option value="">All categories</option><option>Fuel</option><option>Food</option><option>Repair</option><option>Toll</option><option>Parking</option><option>Other</option></select></div></div>
+ <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Date</th><th>Category</th><th>Vehicle</th><th>Note</th><th>Payment</th><th class="text-end">Amount</th><th></th></tr></thead><tbody id="expenseRows"></tbody></table></div>
+</div></section>
+
+<section id="vehicles" class="view">
+<div class="card p-4"><div class="d-flex justify-content-between align-items-center mb-3"><h5 class="mb-0"><i class="bi bi-car-front-fill me-2"></i>Vehicle Master</h5><button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#vehicleModal"><i class="bi bi-plus"></i> Add Vehicle</button></div>
+<div class="alert alert-light border"><i class="bi bi-calculator me-2"></i> Fuel cost formula: <b>Distance ÷ Mileage × Fuel Rate</b>. Set the actual local fuel rate and vehicle efficiency below.</div>
+<div class="table-responsive"><table class="table align-middle"><thead><tr><th>Vehicle</th><th>Type</th><th>Fuel</th><th>Mileage</th><th>Rate</th><th>Status</th><th></th></tr></thead><tbody id="vehicleRows"></tbody></table></div></div></section>
+
+<section id="walking" class="view">
+<div class="row g-3">
+<div class="col-lg-5">
+<div class="card p-4">
+ <div class="d-flex justify-content-between align-items-center mb-3"><h5 class="mb-0"><i class="bi bi-person-walking me-2"></i>Walking Profiles</h5><button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#walkerModal"><i class="bi bi-plus"></i> Add Profile</button></div>
+ <div class="alert alert-light border small"><i class="bi bi-calculator me-2"></i> Steps are estimated from GPS distance and an age-based stride length; calories use your weight and walking pace (MET method). These are estimates, not medical-grade measurements.</div>
+ <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Name</th><th>Age</th><th>Weight</th><th>Status</th><th></th></tr></thead><tbody id="walkerRows"></tbody></table></div>
+</div>
+</div>
+<div class="col-lg-7">
+<div class="card p-4">
+ <div class="d-flex justify-content-between align-items-center flex-wrap gap-2"><h5 class="mb-0"><i class="bi bi-person-walking me-1"></i> Live Walk Tracker</h5><span id="walkGpsStatus"><span class="gps-dot"></span> GPS idle</span></div>
+ <div class="row g-2 mt-2">
+  <div class="col-md-8"><label class="form-label">Walking profile</label><select id="tripWalker" class="form-select"></select></div>
+  <div class="col-md-4"><label class="form-label">Note</label><input id="walkPurpose" class="form-control" placeholder="Morning walk"></div>
+ </div>
+ <div id="walkPausedBanner" class="paused-banner mt-2 d-none"><i class="bi bi-pause-circle"></i> Auto-paused — no movement detected. Tracking will resume automatically as soon as you start moving again.</div>
+ <div id="walkPermissionBox" class="alert alert-primary mt-3">
+   <div class="d-flex gap-2">
+     <i class="bi bi-shield-check fs-3"></i>
+     <div>
+       <b>Location Tracking Permission</b>
+       <div class="small mt-1">Your browser will show the location prompt the moment you press “Start Walk” below.</div>
+       <div class="mt-2"><span class="badge text-bg-secondary" id="walkPermissionState">Not Requested</span></div>
+     </div>
+   </div>
+   <div class="d-flex flex-wrap gap-2 mt-3">
+     <button id="walkPermissionBtn" class="btn btn-outline-primary btn-sm"><i class="bi bi-geo-alt-fill"></i> Grant Location Access Now (optional)</button>
+   </div>
+ </div>
+ <div class="alert alert-warning gmap-key-warning d-none mt-3 small gmap-key-warning-walk"><i class="bi bi-exclamation-triangle-fill me-1"></i> Add a Google Maps API key in <a href="#" onclick="showView('settings');return false;">Settings</a> to show the live map.</div>
+ <div id="walkMap" class="mt-3"></div>
+ <div id="walkGpsInfo" class="small muted mt-2">Location permission has not been requested.</div>
+ <div class="row text-center mt-3">
+  <div class="col-4"><div class="metric" id="walkKm">0.00</div><small class="muted">KM</small></div>
+  <div class="col-4"><div class="metric" id="walkTime">00:00</div><small class="muted">Moving Time</small></div>
+  <div class="col-4"><div class="metric" id="walkSpeed">0.0</div><small class="muted">Speed km/h</small></div>
+ </div>
+ <div class="row text-center mt-2">
+  <div class="col-6"><div class="metric" id="walkSteps">0</div><small class="muted">Steps</small></div>
+  <div class="col-6"><div class="metric" id="walkCalories">0</div><small class="muted">Calories (kcal)</small></div>
+ </div>
+ <div class="d-flex gap-2 mt-4">
+  <button id="startWalk" class="btn btn-success flex-fill"><i class="bi bi-play-fill"></i> Start Walk</button>
+  <button id="walkPauseBtn" class="btn btn-warning flex-fill" disabled><i class="bi bi-pause-fill"></i> Pause</button>
+  <button id="stopWalk" class="btn btn-danger flex-fill" disabled><i class="bi bi-stop-fill"></i> Stop &amp; Save</button>
+ </div>
+</div>
+</div>
+</div>
+
+<div class="card p-4 mt-3">
+ <h5><i class="bi bi-clock-history me-2"></i>Walk History</h5>
+ <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Date</th><th>Walker</th><th>Note</th><th>Distance</th><th>Duration</th><th>Steps</th><th>Calories</th></tr></thead><tbody id="walkRows"></tbody></table></div>
+</div>
+</section>
+
+<section id="trip" class="view">
+<div class="row g-3"><div class="col-lg-7"><div class="card p-4">
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2"><h5 class="mb-0">Live GPS Trip</h5><span id="gpsStatus"><span class="gps-dot"></span> GPS idle</span></div>
+<div class="row g-2 mt-2">
+ <div class="col-md-6"><label class="form-label">Vehicle</label><select id="tripVehicle" class="form-select"></select></div>
+ <div class="col-md-6"><label class="form-label">Purpose</label><input id="tripPurpose" class="form-control" placeholder="Delivery / personal / field work"></div>
+</div>
+<div id="pausedBanner" class="paused-banner mt-2 d-none"><i class="bi bi-pause-circle"></i> Auto-paused — no movement detected. Tracking will resume automatically as soon as you start moving again.</div>
+<div id="permissionBox" class="alert alert-primary mt-3">
+  <div class="d-flex gap-2">
+    <i class="bi bi-shield-check fs-3"></i>
+    <div>
+      <b>Location Tracking Permission</b>
+      <div class="small mt-1">
+        SRD DriveLedger will ask your browser for location access to calculate the distance travelled,
+        vehicle mileage and estimated fuel cost for this trip.
+      </div>
+      <div class="small mt-2"><b>Your browser will show the location prompt the moment you press “Start Trip” below — nothing is tracked before that.</b></div>
+      <div class="small mt-2 text-muted"><i class="bi bi-info-circle me-1"></i>To keep tracking running while you switch apps: keep this tab open (a screen wake-lock is requested automatically so the phone won't sleep) and, on Android, use "Add to Home screen" for the steadiest background behaviour. Locking the screen or fully closing the browser can still pause GPS updates — that's a phone/browser limit that applies to every website, not just this one. Whatever distance was recorded right up to that point is always saved automatically, so nothing is lost.</div>
+      <div class="mt-2"><span class="badge text-bg-secondary" id="permissionState">Not Requested</span></div>
+    </div>
+  </div>
+  <div class="d-flex flex-wrap gap-2 mt-3">
+    <button id="permissionBtn" class="btn btn-outline-primary btn-sm"><i class="bi bi-geo-alt-fill"></i> Grant Location Access Now (optional)</button>
+    <button id="retryLocationBtn" class="btn btn-outline-primary d-none"><i class="bi bi-arrow-repeat"></i> Check Again</button>
+  </div>
+  <div id="browserAskStatus" class="small border rounded p-2 mt-3 bg-white">
+    <i class="bi bi-browser-chrome"></i>
+    <b>Browser location permission:</b>
+    <span id="browserAskText">Ask first — the browser can request your location.</span>
+    <span id="browserPermissionBadge" class="badge text-bg-secondary ms-1">ASK FIRST</span>
+  </div>
+  <div id="locationHelp" class="mt-3 d-none">
+    <div class="card border-0 bg-light">
+      <div class="card-body py-3">
+        <div class="fw-semibold mb-2"><i class="bi bi-gear"></i> Enable location for this website</div>
+        <div class="small mb-2">If you previously selected <b>Block</b>, the browser may not show the permission popup again. Use the browser's site permission/settings for this website, allow <b>Location</b>, then return here and tap <b>Check Again</b>.</div>
+        <ul class="small mb-0 ps-3">
+          <li><b>Chrome / Edge:</b> open the site → tap/click the lock or site-controls icon near the address bar → Site permissions / Permissions → Location → Allow → reload or Check Again.</li>
+          <li><b>Firefox:</b> open the site → site information/lock icon → Permissions → Location → Allow → reload or Check Again.</li>
+          <li><b>Safari:</b> use Safari website settings / Website Settings → Location → Allow, then return to this page.</li>
+          <li><b>Android/iPhone:</b> if the browser itself has location disabled, enable Location permission for the browser in the phone's app/privacy settings first.</li>
+        </ul>
+        <div class="small text-muted mt-2"><i class="bi bi-shield-check"></i> The website cannot silently change browser or device permissions. You remain in control.</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="alert alert-warning gmap-key-warning d-none mt-3 small gmap-key-warning-trip"><i class="bi bi-exclamation-triangle-fill me-1"></i> Add a Google Maps API key in <a href="#" onclick="showView('settings');return false;">Settings</a> to show the live map.</div>
+<div id="tripMap" class="mt-3"></div>
+<div id="gpsInfo" class="small muted mt-2">Location permission has not been requested.</div>
+
+<div class="row text-center mt-3">
+ <div class="col-4"><div class="metric" id="tripKm">0.00</div><small class="muted">Total KM</small></div>
+ <div class="col-4"><div class="metric" id="tripTime">00:00</div><small class="muted">Moving Time</small></div>
+ <div class="col-4"><div class="metric" id="tripSpeed">0.0</div><small class="muted">Speed km/h</small></div>
+</div>
+<div class="row text-center mt-2">
+ <div class="col-4"><div class="metric" id="tripFuel">0.00</div><small class="muted">Est. Fuel L</small></div>
+ <div class="col-4"><div class="metric" id="tripCost">₹0</div><small class="muted">Est. Fuel Cost</small></div>
+ <div class="col-4"><div class="metric" id="tripFuelAdded">₹0</div><small class="muted">Fuel Purchased</small></div>
+</div>
+
+<div id="fuelAddBox" class="border rounded p-3 mt-3 d-none">
+ <div class="d-flex justify-content-between align-items-center"><b class="small"><i class="bi bi-fuel-pump"></i> Add fuel to this trip</b></div>
+ <div class="row g-2 mt-1">
+  <div class="col-5"><input id="fuelLiters" type="number" min="0" step="0.01" class="form-control form-control-sm" placeholder="Litres/kWh"></div>
+  <div class="col-5"><input id="fuelCost" type="number" min="0" step="0.01" class="form-control form-control-sm" placeholder="Amount ₹"></div>
+  <div class="col-2"><button class="btn btn-sm btn-primary w-100" id="addFuelBtn"><i class="bi bi-plus"></i></button></div>
+ </div>
+ <div id="fuelLogList" class="mt-2"></div>
+</div>
+
+<div class="d-flex gap-2 mt-4">
+ <button id="startTrip" class="btn btn-success flex-fill"><i class="bi bi-play-fill"></i> Start Trip</button>
+ <button id="tripPauseBtn" class="btn btn-warning flex-fill" disabled><i class="bi bi-pause-fill"></i> Pause</button>
+ <button id="stopTrip" class="btn btn-danger flex-fill" disabled><i class="bi bi-stop-fill"></i> Stop &amp; Save</button>
+</div>
+<div class="d-flex gap-2 mt-2">
+ <button class="btn btn-outline-primary flex-fill" onclick="openManualKmModal()"><i class="bi bi-signpost-2"></i> Add Missed KM</button>
+</div>
+</div></div>
+<div class="col-lg-5"><div class="card p-4"><h5><i class="bi bi-info-circle me-2"></i>How it works</h5><ol class="small mt-3"><li>Choose your vehicle.</li><li>Allow browser location permission once.</li><li>Press Start Trip — the app accumulates GPS distance automatically.</li><li>If you stop moving, tracking auto-pauses; it resumes by itself the moment you move again.</li><li>You can log fuel top-ups mid-trip and the totals update instantly.</li><li>Stop to save the trip with its distance and fuel cost breakdown.</li></ol>
+<div class="alert alert-warning small mb-2">Browser GPS accuracy varies from device to device.</div>
+<div class="alert alert-info small mb-0"><i class="bi bi-info-circle"></i> <b>Keeping the trip running in the background:</b> this app requests a screen wake-lock and keeps listening for GPS updates while the tab is open, even if minimized briefly. However, phone browsers (especially Chrome/Safari on mobile) can pause JavaScript entirely once the screen locks or the browser is fully closed — that's an OS-level restriction no website can override. For uninterrupted long trips, keep the screen on and the tab open, or add this page to your home screen and keep it in the foreground.</div>
+</div></div></div>
+</section>
+
+<section id="trips" class="view"><div class="card p-4"><h5><i class="bi bi-clock-history me-2"></i>Trip History</h5><div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Date</th><th>Vehicle</th><th>Purpose</th><th>Distance</th><th>Est. Fuel</th><th>Est. Fuel Cost</th><th>Fuel Purchased</th></tr></thead><tbody id="tripRows"></tbody></table></div></div></section>
+
+<section id="reports" class="view"><div class="row g-3"><div class="col-md-6"><div class="card p-4"><h5><i class="bi bi-cash-stack me-2"></i>Expense Summary</h5><div id="reportExpense"></div></div></div><div class="col-md-6"><div class="card p-4"><h5><i class="bi bi-car-front-fill me-2"></i>Vehicle Running Summary</h5><div id="reportVehicle"></div></div></div></div></section>
+
+<section id="settings" class="view"><div class="card p-4"><h5><i class="bi bi-gear-fill me-2"></i>Settings</h5><div class="row g-3 mt-1"><div class="col-md-6"><label class="form-label">Default petrol rate (₹/L)</label><input id="defaultRate" type="number" class="form-control"></div><div class="col-md-6"><label class="form-label">Currency</label><input class="form-control" value="INR (₹)" disabled></div>
+<div class="col-12"><label class="form-label">Google Maps API Key</label><input id="gmapsKey" class="form-control" placeholder="Paste your Google Maps JavaScript API key">
+<button type="button" class="btn btn-outline-secondary btn-sm mt-2" onclick="testMapsKey()"><i class="bi bi-check2-circle"></i> Test this key</button>
+<div id="gmapsKeyTestResult" class="small mt-2"></div>
+<div class="small muted mt-2">
+ If the map stays blank after saving a key, it's almost always one of these — all fixed in <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud Console</a>:
+ <ol class="mt-1 mb-0 ps-3">
+  <li><b>Billing not enabled</b> on the project (required even for the free monthly credit).</li>
+  <li><b>Maps JavaScript API</b> and <b>Places API</b> not enabled for the project.</li>
+  <li>The key has an <b>HTTP-referrer restriction</b> that doesn't include this page's address — if you're testing by double-clicking the file (a <code>file://</code> address) or from a new hosting domain, either remove the restriction while testing or add that exact address to the allowed list.</li>
+  <li>A typo or extra space pasted into the key field.</li>
+ </ol>
+</div>
+</div>
+<div class="col-12">
+ <div class="form-check form-switch">
+   <input class="form-check-input" type="checkbox" id="autoTripToggle" checked>
+   <label class="form-check-label" for="autoTripToggle"><b>Auto-detect trips &amp; walks</b></label>
+ </div>
+ <div class="small muted mt-1">Once you grant location access, tracking starts on its own as soon as you start moving — no need to tap Start. If you go quiet for 20 minutes, the trip/walk is automatically saved so nothing is ever lost, even if you forget to press Stop.</div>
+</div>
+<div class="col-12"><button class="btn btn-primary" onclick="saveSettings()">Save Settings</button></div></div><hr><h6>Google Sheets Production Mode</h6><p class="small muted">Paste your deployed Google Apps Script Web App URL in the backend configuration when moving from Demo Mode.</p></div></section>
+
+<section id="admin" class="view"><div class="card p-4"><div class="d-flex justify-content-between"><div><h5><i class="bi bi-shield-lock-fill me-2"></i>Master Admin Console</h5><div class="muted small">Subscriber authentication and plan control</div></div><button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#userModal"><i class="bi bi-person-plus"></i> Create Subscriber</button></div>
+<div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Business</th><th>Username</th><th>Plan</th><th>Expiry</th><th>Status</th><th></th></tr></thead><tbody id="userRows"></tbody></table></div>
+</div></section>
+
+<div class="text-center mt-4 footer">© 2026 SRD Sons Tech • SRD DriveLedger • Demo application</div>
+</main></div></div></div>
+
+<!-- Expense Modal -->
+<div class="modal fade" id="expenseModal"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5>Add Expense</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><label class="form-label">Date</label><input id="eDate" type="date" class="form-control mb-2"><label class="form-label">Category</label><select id="eCat" class="form-select mb-2"><option>Fuel</option><option>Food</option><option>Repair</option><option>Toll</option><option>Parking</option><option>Other</option></select><label class="form-label">Vehicle</label><select id="eVehicle" class="form-select mb-2"></select><label class="form-label">Amount</label><input id="eAmount" type="number" min="0" class="form-control mb-2"><label class="form-label">Payment</label><select id="ePayment" class="form-select mb-2"><option>Cash</option><option>UPI</option><option>Card</option><option>Bank</option></select><label class="form-label">Note</label><input id="eNote" class="form-control"></div><div class="modal-footer"><button class="btn btn-primary" onclick="addExpense()">Save</button></div></div></div></div>
+<!-- Vehicle Modal -->
+<div class="modal fade" id="vehicleModal"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5>Add Vehicle</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input id="vName" class="form-control mb-2" placeholder="Vehicle name/number"><select id="vType" class="form-select mb-2"><option>Two Wheeler</option><option>Three Wheeler</option><option>Car</option><option>Pickup</option><option>Truck</option><option>Bus</option><option>Other</option></select><select id="vFuel" class="form-select mb-2"><option>Petrol</option><option>Diesel</option><option>CNG</option><option>EV</option></select><label class="form-label">Mileage / Efficiency</label><input id="vMileage" type="number" min="0.1" step="0.1" class="form-control mb-2" placeholder="km per litre (or km/kWh)"><label class="form-label">Fuel/Energy Rate ₹</label><input id="vRate" type="number" min="0" step="0.01" class="form-control"></div><div class="modal-footer"><button class="btn btn-primary" onclick="addVehicle()">Save Vehicle</button></div></div></div></div>
+<!-- Walker Modal -->
+<div class="modal fade" id="walkerModal"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5>Add Walking Profile</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><label class="form-label">Name</label><input id="wName" class="form-control mb-2" placeholder="Name"><label class="form-label">Age</label><input id="wAge" type="number" min="1" max="120" class="form-control mb-2" placeholder="Age (years)"><label class="form-label">Weight</label><input id="wWeight" type="number" min="1" step="0.1" class="form-control" placeholder="Weight (kg)"></div><div class="modal-footer"><button class="btn btn-primary" onclick="addWalker()">Save Profile</button></div></div></div></div>
+<!-- User Modal -->
+<div class="modal fade" id="userModal"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5>Create Subscriber</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input id="uBusiness" class="form-control mb-2" placeholder="Business name"><input id="uName" class="form-control mb-2" placeholder="Username"><input id="uPass" class="form-control mb-2" placeholder="Temporary password"><select id="uPlan" class="form-select mb-2"><option>Starter</option><option>Professional</option><option>Enterprise</option></select><select id="uStatus" class="form-select"><option>Active</option><option>Pending</option></select></div><div class="modal-footer"><button class="btn btn-primary" onclick="addUser()">Create</button></div></div></div></div>
+
+<!-- Live Meter Modal: digital + analog speedometer shown on Start / Pause / Resume -->
+<div class="modal fade" id="manualKmModal" tabindex="-1" aria-hidden="true">
+ <div class="modal-dialog modal-dialog-centered">
+  <div class="modal-content">
+   <div class="modal-header"><h5 class="modal-title"><i class="bi bi-signpost-2 me-2"></i>Add Missed KM</h5><button class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+   <div class="modal-body">
+    <div class="alert alert-info py-2 small"><i class="bi bi-info-circle me-1"></i>Use this when you forgot to start GPS tracking. The distance will be added to ODO and to the distance travelled since the latest fuel entry.</div>
+    <label class="form-label">Vehicle</label><select id="manualKmVehicle" class="form-select mb-2"></select>
+    <label class="form-label">Distance travelled (KM)</label><input id="manualKmValue" type="number" min="0.01" step="0.01" class="form-control mb-2" placeholder="e.g. 37.5">
+    <label class="form-label">Date</label><input id="manualKmDate" type="date" class="form-control mb-2">
+    <label class="form-label">Note</label><input id="manualKmNote" class="form-control" placeholder="Forgot to start trip / travelled before GPS start">
+    <div class="manual-km-note mt-2"><i class="bi bi-calculator me-1"></i>Calculations update automatically after saving.</div>
+   </div>
+   <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" onclick="saveManualKm()"><i class="bi bi-check2-circle me-1"></i>Add KM</button></div>
+  </div>
+ </div>
+</div>
+<div class="modal fade" id="liveMeterModal" tabindex="-1" data-bs-backdrop="static">
+ <div class="modal-dialog modal-dialog-centered">
+  <div class="modal-content meter-modal-content">
+   <div class="modal-header border-0 pb-0">
+    <h5 class="modal-title mb-0" id="meterTitle"><i class="bi bi-speedometer2 me-2"></i>Live Meter</h5>
+    <div class="d-flex align-items-center gap-2">
+     <div class="btn-group btn-group-sm" role="group" aria-label="Meter style">
+      <button type="button" class="btn btn-outline-light active" id="meterStyleSportBtn" onclick="setMeterStyle('sport')" title="Digital sport cluster"><i class="bi bi-speedometer2"></i> <span class="btn-label">Sport</span></button>
+      <button type="button" class="btn btn-outline-light" id="meterStyleClassicBtn" onclick="setMeterStyle('classic')" title="Classic analog cluster"><i class="bi bi-circle-half"></i> <span class="btn-label">Classic</span></button>
+     </div>
+     <button type="button" class="btn btn-sm btn-outline-light meter-fullscreen-btn" id="meterFullscreenBtn" onclick="toggleMeterFullscreen()" title="Show meter full screen"><i class="bi bi-fullscreen"></i> <span class="btn-label">Full Screen</span></button><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close meter"></button></div>
+   </div>
+   <div class="modal-body text-center pt-2">
+    <div class="sport-meter-shell">
+     <div class="sport-meter-top">
+      <span class="sport-meter-brand">SRD DRIVELEDGER • SPORT CLUSTER</span>
+      <span id="meterGear" class="sport-meter-gear"><i id="meterVehicleIcon" class="bi bi-speedometer2 meter-context-icon"></i><span id="meterGearText">READY</span></span>
+     </div>
+     <div class="mb-1"><span id="meterStatusBadge" class="badge text-bg-success">Tracking</span> <span class="meter-night-indicator" id="meterNightIndicator"><i class="bi bi-moon-stars-fill"></i> Night</span></div>
+     <div id="meterModeRow" class="sport-mode-row d-none"></div>
+     <div class="sport-dial">
+      <svg id="meterGaugeSvg" viewBox="0 0 200 128" aria-label="Animated vehicle speedometer and RPM gauge"></svg>
+      <div class="sport-digital">
+       <div id="meterDigital" class="sport-digital-speed">0</div>
+       <div class="sport-digital-unit">KM/H</div>
+       <div id="meterRpmLive" class="sport-rpm-live">0 RPM</div>
+      </div>
+      <div id="meterGearPill" class="sport-gear-pill" title="Automatic gear — shifts with speed">N</div>
+     </div>
+     <div class="w-100 small text-secondary text-center" style="font-size:.62rem;opacity:.75">Automatic transmission — gear shifts on its own as speed changes. Tap a drive mode above to change shift behaviour.</div>
+     <div id="meterLeds" class="sport-led-row"></div>
+     <div class="sport-readouts">
+      <div class="sport-readout"><div class="sport-readout-label"><i class="bi bi-speedometer2"></i> ODO</div><div class="sport-readout-value" id="meterOdo">0.0 km</div></div>
+      <div class="sport-readout"><div class="sport-readout-label"><i class="bi bi-signpost-split"></i> Trip</div><div class="sport-readout-value" id="meterTrip">0.00 km</div></div>
+      <div class="sport-readout"><div class="sport-readout-label"><i class="bi bi-activity"></i> Avg</div><div class="sport-readout-value" id="meterAvg">0.0 km/h</div></div>
+      <div class="sport-readout"><div class="sport-readout-label"><i class="bi bi-graph-up-arrow"></i> Max</div><div class="sport-readout-value" id="meterMax">0.0 km/h</div></div>
+     </div>
+     <div class="sport-subgrid">
+      <div class="sport-sub"><b id="meterMileage">--</b><span><i class="bi bi-speedometer"></i> Live Mileage</span><div class="sport-eco"><i id="meterEcoBar"></i></div></div>
+      <div class="sport-sub"><b id="meterFuel">--</b><span><i class="bi bi-fuel-pump"></i> Fuel Used</span></div>
+      <div class="sport-sub"><b id="meterRange">--</b><span><i class="bi bi-signpost"></i> Est. Range</span></div>
+     </div>
+     <div id="meterMap"></div>
+     <div class="row g-2 mt-2 meter-stats mx-0">
+      <div class="col-3"><div class="meter-stat-label"><i class="bi bi-stopwatch"></i> Time</div><div class="meter-stat-val" id="meterTime">00:00</div></div>
+      <div class="col-3"><div class="meter-stat-label"><i class="bi bi-arrow-repeat"></i> RPM</div><div class="meter-stat-val" id="meterRpm">0</div></div>
+      <div class="col-3"><div class="meter-stat-label"><i class="bi bi-currency-rupee"></i> Fuel Cost</div><div class="meter-stat-val" id="meterCost">--</div></div>
+      <div class="col-3"><div class="meter-stat-label"><i class="bi bi-geo-alt"></i> GPS Accuracy</div><div class="meter-stat-val" id="meterVal8">--</div></div>
+     </div>
+     <!-- Existing IDs retained for compatibility with the current application logic. -->
+     <span id="meterDistance" class="d-none"></span>
+     <span id="meterVal4" class="d-none"></span><span id="meterVal6" class="d-none"></span><span id="meterVal7" class="d-none"></span>
+     <span id="meterLabel4" class="d-none">Live Mileage</span><span id="meterLabel6" class="d-none">Fuel Used</span><span id="meterLabel7" class="d-none">Fuel Cost</span>
+    </div>
+    <div class="classic-meter-shell" id="classicMeterShell">
+     <div class="classic-telltale-row" id="classicTopTelltales"></div>
+     <div class="classic-gauges-row">
+      <div class="classic-gauge-block">
+       <div class="classic-dial-col"><span class="classic-mini-label">H</span><div class="classic-mini-gauge"><div class="classic-mini-fill temp" id="classicTempFill"></div><div class="classic-mini-needle" id="classicTempNeedle"></div></div><span class="classic-mini-label">C</span></div>
+       <div class="classic-dial-wrap"><svg id="classicTachSvg" viewBox="0 0 200 200" aria-label="RPM gauge"></svg>
+        <div class="classic-gear-overlay"><div class="classic-gear-big" id="classicGearBig">N</div><div class="classic-gear-row" id="classicGearRow"><span data-g="P">P</span><span data-g="R">R</span><span data-g="N" class="active">N</span><span data-g="D">D</span></div></div>
+       </div>
+      </div>
+      <div class="classic-gauge-block">
+       <div class="classic-dial-wrap"><svg id="classicSpeedoSvg" viewBox="0 0 200 200" aria-label="Speedometer gauge"></svg>
+        <div class="classic-digital-overlay"><div class="classic-digital-value" id="classicSpeedDigital">0</div><div class="classic-digital-unit" id="classicSpeedUnit">KM/H</div></div>
+       </div>
+       <div class="classic-dial-col"><span class="classic-mini-label">F</span><div class="classic-mini-gauge"><div class="classic-mini-fill fuel" id="classicFuelFill"></div><div class="classic-mini-needle" id="classicFuelNeedle"></div></div><span class="classic-mini-label">E</span></div>
+      </div>
+     </div>
+     <div class="classic-info-panel">
+      <div class="classic-info-top"><span><i class="bi bi-geo-alt-fill"></i> GPS <span class="classic-gps-bars" id="classicGpsBars"><i></i><i></i><i></i><i></i></span></span><span id="classicClockTime">--:--</span></div>
+      <div class="classic-road"><i class="bi bi-car-front-fill"></i></div>
+      <div id="classicInfoBody"></div>
+     </div>
+     <div class="classic-stat-bar" id="classicStatBar"></div>
+     <div class="classic-control-bar">
+      <div class="classic-mode-group" id="classicModeGroup">
+       <button type="button" class="classic-mode-btn active" data-mode="drive" onclick="setClassicPanelMode('drive')">DRIVE</button>
+       <button type="button" class="classic-mode-btn" data-mode="trip" onclick="setClassicPanelMode('trip')">TRIP</button>
+       <button type="button" class="classic-mode-btn" data-mode="economy" onclick="setClassicPanelMode('economy')">ECONOMY</button>
+       <button type="button" class="classic-mode-btn" data-mode="range" onclick="setClassicPanelMode('range')">RANGE</button>
+      </div>
+      <div class="classic-unit-group" id="classicUnitGroup">
+       <button type="button" class="classic-mode-btn active" data-u="kmh" onclick="setClassicUnit('kmh')">KM/H</button>
+       <button type="button" class="classic-mode-btn" data-u="mph" onclick="setClassicUnit('mph')">MPH</button>
+      </div>
+     </div>
+     <div class="classic-tripb-row"><span><i class="bi bi-signpost-split"></i> Trip B: <b id="classicTripB">0.0 km</b></span><button type="button" class="btn btn-sm btn-outline-light" onclick="resetTripB()">Reset</button></div>
+     <div class="classic-telltale-row" id="classicBottomTelltales"></div>
+    </div>
+   </div>
+   <div class="modal-footer border-0 justify-content-center gap-2 pt-0">
+    <button class="btn btn-outline-primary" onclick="openManualKmModal()"><i class="bi bi-signpost-2"></i> Add Missed KM</button><button class="btn btn-warning" id="meterPauseBtn" onclick="toggleMeterPause()"><i class="bi bi-pause-fill"></i> Pause</button>
+    <button class="btn btn-danger" id="meterStopBtn" onclick="stopFromMeter()"><i class="bi bi-stop-fill"></i> Stop &amp; Save</button><div class="w-100 small text-secondary text-center mt-1">RPM is a speed/GPS-based estimate; true engine RPM requires OBD/CAN data. Range is calculated automatically from recorded fuel expenses, vehicle mileage and tracked distance.</div><div class="w-100 meter-background-status justify-content-center mt-1"><i class="bi bi-broadcast-pin"></i> Background tracking: best-effort browser/OS support • screen wake lock active when supported</div>
+   </div>
+  </div>
+ </div>
+</div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:2000">
+ <div id="gearToast" class="toast align-items-center text-bg-warning border-0" role="alert" aria-live="assertive" aria-atomic="true">
+  <div class="d-flex">
+   <div class="toast-body" id="gearToastBody"></div>
+   <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+  </div>
+ </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const KEY='srd_driveledger_demo_v1';
+const DEMO_DEFAULTS={
+ settings:{rate:105,gmapsKey:'',autoTrip:true},
+ vehicles:[
+  {id:1,name:'MH-31 AB 1234',type:'Two Wheeler',fuel:'Petrol',mileage:45,rate:105,active:true},
+  {id:2,name:'MH-31 XY 5678',type:'Three Wheeler',fuel:'CNG',mileage:28,rate:92,active:true}
+ ],
+ walkers:[
+  {id:1,name:'Demo User',age:30,weight:70,active:true}
+ ],
+ expenses:[
+  {id:1,date:new Date().toISOString().slice(0,10),cat:'Fuel',vehicleId:1,note:'Demo fuel',payment:'UPI',amount:500},
+  {id:2,date:new Date().toISOString().slice(0,10),cat:'Toll',vehicleId:1,note:'Highway toll',payment:'Cash',amount:120}
+ ],
+ trips:[],
+ walks:[],
+ users:[{business:'Demo Krushi/Field Services',username:'demo',plan:'Professional',expiry:'2026-12-31',status:'Active'}]
+};
+function loadDemoState(){
+ try{
+   const raw=localStorage.getItem(KEY);
+   if(!raw) return JSON.parse(JSON.stringify(DEMO_DEFAULTS));
+   const parsed=JSON.parse(raw);
+   if(!parsed || typeof parsed!=='object') throw new Error('Invalid demo data');
+   return Object.assign(JSON.parse(JSON.stringify(DEMO_DEFAULTS)),parsed);
+ }catch(e){
+   localStorage.removeItem(KEY);
+   return JSON.parse(JSON.stringify(DEMO_DEFAULTS));
+ }
+}
+let state=loadDemoState();
+state.vehicles=(state.vehicles||[]).map(v=>Object.assign({odometer:0,tankCapacity:5},v));
+state.manualKmEntries=state.manualKmEntries||[];
+state.vehicles=(state.vehicles||[]).map(v=>Object.assign({odometer:0,tankCapacity:5},v));
+let currentUser=null, watchId=null, trip={running:false,paused:false,points:[],km:0,tripB:0,movingMs:0,lastMoveAt:Date.now(),fuelLog:[]};
+
+function persist(){localStorage.setItem(KEY,JSON.stringify(state))}
+function money(n){return '₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2})}
+function vehicle(id){return state.vehicles.find(v=>String(v.id)===String(id))}
+function hav(a,b){const R=6371, p=Math.PI/180, dLat=(b.lat-a.lat)*p,dLon=(b.lon-a.lon)*p;const x=Math.sin(dLat/2)**2+Math.cos(a.lat*p)*Math.cos(b.lat*p)*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))}
+function login(){
+ const u=(document.getElementById('loginUser').value||'').trim().toLowerCase();
+ const p=document.getElementById('loginPass').value||'';
+ if((u==='demo'&&p==='demo123')||(u==='admin'&&p==='admin123')){
+  currentUser=u;
+  const loginScreen=document.getElementById('loginScreen');
+  const app=document.getElementById('app');
+  if(loginScreen) loginScreen.classList.add('d-none');
+  if(app) app.classList.remove('d-none');
+  const navAdmin=document.getElementById('navAdmin');
+  if(navAdmin) navAdmin.classList.toggle('d-none',u!=='admin');
+  const welcome=document.getElementById('welcome');
+  if(welcome) welcome.textContent=u==='admin'?'Master Administrator':'Welcome, Demo Subscriber';
+  try{ renderAll(); checkRecoverableSessions(); }catch(e){ console.error(e); alert('Login successful, but the dashboard could not finish loading. Please refresh once.'); }
+ } else {
+  alert('Invalid demo credentials.\nSubscriber: demo / demo123\nAdmin: admin / admin123');
+ }
+}
+document.getElementById('loginBtn').onclick=login;
+document.getElementById('loginPass').addEventListener('keydown',e=>{if(e.key==='Enter')login();});
+document.getElementById('resetDemoBtn').onclick=()=>{
+ if(confirm('Reset demo data and restore the default demo account?')){
+   localStorage.removeItem(KEY);
+   location.reload();
+ }
+};
+document.getElementById('logoutBtn').onclick=()=>location.reload();
+/* ---------- Sidebar navigation toggle (mobile off-canvas + desktop collapse-to-rail) ---------- */
+const sidebarEl=document.getElementById('sidebar');
+const sidebarBackdrop=document.getElementById('sidebarBackdrop');
+const sidebarToggleBtn=document.getElementById('sidebarToggle');
+const sidebarCloseBtn=document.getElementById('sidebarClose');
+function isDesktopNav(){return window.matchMedia('(min-width:992px)').matches}
+function setToggleIcon(name){sidebarToggleBtn.innerHTML=`<i class="bi bi-${name} fs-5"></i>`}
+function syncToggleUIForState(){
+ if(isDesktopNav()){
+   const collapsed=document.body.classList.contains('sidebar-collapsed');
+   setToggleIcon(collapsed?'chevron-double-right':'chevron-double-left');
+   sidebarToggleBtn.setAttribute('aria-expanded',String(!collapsed));
+   sidebarToggleBtn.setAttribute('title',collapsed?'Expand menu':'Collapse menu');
+ } else {
+   const open=sidebarEl.classList.contains('show');
+   setToggleIcon(open?'x-lg':'list');
+   sidebarToggleBtn.setAttribute('aria-expanded',String(open));
+   sidebarToggleBtn.setAttribute('title',open?'Close menu':'Open menu');
+ }
+}
+function openMobileSidebar(){sidebarEl.classList.add('show');sidebarBackdrop.classList.add('show');document.body.classList.add('sidebar-open');syncToggleUIForState()}
+function closeMobileSidebar(){sidebarEl.classList.remove('show');sidebarBackdrop.classList.remove('show');document.body.classList.remove('sidebar-open');syncToggleUIForState()}
+function toggleSidebar(){
+ if(isDesktopNav()){
+   const collapsed=document.body.classList.toggle('sidebar-collapsed');
+   try{localStorage.setItem('srd_sidebar_collapsed',collapsed?'1':'0')}catch(e){}
+ } else {
+   sidebarEl.classList.contains('show')?closeMobileSidebar():openMobileSidebar();
+   return;
+ }
+ syncToggleUIForState();
+}
+sidebarToggleBtn.onclick=toggleSidebar;
+sidebarCloseBtn.onclick=closeMobileSidebar;
+sidebarBackdrop.onclick=closeMobileSidebar;
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMobileSidebar()});
+window.addEventListener('resize',()=>{if(isDesktopNav())closeMobileSidebar();syncToggleUIForState()});
+try{if(localStorage.getItem('srd_sidebar_collapsed')==='1')document.body.classList.add('sidebar-collapsed')}catch(e){}
+syncToggleUIForState();
+
+document.querySelectorAll('[data-view]').forEach(x=>x.onclick=()=>showView(x.dataset.view));
+document.querySelectorAll('[data-view]').forEach(x=>x.addEventListener('click',()=>{if(!isDesktopNav())closeMobileSidebar()}));
+function showView(id){
+ document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(id).classList.add('active');
+ document.querySelectorAll('[data-view]').forEach(v=>v.classList.toggle('active',v.dataset.view===id));
+ const titles={dashboard:'Dashboard',expenses:'Daily Expenses',vehicles:'Vehicle Master',walking:'Walking Profile',trip:'GPS Trip',trips:'Trip History',reports:'Reports',settings:'Settings',admin:'Master Admin Console'};
+ document.getElementById('pageTitle').textContent=titles[id]||id;
+ if(id==='reports')renderReports();
+ if(id==='trip'){initTripMap();setTimeout(()=>mapResize(tripMap,tripMapProvider),150);}
+ if(id==='walking'){initWalkMap();setTimeout(()=>mapResize(walkMap,walkMapProvider),150);}
+}
+function renderAll(){renderDashboard();renderExpenses();renderVehicles();renderWalkers();renderSelects();renderTrips();renderWalkHistory();renderUsers();document.getElementById('defaultRate').value=state.settings.rate;const gk=document.getElementById('gmapsKey');if(gk)gk.value=state.settings.gmapsKey||'';const at=document.getElementById('autoTripToggle');if(at)at.checked=state.settings.autoTrip!==false}
+const CATEGORY_META={
+ Fuel:{icon:'bi-fuel-pump-fill',color:'#0d6efd'},
+ Food:{icon:'bi-cup-hot-fill',color:'#fd7e14'},
+ Repair:{icon:'bi-tools',color:'#dc3545'},
+ Toll:{icon:'bi-signpost-split-fill',color:'#6f42c1'},
+ Parking:{icon:'bi-p-square-fill',color:'#198754'},
+ Other:{icon:'bi-three-dots',color:'#64748b'}
+};
+function renderDashboard(){
+ const total=state.expenses.reduce((s,e)=>s+Number(e.amount),0), dist=state.trips.reduce((s,t)=>s+t.km,0), fuel=state.trips.reduce((s,t)=>s+t.fuel,0), cost=state.trips.reduce((s,t)=>s+t.cost,0);
+ document.getElementById('mExpense').textContent=money(total);document.getElementById('mDistance').textContent=dist.toFixed(1)+' km';document.getElementById('mFuel').textContent=money(cost);document.getElementById('mVehicle').textContent=(state.vehicles.find(v=>v.active)||state.vehicles[0])?.name||'—';
+ document.getElementById('recentExpenses').innerHTML=state.expenses.slice(-6).reverse().map(e=>`<tr><td>${e.date}</td><td>${e.cat}</td><td>${e.note||''}</td><td class="text-end">${money(e.amount)}</td></tr>`).join('')||'<tr><td colspan=4 class="text-center muted">No expenses</td></tr>';
+ /* Every expense, automatically summed and grouped by category */
+ const catTotals={};
+ state.expenses.forEach(e=>{const c=e.cat||'Other';catTotals[c]=(catTotals[c]||0)+Number(e.amount||0)});
+ const grand=Object.values(catTotals).reduce((s,v)=>s+v,0);
+ const cats=Object.keys(catTotals).sort((a,b)=>catTotals[b]-catTotals[a]);
+ document.getElementById('categoryBreakdown').innerHTML=cats.length?cats.map(c=>{
+   const meta=CATEGORY_META[c]||CATEGORY_META.Other;
+   const amt=catTotals[c];
+   const pct=grand>0?Math.round((amt/grand)*100):0;
+   return `<div class="cat-row"><div class="cat-icon" style="background:${meta.color}1a;color:${meta.color}"><i class="bi ${meta.icon}"></i></div><div class="flex-fill"><div class="d-flex justify-content-between"><span>${c}</span><b>${money(amt)}</b></div><div class="cat-bar"><span style="width:${pct}%;background:${meta.color}"></span></div></div></div>`;
+ }).join(''):'<div class="muted small">No expenses recorded yet.</div>';
+ document.getElementById('categoryTotal').textContent=money(grand);
+}
+/* ---------- Crash/forgot-to-stop recovery: if a trip or walk was left running when the
+   tab closed unexpectedly, this offers to save it (or discard it) on next login. ---------- */
+function checkRecoverableSessions(){
+ const box=document.getElementById('recoveryBanners'); if(box) box.innerHTML='';
+ try{
+   const rawT=localStorage.getItem(ACTIVE_TRIP_KEY);
+   if(rawT){
+     const snap=JSON.parse(rawT);
+     if(snap && snap.trip && snap.trip.km>0.01) showRecoveryBanner('trip',snap);
+     else localStorage.removeItem(ACTIVE_TRIP_KEY);
+   }
+ }catch(e){ localStorage.removeItem(ACTIVE_TRIP_KEY); }
+ try{
+   const rawW=localStorage.getItem(ACTIVE_WALK_KEY);
+   if(rawW){
+     const snap=JSON.parse(rawW);
+     if(snap && snap.walk && snap.walk.km>0.01) showRecoveryBanner('walk',snap);
+     else localStorage.removeItem(ACTIVE_WALK_KEY);
+   }
+ }catch(e){ localStorage.removeItem(ACTIVE_WALK_KEY); }
+}
+function showRecoveryBanner(kind,snap){
+ const box=document.getElementById('recoveryBanners'); if(!box) return;
+ const km=(kind==='trip'?snap.trip.km:snap.walk.km)||0;
+ const when=snap.savedAt?new Date(snap.savedAt).toLocaleString('en-IN'):'a previous session';
+ const div=document.createElement('div');
+ div.className='alert alert-warning d-flex justify-content-between align-items-center flex-wrap gap-2';
+ div.innerHTML=`<div><i class="bi bi-exclamation-triangle-fill me-1"></i> Found an unsaved ${kind} from ${when} (${km.toFixed(2)} km) that never got stopped — it looks like the page closed unexpectedly.</div><div class="d-flex gap-2"><button class="btn btn-sm btn-primary">Save it</button><button class="btn btn-sm btn-outline-secondary">Discard</button></div>`;
+ div.querySelector('.btn-primary').onclick=()=>kind==='trip'?recoverTrip():recoverWalk();
+ div.querySelector('.btn-outline-secondary').onclick=()=>kind==='trip'?discardTripRecovery():discardWalkRecovery();
+ box.appendChild(div);
+}
+function recoverTrip(){
+ const raw=localStorage.getItem(ACTIVE_TRIP_KEY); if(!raw) return;
+ const snap=JSON.parse(raw);
+ const v=vehicle(snap.vehicleId);
+ const km=snap.trip.km||0, fuel=v?km/Number(v.mileage):0, cost=v?fuel*Number(v.rate):0;
+ const fuelPurchased=(snap.trip.fuelLog||[]).reduce((s,f)=>s+f.cost,0);
+ state.trips.push({id:Date.now(),date:new Date(snap.savedAt||Date.now()).toLocaleString('en-IN'),vehicleId:v?.id,purpose:snap.purpose||'Recovered trip',km:Number(km.toFixed(3)),fuel:Number(fuel.toFixed(3)),cost:Number(cost.toFixed(2)),fuelPurchased:Number(fuelPurchased.toFixed(2)),fuelLog:snap.trip.fuelLog||[],points:snap.trip.points||[],recovered:true});
+ localStorage.removeItem(ACTIVE_TRIP_KEY);
+ persist(); renderAll(); checkRecoverableSessions();
+}
+function discardTripRecovery(){ localStorage.removeItem(ACTIVE_TRIP_KEY); checkRecoverableSessions(); }
+function recoverWalk(){
+ const raw=localStorage.getItem(ACTIVE_WALK_KEY); if(!raw) return;
+ const snap=JSON.parse(raw);
+ const w=state.walkers?.find(x=>String(x.id)===String(snap.walkerId));
+ const km=snap.walk.km||0;
+ state.walks=state.walks||[];
+ state.walks.push({id:Date.now(),date:new Date(snap.savedAt||Date.now()).toLocaleString('en-IN'),walkerId:w?.id,walkerName:w?.name||'—',note:snap.note||'Recovered walk',km:Number(km.toFixed(3)),movingMs:snap.walk.movingMs||0,steps:Math.round(snap.walk.steps||0),calories:Math.round(snap.walk.calories||0),points:snap.walk.points||[],recovered:true});
+ localStorage.removeItem(ACTIVE_WALK_KEY);
+ persist(); renderAll(); checkRecoverableSessions();
+}
+function discardWalkRecovery(){ localStorage.removeItem(ACTIVE_WALK_KEY); checkRecoverableSessions(); }
+function renderExpenses(){
+ const q=(document.getElementById('expenseSearch')?.value||'').toLowerCase(),f=document.getElementById('expenseFilter')?.value||'';
+ document.getElementById('expenseRows').innerHTML=state.expenses.filter(e=>(!q||(e.note||'').toLowerCase().includes(q)||e.cat.toLowerCase().includes(q))&&(!f||e.cat===f)).slice().reverse().map(e=>`<tr><td>${e.date}</td><td>${e.cat}</td><td>${vehicle(e.vehicleId)?.name||'-'}</td><td>${e.note||''}</td><td>${e.payment}</td><td class="text-end">${money(e.amount)}</td><td><button class="btn btn-sm btn-outline-danger" onclick="delExpense(${e.id})"><i class="bi bi-trash"></i></button></td></tr>`).join('')||'<tr><td colspan=7 class="text-center muted">No matching expenses</td></tr>';
+}
+document.getElementById('expenseSearch').oninput=renderExpenses;document.getElementById('expenseFilter').onchange=renderExpenses;
+function renderVehicles(){document.getElementById('vehicleRows').innerHTML=state.vehicles.map(v=>`<tr><td><b>${v.name}</b></td><td>${v.type}</td><td>${v.fuel}</td><td>${v.mileage}</td><td>${money(v.rate)}</td><td><span class="badge ${v.active?'text-bg-success':'text-bg-secondary'}">${v.active?'Active':'Inactive'}</span></td><td><button class="btn btn-sm btn-outline-secondary me-1" onclick="setActiveVehicle(${v.id})">Set Active</button><button class="btn btn-sm btn-outline-danger" onclick="delVehicle(${v.id})">Delete</button></td></tr>`).join('')||'<tr><td colspan=7 class="text-center muted">No vehicles yet — add one to start tracking fuel cost and trips.</td></tr>'}
+function setActiveVehicle(id){state.vehicles.forEach(v=>v.active=(v.id===id));persist();renderAll()}
+function renderWalkers(){document.getElementById('walkerRows').innerHTML=(state.walkers||[]).map(w=>`<tr><td><b>${w.name}</b></td><td>${w.age}</td><td>${w.weight} kg</td><td><span class="badge ${w.active?'text-bg-success':'text-bg-secondary'}">${w.active?'Active':'Inactive'}</span></td><td><button class="btn btn-sm btn-outline-secondary me-1" onclick="setActiveWalker(${w.id})">Set Active</button><button class="btn btn-sm btn-outline-danger" onclick="delWalker(${w.id})">Delete</button></td></tr>`).join('')||'<tr><td colspan=5 class="text-center muted">No walking profile yet — add your name, age and weight to enable step/calorie tracking.</td></tr>'}
+function renderSelects(){const opts=state.vehicles.map(v=>`<option value="${v.id}">${v.name} — ${v.type}</option>`).join('');document.getElementById('tripVehicle').innerHTML=opts;document.getElementById('eVehicle').innerHTML='<option value="">General</option>'+opts;const wopts=(state.walkers||[]).map(w=>`<option value="${w.id}">${w.name} — ${w.age}y, ${w.weight}kg</option>`).join('');document.getElementById('tripWalker').innerHTML=wopts||'<option value="">Add a walking profile first</option>';const active=activeWalker();if(active)document.getElementById('tripWalker').value=active.id}
+document.getElementById('tripWalker').onchange=function(){if(this.value)setActiveWalker(Number(this.value))};
+function addVehicle(){const v={id:Date.now(),name:document.getElementById('vName').value.trim(),type:document.getElementById('vType').value,fuel:document.getElementById('vFuel').value,mileage:Number(document.getElementById('vMileage').value),rate:Number(document.getElementById('vRate').value)||state.settings.rate,active:true};if(!v.name||!v.mileage)return alert('Enter vehicle name and mileage.');state.vehicles.forEach(x=>x.active=false);state.vehicles.push(v);persist();bootstrap.Modal.getInstance(document.getElementById('vehicleModal')).hide();document.getElementById('vName').value='';document.getElementById('vMileage').value='';document.getElementById('vRate').value='';renderAll()}
+function delVehicle(id){if(confirm('Delete vehicle?')){const wasActive=state.vehicles.find(v=>v.id===id)?.active;state.vehicles=state.vehicles.filter(v=>v.id!==id);if(wasActive&&state.vehicles.length)state.vehicles[0].active=true;persist();renderAll()}}
+function addWalker(){const w={id:Date.now(),name:document.getElementById('wName').value.trim(),age:Number(document.getElementById('wAge').value),weight:Number(document.getElementById('wWeight').value),active:true};if(!w.name||!w.age||!w.weight)return alert('Enter name, age and weight.');state.walkers=state.walkers||[];state.walkers.forEach(x=>x.active=false);state.walkers.push(w);persist();bootstrap.Modal.getInstance(document.getElementById('walkerModal')).hide();document.getElementById('wName').value='';document.getElementById('wAge').value='';document.getElementById('wWeight').value='';renderAll()}
+function delWalker(id){if(confirm('Delete this walking profile?')){const wasActive=state.walkers.find(w=>w.id===id)?.active;state.walkers=state.walkers.filter(w=>w.id!==id);if(wasActive&&state.walkers.length)state.walkers[0].active=true;persist();renderAll()}}
+function setActiveWalker(id){state.walkers.forEach(w=>w.active=(w.id===id));persist();renderAll()}
+function activeWalker(){return (state.walkers||[]).find(w=>w.active)||(state.walkers||[])[0]}
+function addExpense(){const e={id:Date.now(),date:document.getElementById('eDate').value||new Date().toISOString().slice(0,10),cat:document.getElementById('eCat').value,vehicleId:document.getElementById('eVehicle').value,note:document.getElementById('eNote').value,payment:document.getElementById('ePayment').value,amount:Number(document.getElementById('eAmount').value)};if(!e.amount)return alert('Enter amount.');const ev=vehicle(e.vehicleId);if(String(e.cat).toLowerCase()==='fuel'&&ev){e.fuelRateAtEntry=Number(ev.rate)||Number(state.settings.rate)||0;e.liters=e.fuelRateAtEntry>0?Number((e.amount/e.fuelRateAtEntry).toFixed(3)):0;}state.expenses.push(e);persist();bootstrap.Modal.getInstance(document.getElementById('expenseModal')).hide();document.getElementById('eAmount').value='';document.getElementById('eNote').value='';document.getElementById('eDate').value=new Date().toISOString().slice(0,10);renderAll();if(meterModalOpen&&meterKind==='trip')updateTripMeter(trip.points.at(-1)?.speed||0,trip.points.at(-1)?.acc)}
+function delExpense(id){state.expenses=state.expenses.filter(e=>e.id!==id);persist();renderAll()}
+let gpsPermission='not-requested';
+let locationConsent=false;
+
+// Updates the small "Browser location permission" status strip. This was previously called
+// but never defined — that ReferenceError was silently aborting the Start Trip/Start Walk
+// permission callback before it reached beginTripWatch()/onGranted(), which is why the
+// Start Trip button appeared to do nothing after the browser's permission prompt.
+function updateBrowserAskStatus(state){
+ const text=document.getElementById('browserAskText'), badge=document.getElementById('browserPermissionBadge');
+ if(!text||!badge) return;
+ const map={
+   granted:['Granted — this site can access your location.','text-bg-success','GRANTED'],
+   denied:['Blocked — enable Location for this site in your browser settings.','text-bg-danger','BLOCKED'],
+   prompt:['Ask first — the browser can request your location.','text-bg-secondary','ASK FIRST'],
+   unsupported:['Not supported by this browser/device.','text-bg-danger','UNSUPPORTED']
+ };
+ const item=map[state]||map.prompt;
+ text.textContent=item[0]; badge.textContent=item[2]; badge.className='badge ms-1 '+item[1];
+}
+
+function setPermissionUI(state, message){
+ gpsPermission=state;
+ const badge=document.getElementById('permissionState'), btn=document.getElementById('permissionBtn'), info=document.getElementById('gpsInfo');
+ const wbadge=document.getElementById('walkPermissionState'), wbtn=document.getElementById('walkPermissionBtn');
+ const map={granted:['Granted','text-bg-success'],denied:['Denied','text-bg-danger'],prompt:['Not Requested','text-bg-secondary'],unsupported:['Unsupported','text-bg-danger']};
+ const item=map[state]||map.prompt;
+ badge.textContent=item[0]; badge.className='badge '+item[1];
+ if(wbadge){wbadge.textContent=item[0]; wbadge.className='badge '+item[1];}
+ // The Start Trip / Start Walk buttons stay enabled at every stage — pressing them is
+ // itself what triggers the browser's location prompt (see startTrip/startWalk onclick).
+ if(state==='granted'){
+   btn.classList.add('d-none');info.textContent=message||'Location access granted.';
+   if(wbtn)wbtn.classList.add('d-none');
+ }
+ else if(state==='denied'){
+   btn.classList.remove('d-none');info.textContent=message||'Location access was denied. Enable location permission in browser settings and try again.';
+   if(wbtn)wbtn.classList.remove('d-none');
+ }
+ else if(state==='unsupported'){
+   btn.classList.add('d-none');info.textContent='This browser/device does not support location services.';
+   if(wbtn)wbtn.classList.add('d-none');
+ }
+ else {
+   btn.classList.remove('d-none');info.textContent=message||'Location permission has not been requested yet — press Start to begin.';
+   if(wbtn)wbtn.classList.remove('d-none');
+ }
+}
+
+async function syncBrowserLocationPermission(){
+ if(!navigator.geolocation){
+   updateBrowserAskStatus('denied');
+   setPermissionUI('unsupported','This browser/device does not support location services.');
+   return 'unsupported';
+ }
+ try{
+   if(navigator.permissions && navigator.permissions.query){
+     const result=await navigator.permissions.query({name:'geolocation'});
+     updateBrowserAskStatus(result.state);
+     setPermissionUI(result.state);
+     showLocationHelp(result.state==='denied');
+     result.onchange=()=>{
+       updateBrowserAskStatus(result.state);
+       setPermissionUI(result.state);
+       showLocationHelp(result.state==='denied');
+     };
+     return result.state;
+   }
+ }catch(e){}
+ updateBrowserAskStatus('prompt');
+ return 'prompt';
+}
+
+// onGranted (optional) fires right after permission is confirmed — used by the Start
+// Trip/Start Walk buttons to chain straight into starting the tracker with no extra tap.
+function requestGPSPermission(onGranted){
+ if(!navigator.geolocation){
+   setPermissionUI('unsupported','This browser/device does not support location services.');
+   showLocationHelp(true);
+   return;
+ }
+
+ const btn=document.getElementById('permissionBtn');
+ const wbtn=document.getElementById('walkPermissionBtn');
+ const retry=document.getElementById('retryLocationBtn');
+ const startBtn=document.getElementById('startTrip'), startWalkBtn=document.getElementById('startWalk');
+ btn.disabled=true; startBtn.disabled=true; if(startWalkBtn)startWalkBtn.disabled=true;
+ btn.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> Waiting for browser permission…';
+ if(wbtn){wbtn.disabled=true;wbtn.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span> Waiting for permission…';}
+
+ // This is deliberately the first location API call made after the
+ // user's button click. Do not put an awaited permission check before it.
+ navigator.geolocation.getCurrentPosition(
+   pos=>{
+     locationConsent=true;
+     setPermissionUI('granted',
+       `Location access granted • ±${Math.round(pos.coords.accuracy)}m accuracy.`);
+     updateBrowserAskStatus('granted');
+     showLocationHelp(false);
+     document.getElementById('gpsStatus').innerHTML='<span class="gps-dot on"></span> Location ready';
+     btn.disabled=false; startBtn.disabled=false; if(startWalkBtn)startWalkBtn.disabled=false;
+     btn.innerHTML='<i class="bi bi-geo-alt-fill"></i> Location Access Granted';
+     retry.classList.add('d-none');
+     if(wbtn){wbtn.disabled=false;wbtn.innerHTML='<i class="bi bi-geo-alt-fill"></i> Location Access Granted';}
+     beginTripWatch(); beginWalkWatch(); // start listening in the background so a trip/walk can be auto-detected for the rest of the day
+     if(onGranted) onGranted();
+   },
+   err=>{
+     btn.disabled=false; startBtn.disabled=false; if(startWalkBtn)startWalkBtn.disabled=false;
+     btn.innerHTML='<i class="bi bi-geo-alt-fill"></i> Grant Location Access Now (optional)';
+     if(wbtn){wbtn.disabled=false;wbtn.innerHTML='<i class="bi bi-geo-alt-fill"></i> Grant Location Access Now (optional)';}
+
+     if(err.code===1){
+       locationConsent=false;
+       setPermissionUI('denied',
+         'The browser did not grant location access. If it shows a permission prompt, choose Allow, then press Start again. If no prompt appears, check this website’s Location permission in browser settings.');
+       updateBrowserAskStatus('denied');
+       showLocationHelp(true);
+       retry.classList.remove('d-none');
+     }else if(err.code===2){
+       setPermissionUI('prompt',
+         'The browser could not obtain a location fix. Check the phone Location/GPS setting and press Start again.');
+       showLocationHelp(true);
+       retry.classList.remove('d-none');
+     }else if(err.code===3){
+       setPermissionUI('prompt',
+         'The location request timed out. Check Location/GPS services and press Start again.');
+       retry.classList.remove('d-none');
+     }else{
+       setPermissionUI('prompt','The browser could not obtain your location. Please press Start again.');
+       retry.classList.remove('d-none');
+     }
+   },
+   {
+     enableHighAccuracy:true,
+     maximumAge:0,
+     timeout:20000
+   }
+ );
+}
+
+function showLocationHelp(show){
+ const el=document.getElementById('locationHelp');
+ if(el) el.classList.toggle('d-none',!show);
+}
+
+document.getElementById('permissionBtn').onclick=()=>{
+ locationConsent=true;
+ showLocationHelp(false);
+ requestGPSPermission();
+};
+document.getElementById('retryLocationBtn').onclick=async()=>{
+ locationConsent=true;
+ const state=await syncBrowserLocationPermission();
+ if(state==='prompt') requestGPSPermission();
+ else if(state==='denied') showLocationHelp(true);
+};
+syncBrowserLocationPermission();
+
+/* ---------- Shared pause/resume + walking estimate constants ---------- */
+const PAUSE_SPEED=0.5;        // km/h below this counts as "stationary"
+const PAUSE_AFTER_MS=45000;   // how long stationary before auto-pause
+const AUTO_START_SPEED=3;       // km/h sustained to auto-start a vehicle trip
+const WALK_AUTO_START_SPEED=1.2;// km/h sustained to auto-start a walk
+const AUTO_START_AFTER_MS=12000;// how long that movement must sustain before auto-starting
+const AUTO_STOP_IDLE_MS=20*60*1000; // auto-save & stop a trip/walk after this long continuously paused
+const AUTOSAVE_MS=15000;        // how often the in-progress trip/walk is snapshotted so nothing is lost
+const ACTIVE_TRIP_KEY='srd_active_trip_v1';
+const ACTIVE_WALK_KEY='srd_active_walk_v1';
+const STRIDE_M={child:0.5,teen:0.65,adult:0.76}; // metres per step estimate
+
+function strideFor(age){ if(!age) return STRIDE_M.adult; if(age<12) return STRIDE_M.child; if(age<18) return STRIDE_M.teen; return STRIDE_M.adult; }
+function metFor(speedKmh){ // rough MET table for walking pace
+ if(speedKmh<3.2) return 2.8;
+ if(speedKmh<4.8) return 3.5;
+ if(speedKmh<5.6) return 4.3;
+ if(speedKmh<6.4) return 5.0;
+ return 7.0; // brisk/jog while still classified as "walking"
+}
+
+/* ---------- Map provider loader: tries Google Maps first (full feature set), and
+   automatically falls back to a free OpenStreetMap map if no key is configured, the
+   key is rejected, or Google doesn't respond — so a live map is ALWAYS shown. ---------- */
+let gmapsLoaded=false, gmapsLoading=false, gmapsCallbacks=[];
+let leafletLoaded=false, leafletLoading=false, leafletCallbacks=[];
+let mapProvider=null, mapProviderCallbacks=[], mapProviderResolving=false;
+function setMapWarning(html){
+ document.querySelectorAll('.gmap-key-warning').forEach(x=>{ x.classList.remove('d-none'); x.innerHTML=html; });
+}
+function clearMapWarning(){
+ document.querySelectorAll('.gmap-key-warning').forEach(x=>x.classList.add('d-none'));
+}
+const NO_KEY_MSG='<i class="bi bi-map me-1"></i> Showing a free OpenStreetMap live map. Add a Google Maps API key in <a href="#" onclick="showView(\'settings\');return false;">Settings</a> for satellite view, Street View, search and live traffic.';
+// Google calls this automatically if the key is invalid, unbilled, deleted, or blocked by a referrer restriction.
+window.gm_authFailure=function(){
+ gmapsLoaded=false; gmapsLoading=false;
+ console.error('Google Maps auth failure: the API key was rejected (invalid key, billing not enabled on the Google Cloud project, the Maps JavaScript API / Places API not enabled, or an HTTP-referrer restriction blocking this page\'s address).');
+ fallbackToLeaflet('<i class="bi bi-exclamation-triangle-fill me-1"></i> Google rejected the API key, so we switched to a free OpenStreetMap map instead. Common causes: billing isn\'t enabled on the Google Cloud project, the <b>Maps JavaScript API</b>/<b>Places API</b> aren\'t enabled, or the key has an HTTP-referrer restriction that blocks this page\'s address. Fix it in Google Cloud Console, then update the key in <a href="#" onclick="showView(\'settings\');return false;">Settings</a> to switch back.');
+};
+function ensureGoogleMaps(cb){
+ if(gmapsLoaded && window.google && window.google.maps){cb();return;}
+ gmapsCallbacks.push(cb);
+ if(gmapsLoading)return;
+ const key=(state.settings.gmapsKey||'').trim();
+ if(!key) return; // caller (withMapProvider) already routes straight to the fallback when there's no key
+ gmapsLoading=true;
+ window.__gmapsReady=function(){
+   gmapsLoaded=true; gmapsLoading=false;
+   clearMapWarning();
+   gmapsCallbacks.forEach(f=>{try{f()}catch(e){console.error(e)}});
+   gmapsCallbacks=[];
+ };
+ const s=document.createElement('script');
+ s.src=`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&libraries=places&callback=__gmapsReady`;
+ s.async=true; s.defer=true;
+ s.onerror=()=>{
+   gmapsLoading=false;
+   fallbackToLeaflet('<i class="bi bi-exclamation-triangle-fill me-1"></i> Google Maps could not be reached (no internet connection, blocked by an ad-blocker/firewall, or a malformed key), so we switched to a free OpenStreetMap map instead. Check your connection and the key in <a href="#" onclick="showView(\'settings\');return false;">Settings</a> to switch back.');
+ };
+ document.head.appendChild(s);
+ // If Google hasn't responded in a reasonable time, don't leave the map blank — fall back instead.
+ setTimeout(()=>{
+   if(!gmapsLoaded && gmapsLoading){
+     gmapsLoading=false;
+     fallbackToLeaflet('<i class="bi bi-exclamation-triangle-fill me-1"></i> Google Maps did not respond in time, so we switched to a free OpenStreetMap map instead. Double-check the key in <a href="#" onclick="showView(\'settings\');return false;">Settings</a> and that the <b>Maps JavaScript API</b> is enabled for it.');
+   }
+ },8000);
+}
+function ensureLeaflet(cb){
+ if(leafletLoaded && window.L){cb();return;}
+ leafletCallbacks.push(cb);
+ if(leafletLoading)return;
+ leafletLoading=true;
+ const cssHref='https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css';
+ if(!document.querySelector(`link[href="${cssHref}"]`)){
+   const link=document.createElement('link'); link.rel='stylesheet'; link.href=cssHref; document.head.appendChild(link);
+ }
+ const s=document.createElement('script');
+ s.src='https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js';
+ s.onload=()=>{
+   leafletLoaded=true; leafletLoading=false;
+   leafletCallbacks.forEach(f=>{try{f()}catch(e){console.error(e)}});
+   leafletCallbacks=[];
+ };
+ s.onerror=()=>{ leafletLoading=false; console.error('The fallback map library failed to load — check your internet connection.'); };
+ document.head.appendChild(s);
+}
+// Resolves once to 'google' or 'leaflet' and every waiting map is notified; both the GPS Trip
+// and Walking maps share this single decision so they always behave the same way.
+function withMapProvider(cb){
+ if(mapProvider){ cb(mapProvider); return; }
+ mapProviderCallbacks.push(cb);
+ if(mapProviderResolving) return;
+ mapProviderResolving=true;
+ const key=(state.settings.gmapsKey||'').trim();
+ if(!key){ setMapWarning(NO_KEY_MSG); ensureLeaflet(()=>resolveMapProvider('leaflet')); return; }
+ ensureGoogleMaps(()=>resolveMapProvider('google'));
+}
+function resolveMapProvider(p){
+ if(mapProvider) return;
+ mapProvider=p; mapProviderResolving=false;
+ mapProviderCallbacks.forEach(f=>{try{f(p)}catch(e){console.error(e)}});
+ mapProviderCallbacks=[];
+}
+function fallbackToLeaflet(noticeHtml){
+ if(mapProvider==='google') return; // Google already succeeded elsewhere; ignore a late failure signal
+ setMapWarning(noticeHtml);
+ ensureLeaflet(()=>resolveMapProvider('leaflet'));
+}
+// Called from Settings when the key changes, so the next map open re-evaluates the provider.
+function resetMapProvider(){ mapProvider=null; mapProviderCallbacks=[]; mapProviderResolving=false; gmapsLoaded=false; gmapsLoading=false; }
+
+/* Standard Google Maps look & controls: map type (roadmap/satellite/hybrid/terrain),
+   street view pegman, zoom, fullscreen, one-finger pan, plus a search box,
+   a "my location" button and a traffic layer toggle — added as real in-map controls. */
+function fullMapOptions(compact){
+ if(compact){
+   return {
+     center:{lat:20.5937,lng:78.9629}, zoom:5,
+     mapTypeId:'roadmap',
+     mapTypeControl:false,
+     streetViewControl:false,
+     fullscreenControl:false,
+     zoomControl:false,
+     scaleControl:false,
+     rotateControl:false,
+     gestureHandling:'greedy',
+     clickableIcons:false,
+     disableDefaultUI:true
+   };
+ }
+ return {
+   center:{lat:20.5937,lng:78.9629}, zoom:5,
+   mapTypeId:'roadmap',
+   mapTypeControl:true,
+   mapTypeControlOptions:{style:google.maps.MapTypeControlStyle.HORIZONTAL_BAR,mapTypeIds:['roadmap','satellite','hybrid','terrain']},
+   streetViewControl:true,
+   fullscreenControl:true,
+   zoomControl:true,
+   scaleControl:true,
+   rotateControl:true,
+   gestureHandling:'greedy',
+   clickableIcons:false
+ };
+}
+function addMapExtras(map){
+ // Search box (Google Places autocomplete) — jump the map to any place
+ const input=document.createElement('input');
+ input.type='text'; input.placeholder='Search Google Maps';
+ input.className='form-control shadow-sm';
+ input.style.cssText='width:min(280px,60vw);margin:10px;';
+ map.controls[google.maps.ControlPosition.TOP_LEFT].push(input);
+ try{
+   const autocomplete=new google.maps.places.Autocomplete(input);
+   autocomplete.bindTo('bounds',map);
+   autocomplete.addListener('place_changed',()=>{
+     const place=autocomplete.getPlace();
+     if(place.geometry){ map.panTo(place.geometry.location); map.setZoom(place.geometry.viewport?15:17); }
+   });
+ }catch(e){ console.warn('Places Autocomplete unavailable — enable the Places API for this key.'); }
+
+ // My location button
+ const locBtn=document.createElement('button');
+ locBtn.type='button'; locBtn.title='My location';
+ locBtn.innerHTML='<i class="bi bi-crosshair"></i>';
+ locBtn.className='btn btn-light shadow-sm';
+ locBtn.style.cssText='margin:10px;width:40px;height:40px;border-radius:50%;';
+ locBtn.onclick=()=>{
+   if(!navigator.geolocation)return;
+   navigator.geolocation.getCurrentPosition(pos=>{
+     map.panTo({lat:pos.coords.latitude,lng:pos.coords.longitude}); map.setZoom(16);
+   });
+ };
+ map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(locBtn);
+
+ // Live traffic layer toggle
+ const trafficLayer=new google.maps.TrafficLayer();
+ let trafficOn=false;
+ const trafficBtn=document.createElement('button');
+ trafficBtn.type='button'; trafficBtn.title='Toggle live traffic';
+ trafficBtn.innerHTML='<i class="bi bi-signpost-split-fill"></i>';
+ trafficBtn.className='btn btn-light shadow-sm';
+ trafficBtn.style.cssText='margin:10px;width:40px;height:40px;border-radius:50%;';
+ trafficBtn.onclick=()=>{
+   trafficOn=!trafficOn;
+   trafficLayer.setMap(trafficOn?map:null);
+   trafficBtn.classList.toggle('btn-primary',trafficOn);
+   trafficBtn.classList.toggle('btn-light',!trafficOn);
+ };
+ map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(trafficBtn);
+}
+// Lightweight equivalent for the OpenStreetMap fallback: just a "my location" button
+// (search/traffic/street-view need a paid API and aren't available on the free tile map).
+function addLeafletExtras(map){
+ const LocateControl=L.Control.extend({
+   options:{position:'bottomright'},
+   onAdd:function(){
+     const btn=L.DomUtil.create('button','btn btn-light shadow-sm');
+     btn.type='button'; btn.title='My location';
+     btn.style.cssText='width:40px;height:40px;border-radius:50%;';
+     btn.innerHTML='<i class="bi bi-crosshair"></i>';
+     L.DomEvent.disableClickPropagation(btn);
+     btn.onclick=()=>{
+       if(!navigator.geolocation)return;
+       navigator.geolocation.getCurrentPosition(pos=>{ map.setView([pos.coords.latitude,pos.coords.longitude],16); });
+     };
+     return btn;
+   }
+ });
+ map.addControl(new LocateControl());
+}
+/* Provider-agnostic map helpers so the trip/walk tracking code below doesn't need
+   to know whether it's drawing on Google Maps or the OpenStreetMap fallback. */
+function createLiveMap(el,provider,compact){
+ if(provider==='google'){ const map=new google.maps.Map(el,fullMapOptions(compact)); if(!compact) addMapExtras(map); return map; }
+ const map=L.map(el,compact?{zoomControl:false,attributionControl:false}:{}).setView([20.5937,78.9629],5);
+ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+ if(!compact) addLeafletExtras(map);
+ return map;
+}
+function createLivePolyline(map,provider,color){
+ if(provider==='google'){ const pl=new google.maps.Polyline({path:[],strokeColor:color,strokeWeight:5}); pl.setMap(map); return pl; }
+ return L.polyline([],{color,weight:5}).addTo(map);
+}
+function polylineAddPoint(pl,provider,lat,lon){
+ if(provider==='google'){ const path=pl.getPath(); path.push(new google.maps.LatLng(lat,lon)); }
+ else pl.addLatLng([lat,lon]);
+}
+function polylineReset(pl,provider){
+ if(!pl) return;
+ if(provider==='google') pl.setPath([]); else pl.setLatLngs([]);
+}
+function createLiveMarker(map,provider,lat,lon,icon){
+ if(provider==='google') return new google.maps.Marker({position:{lat,lng:lon},map,icon});
+ return L.marker([lat,lon],{icon}).addTo(map);
+}
+function markerSetPos(marker,provider,lat,lon){
+ if(provider==='google') marker.setPosition({lat,lng:lon}); else marker.setLatLng([lat,lon]);
+}
+function markerRemove(marker,provider){
+ if(!marker) return;
+ if(provider==='google') marker.setMap(null); else marker.remove();
+}
+function mapSetCenterZoom(map,provider,lat,lon,zoom){
+ if(provider==='google'){ map.setCenter({lat,lng:lon}); if(zoom)map.setZoom(zoom); }
+ else map.setView([lat,lon],zoom||map.getZoom());
+}
+function mapPanTo(map,provider,lat,lon){
+ if(provider==='google') map.panTo({lat,lng:lon}); else map.panTo([lat,lon]);
+}
+function mapResize(map,provider){
+ if(!map) return;
+ if(provider==='google'){ if(window.google&&window.google.maps) google.maps.event.trigger(map,'resize'); }
+ else map.invalidateSize();
+}
+/* ---------- Vehicle / walker marker icons: a distinct icon per vehicle type, shown on the live map ---------- */
+const VEHICLE_ICON_MAP={
+ 'Two Wheeler':{emoji:'🏍️',color:'#0d6efd'},
+ 'Three Wheeler':{emoji:'🛺',color:'#fd7e14'},
+ 'Car':{emoji:'🚗',color:'#198754'},
+ 'Pickup':{emoji:'🛻',color:'#6f42c1'},
+ 'Truck':{emoji:'🚚',color:'#dc3545'},
+ 'Bus':{emoji:'🚌',color:'#20c997'},
+ 'Other':{emoji:'📍',color:'#495057'}
+};
+const WALK_ICON={emoji:'🚶',color:'#198754'};
+// Analog gauge scale (max km/h shown) and accent colour per vehicle type / walking.
+const VEHICLE_GAUGE_META={
+ 'Two Wheeler':{max:140,color:'#0d6efd'},
+ 'Three Wheeler':{max:80,color:'#fd7e14'},
+ 'Car':{max:220,color:'#198754'},
+ 'Pickup':{max:160,color:'#6f42c1'},
+ 'Truck':{max:120,color:'#dc3545'},
+ 'Bus':{max:100,color:'#20c997'},
+ 'Other':{max:180,color:'#495057'}
+};
+const WALK_GAUGE_META={max:12,color:'#198754'};
+
+/* ---------- Live (instantaneous) mileage: real fuel efficiency isn't flat — it's best around a
+   mid-range cruising speed and drops off in heavy stop-go traffic (idling, braking, accelerating)
+   and again at high speed (aerodynamic drag, harder engine load). This estimates the CURRENT
+   km/L at the vehicle's present speed, scaled off its declared/rated mileage, purely as live
+   driving-style feedback — the trip's actual fuel cost keeps using the rated mileage figure. */
+const VEHICLE_OPTIMAL_SPEED={'Two Wheeler':45,'Three Wheeler':35,'Car':60,'Pickup':55,'Truck':50,'Bus':45,'Other':50};
+function liveEfficiencyFactor(speedKmh,vehicleType){
+ if(!speedKmh||speedKmh<=0.5) return 0.35; // idling / stationary with engine on: worst efficiency
+ const opt=VEHICLE_OPTIMAL_SPEED[vehicleType]||50;
+ const diff=speedKmh-opt;
+ const factor=1.08*Math.exp(-(diff*diff)/(2*opt*opt*0.6));
+ return Math.max(0.35,Math.min(1.15,factor));
+}
+function estimateLiveMileage(v,speedKmh){
+ if(!v) return 0;
+ return Number(v.mileage)*liveEfficiencyFactor(speedKmh,v.type);
+}
+function formatPace(avgSpeedKmh){
+ if(!avgSpeedKmh||avgSpeedKmh<=0) return '--';
+ const minPerKm=60/avgSpeedKmh;
+ const mi=Math.floor(minPerKm), s=Math.round((minPerKm-mi)*60);
+ return `${mi}:${String(s).padStart(2,'0')} /km`;
+}
+
+/* ---------- Mini live map inside the meter popup — mirrors the main GPS Trip / Walking map
+   so the route is visible right alongside the speedometer, without leaving the popup. ---------- */
+let meterMap=null, meterMapProvider=null, meterMapMarker=null, meterMapPolyline=null, meterModalOpen=false;
+function initMeterMap(){
+ if(meterMap) return;
+ withMapProvider(provider=>{
+   if(meterMap) return;
+   const el=document.getElementById('meterMap'); if(!el) return;
+   meterMapProvider=provider;
+   meterMap=createLiveMap(el,provider,true);
+   meterMapPolyline=createLivePolyline(meterMap,provider,meterKind==='walk'?'#198754':'#0d6efd');
+ });
+}
+function meterMapReset(){
+ if(meterMapPolyline) polylineReset(meterMapPolyline,meterMapProvider);
+ if(meterMapMarker){ markerRemove(meterMapMarker,meterMapProvider); meterMapMarker=null; }
+}
+function meterMapUpdate(p,iconCfg){
+ withMapProvider(provider=>{
+   if(!meterMap) initMeterMap();
+   if(!meterMap) return;
+   if(!meterMapMarker){ meterMapMarker=createLiveMarker(meterMap,provider,p.lat,p.lon,markerIconFor(provider,iconCfg)); mapSetCenterZoom(meterMap,provider,p.lat,p.lon,16); }
+   else { markerSetPos(meterMapMarker,provider,p.lat,p.lon); meterMapMarker.setIcon(markerIconFor(provider,iconCfg)); }
+   polylineAddPoint(meterMapPolyline,provider,p.lat,p.lon);
+   mapPanTo(meterMap,provider,p.lat,p.lon);
+ });
+}
+document.getElementById('liveMeterModal').addEventListener('shown.bs.modal',()=>{
+ meterModalOpen=true;
+ initMeterMap();
+ setTimeout(()=>mapResize(meterMap,meterMapProvider),150);
+});
+document.getElementById('liveMeterModal').addEventListener('hidden.bs.modal',()=>{ meterModalOpen=false; });
+
+let meterKind=null, meterArcLen=0;
+function buildMeterGauge(){
+ const svg=document.getElementById('meterGaugeSvg'); if(!svg) return;
+ const cx=100,cy=110;
+ const point=(deg,rad)=>{const a=(deg-180)*Math.PI/180;return{x:cx+rad*Math.cos(a),y:cy+rad*Math.sin(a)}};
+ const arcPath=(rad,a1,a2)=>{const s=point(a1,rad),e=point(a2,rad),large=Math.abs(a2-a1)>180?1:0;return`M${s.x.toFixed(2)},${s.y.toFixed(2)} A${rad},${rad} 0 ${large} 1 ${e.x.toFixed(2)},${e.y.toFixed(2)}`};
+ let h=`<defs>
+ <linearGradient id="sportSpeedGrad" x1="20" y1="0" x2="180" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#22c55e"/><stop offset="62%" stop-color="#60a5fa"/><stop offset="84%" stop-color="#facc15"/><stop offset="100%" stop-color="#ef4444"/></linearGradient>
+ <linearGradient id="sportRpmGrad" x1="20" y1="0" x2="180" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#60a5fa"/><stop offset="72%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#fb7185"/></linearGradient>
+ <filter id="sportGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
+ h+=`<path class="dial-track" d="${arcPath(82,0,180)}"/><path id="meterValueArc" class="dial-progress" d="${arcPath(82,0,180)}"/>`;
+ h+=`<path class="rpm-track" d="${arcPath(67,8,172)}"/><path id="meterRpmArc" class="rpm-progress" d="${arcPath(67,8,172)}"/>`;
+ for(let i=0;i<=12;i++){const d=i*15,p1=point(d,72),p2=point(d,i%2===0?78:75);h+=`<line class="dial-tick ${i%2===0?'major':''}" x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}"/>`;if(i%2===0){const n=point(d,61);h+=`<text class="dial-number" x="${n.x}" y="${n.y+2}">${i*20}</text>`;}}
+ for(let i=0;i<=8;i++){const d=8+i*20.5,p1=point(d,61),p2=point(d,64);h+=`<line class="dial-tick" x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}"/>`;const n=point(d,55);h+=`<text class="rpm-number" x="${n.x}" y="${n.y+1.5}">${i}</text>`;}
+ h+=`<g id="meterNeedle" class="speed-needle" transform="rotate(-90 100 110)"><polygon class="needle-shadow" points="96.9,108.2 99.1,109.2 99.1,43 100,34 100.9,43 100.9,109.2 103.1,108.2 101.2,111 98.8,111"/><polygon class="needle-face" points="98.4,108.8 99.2,109.5 99.2,42 100,35 100.8,42 100.8,109.5 101.6,108.8 100,112"/></g>`;
+ h+=`<g id="meterRpmNeedle" class="rpm-needle" transform="rotate(-90 100 110)"><polygon class="rpm-needle-shadow" points="97.5,108.8 99.2,109.5 99.2,53 100,47 100.8,53 100.8,109.5 102.5,108.8 101.2,112 98.8,112"/><polygon class="rpm-needle-face" points="98.7,109 99.3,109.5 99.3,53 100,48 100.7,53 100.7,109.5 101.3,109 100,112"/></g><circle class="hub-outer" cx="100" cy="110" r="8.5"/><circle class="hub" cx="100" cy="110" r="5.5"/><circle class="hub-cap" cx="100" cy="110" r="2"/>`;
+ svg.innerHTML=h;
+ const a=document.getElementById('meterValueArc'),ra=document.getElementById('meterRpmArc');meterArcLen=a?.getTotalLength()||0;meterRpmArcLen=ra?.getTotalLength()||0;
+ if(a)a.style.strokeDasharray=`${meterArcLen} ${meterArcLen}`;
+ if(ra)ra.style.strokeDasharray=`${meterRpmArcLen} ${meterRpmArcLen}`;
+}
+
+/* ---------- Classic analog instrument cluster (alternate, user-selectable meter style) ----------
+   Renders the SAME live trip/walk data (speed, RPM, GPS, trip distance, fuel economy, range,
+   etc.) as a traditional dual-dial car cluster instead of the digital sport cockpit above.
+   Both styles are built every time the meter opens and kept in sync on every tick, so switching
+   between them with the Sport/Classic buttons never loses or resets any live data. */
+let meterStyle=localStorage.getItem('srd_meter_style')||'sport';
+let classicUnit=localStorage.getItem('srd_meter_unit')||'kmh';
+let classicPanelMode='drive';
+let classicVals={};
+let classicNeedleAnim={speed:-135,rpm:-135};
+function classicPoint(deg,rad,cx,cy){const a=(deg-180)*Math.PI/180;return{x:cx+rad*Math.cos(a),y:cy+rad*Math.sin(a)};}
+function classicArcPath(rad,a1,a2,cx,cy){const s=classicPoint(a1,rad,cx,cy),e=classicPoint(a2,rad,cx,cy),large=Math.abs(a2-a1)>180?1:0;return `M${s.x.toFixed(2)},${s.y.toFixed(2)} A${rad},${rad} 0 ${large} 1 ${e.x.toFixed(2)},${e.y.toFixed(2)}`;}
+function classicBuildDial(svgId,cfg){
+ const svg=document.getElementById(svgId); if(!svg) return;
+ const cx=100,cy=100,rTrack=78,startDeg=-45,endDeg=225,sweep=endDeg-startDeg,max=cfg.max,majorStep=cfg.majorStep;
+ let h=`<path class="classic-dial-track" d="${classicArcPath(rTrack,startDeg,endDeg,cx,cy)}"/>`;
+ if(cfg.redFrom!=null){const redStart=startDeg+(cfg.redFrom/max)*sweep;h+=`<path class="classic-dial-red" d="${classicArcPath(rTrack,redStart,endDeg,cx,cy)}"/>`;}
+ const majors=Math.round(max/majorStep);
+ for(let i=0;i<=majors*2;i++){
+   const val=i*majorStep/2, deg=startDeg+(val/max)*sweep, isMajor=i%2===0;
+   const p1=classicPoint(deg,rTrack-6,cx,cy), p2=classicPoint(deg,isMajor?rTrack+2:rTrack-1,cx,cy);
+   h+=`<line class="classic-dial-tick${isMajor?' major':''}" x1="${p1.x.toFixed(1)}" y1="${p1.y.toFixed(1)}" x2="${p2.x.toFixed(1)}" y2="${p2.y.toFixed(1)}"/>`;
+   if(isMajor){const n=classicPoint(deg,rTrack-16,cx,cy);h+=`<text class="classic-dial-number" x="${n.x.toFixed(1)}" y="${(n.y+3).toFixed(1)}">${Math.round(val)}</text>`;}
+ }
+ h+=`<line id="${svgId}Needle" class="classic-needle${svgId==='classicSpeedoSvg'?' speedo':''}" x1="100" y1="100" x2="100" y2="30" transform="rotate(-135 100 100)"/><circle class="classic-hub" cx="100" cy="100" r="7"/>`;
+ svg.innerHTML=h;
+}
+function buildClassicGauge(){
+ classicBuildDial('classicTachSvg',{max:8,majorStep:1,redFrom:6});
+ classicBuildDial('classicSpeedoSvg',{max:280,majorStep:20,redFrom:240});
+}
+function classicAnimateNeedle(svgId,pct,key){
+ const el=document.getElementById(svgId+'Needle'); if(!el) return;
+ const target=-135+Math.max(0,Math.min(1,pct))*270;
+ const start=Number(classicNeedleAnim[key]??target), delta=target-start;
+ const reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ if(reduced){classicNeedleAnim[key]=target;el.setAttribute('transform',`rotate(${target} 100 100)`);return;}
+ const t0=performance.now(),duration=180;
+ function frame(now){const p=Math.min(1,(now-t0)/duration),e=1-Math.pow(1-p,3),a=start+delta*e;el.setAttribute('transform',`rotate(${a} 100 100)`);if(p<1)requestAnimationFrame(frame);else classicNeedleAnim[key]=target;}
+ requestAnimationFrame(frame);
+}
+function updateClassicGauge(speed){
+ const kmh=Number(speed)||0;
+ classicAnimateNeedle('classicSpeedoSvg',kmh/280,'speed');
+ const disp=classicUnit==='mph'?kmh*0.621371:kmh;
+ const d=document.getElementById('classicSpeedDigital'); if(d) d.textContent=String(Math.round(disp));
+ const u=document.getElementById('classicSpeedUnit'); if(u) u.textContent=classicUnit==='mph'?'MPH':'KM/H';
+}
+function classicFmtDist(km){ return classicUnit==='mph'?(km*0.621371).toFixed(2)+' mi':km.toFixed(2)+' km'; }
+function classicFmtSpeed(v){ return classicUnit==='mph'?(v*0.621371).toFixed(1)+' mph':v.toFixed(1)+' km/h'; }
+function renderClassicGpsBars(accuracy){
+ const bars=document.querySelectorAll('#classicGpsBars i'); if(!bars.length) return;
+ let lit=0; if(accuracy!=null){ lit=accuracy<10?4:accuracy<20?3:accuracy<50?2:1; }
+ bars.forEach((b,i)=>b.classList.toggle('on',i<lit));
+}
+function renderClassicTelltales(){
+ const top=document.getElementById('classicTopTelltales'), bot=document.getElementById('classicBottomTelltales'); if(!top||!bot) return;
+ const lowFuel=classicVals.fuelPct!=null&&classicVals.fuelPct<0.15, lowVolt=classicVals.voltage!=null&&classicVals.voltage<12.2;
+ const hotEngine=classicVals.engineLoad!=null&&classicVals.engineLoad>90, eco=driveMode==='eco';
+ const topIcons=[['bi-arrow-left-short',false,'#4ade80'],['bi-lightbulb-fill',true,'#60a5fa'],['bi-speedometer2',true,'#4ade80'],['bi-battery-full',lowVolt,'#ef4444'],['bi-brightness-high-fill',true,'#facc15'],['bi-droplet-fill',hotEngine,'#ef4444'],['bi-exclamation-triangle-fill',false,'#ef4444'],['bi-gear-fill',hotEngine,'#facc15'],['bi-leaf-fill',eco,'#22c55e'],['bi-arrow-right-short',false,'#4ade80']];
+ top.innerHTML=topIcons.map(([icon,on,color])=>`<span class="classic-telltale${on?' on':''}" style="color:${on?color:'#334155'}"><i class="bi ${icon}"></i></span>`).join('');
+ const botIcons=[['bi-fuel-pump-fill',lowFuel,'#facc15'],['bi-snow',false,'#60a5fa'],['bi-p-circle-fill',false,'#ef4444'],['bi-lightbulb-fill',true,'#22c55e'],['bi-life-preserver',false,'#ef4444'],['bi-person-arms-up',false,'#ef4444'],['bi-water',false,'#e2e8f0'],['bi-lightbulb',false,'#facc15']];
+ bot.innerHTML=botIcons.map(([icon,on,color])=>`<span class="classic-telltale${on?' on':''}" style="color:${on?color:'#334155'}"><i class="bi ${icon}"></i></span>`).join('');
+}
+function setClassicPanelMode(mode){
+ classicPanelMode=mode;
+ document.querySelectorAll('#classicModeGroup .classic-mode-btn').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
+ renderClassicInfoBody();
+}
+function setClassicUnit(u){
+ classicUnit=u; localStorage.setItem('srd_meter_unit',u);
+ document.querySelectorAll('#classicUnitGroup .classic-mode-btn').forEach(b=>b.classList.toggle('active',b.dataset.u===u));
+ renderClassicInfoBody();
+}
+function renderClassicInfoBody(){
+ const box=document.getElementById('classicInfoBody'); if(!box) return;
+ const c=classicVals; let rows;
+ if(classicPanelMode==='trip') rows=[['Trip A',classicFmtDist(c.tripKm||0)],['Trip B',classicFmtDist(c.tripB||0)],['Elapsed',c.timeStr||'00:00']];
+ else if(classicPanelMode==='economy') rows=[['Instant Econ.',c.liveEcon||'--'],['Avg Speed',classicFmtSpeed(c.avgSpeed||0)],['Fuel Used',c.fuelUsed||'--']];
+ else if(classicPanelMode==='range') rows=[['Range',c.range||'--'],['ODO',classicFmtDist(c.odo||0)],['Fuel Cost',c.fuelCost||'--']];
+ else rows=[['Coordinates',c.coords||'--'],['Trip A',classicFmtDist(c.tripKm||0)],['Avg Speed',classicFmtSpeed(c.avgSpeed||0)],['Instant Econ.',c.liveEcon||'--']];
+ box.innerHTML=rows.map(([l,v])=>`<div class="classic-info-row"><span>${l}</span><b>${v}</b></div>`).join('');
+}
+function renderClassicStatBar(){
+ const box=document.getElementById('classicStatBar'); if(!box) return; const c=classicVals;
+ const stats=[['bi-signpost','Range',c.range||'--'],['bi-fuel-pump','Fuel Econ.',c.liveEcon||'--'],['bi-droplet','Fuel Used',c.fuelUsed||'--'],['bi-battery-charging','Voltage',c.voltage!=null?c.voltage.toFixed(1)+' V':'--'],['bi-cpu','Engine Load',c.engineLoad!=null?c.engineLoad+' %':'--']];
+ box.innerHTML=stats.map(([i,l,v])=>`<div class="classic-stat"><div class="classic-stat-label"><i class="bi ${i}"></i> ${l}</div><div class="classic-stat-val">${v}</div></div>`).join('');
+}
+function resetTripB(){ trip.tripB=0; classicVals.tripB=0; const el=document.getElementById('classicTripB'); if(el) el.textContent=classicFmtDist(0); renderClassicInfoBody(); }
+function updateClassicGearUI(gearLetter){
+ const big=document.getElementById('classicGearBig'); if(big) big.textContent=gearLetter;
+ document.querySelectorAll('#classicGearRow span').forEach(s=>s.classList.toggle('active',s.dataset.g===gearLetter));
+}
+function syncClassicMeter(kind,speedKmh,accuracy){
+ renderClassicGpsBars(accuracy);
+ const clock=document.getElementById('classicClockTime'); if(clock) clock.textContent=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+ if(kind==='trip'){
+   const v=vehicle(document.getElementById('tripVehicle').value), last=trip.points.at(-1);
+   const live=v?estimateLiveMileage(v,speedKmh):0, fuel=v?trip.km/Number(v.mileage):0, cost=v?fuel*Number(v.rate):0;
+   const range=estimatedFuelRange(v,trip.km), avg=trip.movingMs>0?trip.km/(trip.movingMs/3600000):0;
+   const rpm=estimateEngineRpm(speedKmh,v), rpmMax={'Two Wheeler':10000,'Three Wheeler':6500,'Car':6500,'Pickup':5500,'Truck':3000,'Bus':2800,'Other':6000}[v?.type]||6000;
+   classicVals={tripKm:trip.km,tripB:trip.tripB||0,timeStr:fmtTime(trip.movingMs),avgSpeed:avg,
+     liveEcon:v?live.toFixed(1)+' km/L':'--',fuelUsed:v?fuel.toFixed(2)+' L':'--',fuelCost:v?money(cost):'--',
+     range:range.available?range.km.toFixed(0)+' km':'--',odo:estimatedOdometer(v,trip.km),
+     coords:last?`${last.lat.toFixed(4)}° N, ${last.lon.toFixed(4)}° E`:'--',
+     voltage:12.6+(trip.running&&!trip.paused?1.4+Math.sin(Date.now()/4000)*0.1:0),
+     engineLoad:Math.round(Math.min(100,(rpm/rpmMax)*100)),
+     fuelPct:range.available&&range.liters>0?Math.max(0,Math.min(1,range.km/(range.liters*Number(v.mileage||1)))):0.5,
+     tempPct:trip.running?Math.min(.72,.22+(trip.movingMs/300000)*.5):.12};
+   const tb=document.getElementById('classicTripB'); if(tb) tb.textContent=classicFmtDist(classicVals.tripB);
+   updateClassicGearUI(!trip.running?'P':(currentGear==='N'?'N':'D'));
+   classicAnimateNeedle('classicTachSvg',(rpm||0)/8000,'rpm');
+ } else {
+   const last=walk.points.at(-1), avg=walk.movingMs>0?walk.km/(walk.movingMs/3600000):0;
+   classicVals={tripKm:walk.km,tripB:walk.km,timeStr:fmtTime(walk.movingMs),avgSpeed:avg,
+     liveEcon:formatPace(avg),fuelUsed:Math.round(walk.calories)+' kcal',fuelCost:Math.round(walk.steps)+' steps',
+     range:'--',odo:0,coords:last?`${last.lat.toFixed(4)}° N, ${last.lon.toFixed(4)}° E`:'--',
+     voltage:null,engineLoad:null,fuelPct:.5,tempPct:.12};
+   updateClassicGearUI('P');
+   classicAnimateNeedle('classicTachSvg',0,'rpm');
+ }
+ const tf=document.getElementById('classicTempFill'), tn=document.getElementById('classicTempNeedle');
+ if(tf) tf.style.height=(classicVals.tempPct*100)+'%'; if(tn) tn.style.bottom=(classicVals.tempPct*100)+'%';
+ const ff=document.getElementById('classicFuelFill'), fn=document.getElementById('classicFuelNeedle');
+ if(ff) ff.style.height=(classicVals.fuelPct*100)+'%'; if(fn) fn.style.bottom=(classicVals.fuelPct*100)+'%';
+ renderClassicInfoBody(); renderClassicStatBar(); renderClassicTelltales();
+}
+function setMeterStyle(style){
+ meterStyle=style; localStorage.setItem('srd_meter_style',style);
+ const sport=document.querySelector('.sport-meter-shell'), classic=document.getElementById('classicMeterShell');
+ if(sport) sport.classList.toggle('d-none',style!=='sport');
+ if(classic) classic.classList.toggle('active',style==='classic');
+ document.getElementById('meterStyleSportBtn')?.classList.toggle('active',style==='sport');
+ document.getElementById('meterStyleClassicBtn')?.classList.toggle('active',style==='classic');
+ if(style==='classic'&&meterKind){
+   buildClassicGauge();
+   if(meterKind==='trip') syncClassicMeter('trip',trip.points.at(-1)?.speed||0,trip.points.at(-1)?.acc);
+   else syncClassicMeter('walk',0,walk.points.at(-1)?.acc);
+ }
+}
+function estimateEngineRpm(speedKmh,v){
+ if(!v||!speedKmh||speedKmh<0.5)return 850;
+ const ratio={'Two Wheeler':85,'Three Wheeler':72,'Car':62,'Pickup':58,'Truck':48,'Bus':42,'Other':60}[v.type]||60;
+ const max={'Two Wheeler':10000,'Three Wheeler':6500,'Car':6500,'Pickup':5500,'Truck':3000,'Bus':2800,'Other':6000}[v.type]||6000;
+ return Math.max(850,Math.min(max,Math.round(900+speedKmh*ratio)));
+}
+function estimatedOdometer(v,tripKm){
+ if(!v)return 0;
+ const base=Number(v.odometer||0);
+ const historical=state.trips.filter(t=>String(t.vehicleId)===String(v.id)).reduce((s,t)=>s+Number(t.km||0),0);
+ const manual=(state.manualKmEntries||[]).filter(e=>String(e.vehicleId)===String(v.id)).reduce((s,e)=>s+Number(e.km||0),0);
+ return base+historical+manual+Number(tripKm||0);
+}
+
+function estimatedFuelRange(v,currentTripKm=0){
+ if(!v || !Number(v.mileage) || Number(v.mileage)<=0) return {available:false,km:0,liters:0,spent:0};
+ const rate=Number(v.rate)||0;
+ const expenses=(state.expenses||[]).filter(e=>String(e.vehicleId)===String(v.id) && String(e.cat||'').toLowerCase()==='fuel');
+ if(!expenses.length)return {available:false,km:0,liters:0,spent:0};
+ const sorted=expenses.slice().sort((a,b)=>Number(a.id||0)-Number(b.id||0));
+ const lastFuel=sorted[sorted.length-1];
+ let liters=Number(lastFuel.liters)||0;
+ if(!(liters>0)){const entryRate=Number(lastFuel.fuelRateAtEntry)||rate;if(entryRate>0)liters=(Number(lastFuel.amount)||0)/entryRate;}
+ const fuelAnchor=Number(lastFuel.id||Date.now());
+ const historicalAfterFuel=state.trips.filter(t=>String(t.vehicleId)===String(v.id) && Number(t.id||0)>fuelAnchor).reduce((sum,t)=>sum+Number(t.km||0),0);
+ const manualAfterFuel=(state.manualKmEntries||[]).filter(e=>String(e.vehicleId)===String(v.id) && Number(e.id||0)>fuelAnchor).reduce((sum,e)=>sum+Number(e.km||0),0);
+ const consumedKm=historicalAfterFuel+manualAfterFuel+Number(currentTripKm||0);
+ const remaining=Math.max(0,liters*Number(v.mileage)-consumedKm);
+ return {available:true,km:remaining,liters,spent:Number(lastFuel.amount)||0,consumedKm,lastFuelId:fuelAnchor};
+}
+
+const VEHICLE_METER_ICON={
+ 'Two Wheeler':'bi-bicycle',
+ 'Three Wheeler':'bi-truck-front-fill',
+ 'Car':'bi-car-front-fill',
+ 'Pickup':'bi-truck-front',
+ 'Truck':'bi-truck',
+ 'Bus':'bi-bus-front-fill',
+ 'Other':'bi-speedometer2'
+};
+function setMeterVehicleIcon(v){
+ const el=document.getElementById('meterVehicleIcon');
+ if(!el) return;
+ const cls=VEHICLE_METER_ICON[v?.type]||VEHICLE_METER_ICON.Other;
+ el.className='bi '+cls+' meter-context-icon';
+ el.title=v?.type||'Vehicle';
+}
+/* ---------- Automatic transmission + drive-mode simulation ----------
+   The gearbox now shifts on its own, purely as a function of current speed and vehicle type —
+   no manual shifting. A tappable row of drive-mode telltales (Eco/Normal/Sport/Power, varying
+   by vehicle type) changes how eagerly the transmission shifts, the way a real vehicle's drive
+   mode selector does, and lights up with that mode's colour across the cluster. */
+let currentGear='N';
+// Upper speed (km/h) bound for gear 1, gear 2, gear 3... per vehicle type (last entry's gear is the top gear).
+const GEAR_SPEED_BOUNDS={
+ 'Two Wheeler':[15,30,45,65,90],
+ 'Three Wheeler':[12,25,40,55],
+ 'Car':[18,35,55,80,110],
+ 'Pickup':[16,32,50,75,100],
+ 'Truck':[10,20,32,48,65],
+ 'Bus':[10,18,28,42,58],
+ 'Other':[18,35,55,80,110]
+};
+const DRIVE_MODES={
+ eco:{label:'ECO',icon:'bi-leaf-fill',color:'#22c55e',shiftMul:0.8},
+ normal:{label:'NORMAL',icon:'bi-speedometer2',color:'#60a5fa',shiftMul:1},
+ sport:{label:'SPORT',icon:'bi-lightning-charge-fill',color:'#fb7185',shiftMul:1.28},
+ power:{label:'POWER',icon:'bi-lightning-charge-fill',color:'#f59e0b',shiftMul:1.18}
+};
+// Which drive modes exist for each vehicle type — heavy vehicles get Power instead of Sport.
+const VEHICLE_DRIVE_MODES={
+ 'Two Wheeler':['eco','normal','sport'],
+ 'Three Wheeler':['eco','normal'],
+ 'Car':['eco','normal','sport'],
+ 'Pickup':['eco','normal','sport'],
+ 'Truck':['eco','normal','power'],
+ 'Bus':['eco','normal','power'],
+ 'Other':['eco','normal','sport']
+};
+let driveMode='normal';
+function hexToRgba(hex,alpha){
+ const h=hex.replace('#','');
+ const r=parseInt(h.substring(0,2),16),g=parseInt(h.substring(2,4),16),b=parseInt(h.substring(4,6),16);
+ return `rgba(${r},${g},${b},${alpha})`;
+}
+function recommendedGearFor(speedKmh,type){
+ if(!speedKmh||speedKmh<=2) return 'N';
+ const bounds=GEAR_SPEED_BOUNDS[type]||GEAR_SPEED_BOUNDS.Other;
+ const mul=(DRIVE_MODES[driveMode]||DRIVE_MODES.normal).shiftMul;
+ for(let i=0;i<bounds.length;i++){ if(speedKmh<bounds[i]*mul) return String(i+1); }
+ return String(bounds.length+1);
+}
+function applyModeAccent(){
+ const shell=document.querySelector('.sport-meter-shell'),d=DRIVE_MODES[driveMode]||DRIVE_MODES.normal;
+ if(shell){ shell.style.setProperty('--mode-color',hexToRgba(d.color,.6)); shell.style.setProperty('--mode-glow',hexToRgba(d.color,.22)); }
+}
+function renderDriveModeLights(v){
+ const row=document.getElementById('meterModeRow'); if(!row) return;
+ const type=v?.type||'Car', modes=VEHICLE_DRIVE_MODES[type]||VEHICLE_DRIVE_MODES.Other;
+ if(!modes.includes(driveMode)) driveMode='normal';
+ row.classList.remove('d-none');
+ row.innerHTML=modes.map(m=>{ const d=DRIVE_MODES[m]; return `<div class="sport-mode-light${m===driveMode?' active':''}" style="--mode-color:${d.color}" onclick="cycleDriveModeTo('${m}')"><i class="bi ${d.icon}"></i><span>${d.label}</span></div>`; }).join('');
+ applyModeAccent();
+}
+function cycleDriveModeTo(m){
+ if(m===driveMode||!DRIVE_MODES[m])return;
+ driveMode=m;
+ const v=vehicle(document.getElementById('tripVehicle').value);
+ renderDriveModeLights(v);
+ showGearToast(`${DRIVE_MODES[driveMode].label} mode engaged.`);
+ const lastSpeed=trip.points.at(-1)?.speed||0;
+ updateSportGear(lastSpeed,v);
+}
+function resetGear(){
+ currentGear='N'; driveMode='normal';
+ const gp=document.getElementById('meterGearPill');
+ if(gp){gp.classList.remove('gear-shift-flash');gp.innerHTML='<i class="bi bi-gear-fill"></i> N';}
+}
+function showGearToast(msg){
+ const body=document.getElementById('gearToastBody'),toastEl=document.getElementById('gearToast');
+ if(body)body.textContent=msg;
+ if(toastEl&&window.bootstrap)bootstrap.Toast.getOrCreateInstance(toastEl,{delay:3000}).show();
+}
+function updateSportGear(speedKmh,v){
+ const type=v?.type||'Car';
+ const gear=recommendedGearFor(speedKmh,type);
+ setMeterVehicleIcon(v);
+ const gp=document.getElementById('meterGearPill'),tx=document.getElementById('meterGearText');
+ if(gp){
+   if(gear!==currentGear){ gp.classList.remove('gear-shift-flash'); void gp.offsetWidth; gp.classList.add('gear-shift-flash'); }
+   gp.innerHTML='<i class="bi bi-gear-fill"></i> '+gear;
+ }
+ currentGear=gear;
+ const modeLabel=(DRIVE_MODES[driveMode]||DRIVE_MODES.normal).label;
+ if(tx)tx.textContent=`${type.toUpperCase()} • ${modeLabel} • GEAR ${gear}`;
+}
+let needleAnim={speed:-90,rpm:-90};
+function animateAnalogNeedle(el,target,key){
+ if(!el)return;
+ const start=Number(needleAnim[key]??target),delta=((target-start+540)%360)-180;
+ const reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ if(reduced){needleAnim[key]=target;el.setAttribute('transform',`rotate(${target} 100 110)`);return;}
+ const t0=performance.now(),duration=170;
+ function frame(now){const p=Math.min(1,(now-t0)/duration),e=1-Math.pow(1-p,3),a=start+delta*e;el.setAttribute('transform',`rotate(${a} 100 110)`);if(p<1)requestAnimationFrame(frame);else needleAnim[key]=target;}
+ requestAnimationFrame(frame);
+}
+function updateMeterGauge(speed,maxSpeed,rpm,rpmMax){
+ const pct=Math.max(0,Math.min(1,(Number(speed)||0)/maxSpeed)),rp=Math.max(0,Math.min(1,(Number(rpm)||0)/rpmMax));
+ const a=document.getElementById('meterValueArc'),ra=document.getElementById('meterRpmArc');if(a&&meterArcLen)a.style.strokeDashoffset=String(meterArcLen*(1-pct));if(ra&&meterRpmArcLen)ra.style.strokeDashoffset=String(meterRpmArcLen*(1-rp));
+ const n=document.getElementById('meterNeedle'),rn=document.getElementById('meterRpmNeedle');animateAnalogNeedle(n,-90+pct*180,'speed');animateAnalogNeedle(rn,-90+rp*180,'rpm');
+ updateClassicGauge(speed);
+ const d=document.getElementById('meterDigital');if(d){d.textContent=String(Math.round(speed||0));const z=pct<.6?'#4ade80':pct<.85?'#60a5fa':'#f87171';d.style.color=z;d.style.textShadow=`0 0 16px ${z}99`;}
+ const rl=document.getElementById('meterRpmLive'),rb=document.getElementById('meterRpm');if(rl)rl.textContent=`${Math.round(rpm||0).toLocaleString('en-IN')} RPM`;if(rb)rb.textContent=Math.round(rpm||0).toLocaleString('en-IN');
+ const leds=document.getElementById('meterLeds');if(leds){let h='',total=24,lit=Math.round(pct*total);for(let i=0;i<total;i++){const c=i<total*.6?'#22c55e':i<total*.84?'#eab308':'#ef4444';h+=`<i class="sport-led${i<lit?' active':''}" style="${i<lit?`background:${c};color:${c}`:''}"></i>`;}leds.innerHTML=h;}
+}
+function setMeterStatus(paused){
+ const badge=document.getElementById('meterStatusBadge');
+ if(badge){ badge.textContent=paused?'Paused':'Tracking'; badge.className='badge mb-2 '+(paused?'text-bg-warning':'text-bg-success'); }
+ const pb=document.getElementById('meterPauseBtn');
+ if(pb) pb.innerHTML = paused ? '<i class="bi bi-play-fill"></i> Resume' : '<i class="bi bi-pause-fill"></i> Pause';
+}
+function openLiveMeter(kind){
+ const switchingKind = meterKind!==kind;
+ meterKind=kind;
+ const title=document.getElementById('meterTitle');
+ const l4=document.getElementById('meterLabel4'), l6=document.getElementById('meterLabel6'), l7=document.getElementById('meterLabel7');
+ if(switchingKind) meterMapReset();
+ if(kind==='trip'){
+   const v=vehicle(document.getElementById('tripVehicle').value);
+   setMeterVehicleIcon(v);
+   title.innerHTML=`<i class="bi bi-speedometer2 me-2"></i>${v?.name||'Trip'} • Live Meter`;
+   l4.textContent='Live Mileage'; l6.textContent='Fuel Used'; l7.textContent='Fuel Cost';
+   buildMeterGauge(); buildClassicGauge();
+   if(switchingKind)resetGear();
+   renderDriveModeLights(v);
+   setMeterStatus(trip.paused);
+   updateTripMeter(0,trip.points.at(-1)?.acc);
+  } else {
+   const walkIcon=document.getElementById('meterVehicleIcon');
+   if(walkIcon) walkIcon.className='bi bi-person-walking meter-context-icon';
+   title.innerHTML='<i class="bi bi-person-walking me-2"></i>Walk • Live Meter';
+   l4.textContent='Steps'; l6.textContent='Calories'; l7.textContent='Avg Pace';
+   buildMeterGauge(); buildClassicGauge();
+   const modeRow=document.getElementById('meterModeRow');
+   if(modeRow){modeRow.classList.add('d-none');modeRow.innerHTML='';}
+   setMeterStatus(walk.paused);
+   updateWalkMeter(0,walk.points.at(-1)?.acc);
+ }
+ setMeterStyle(meterStyle);
+ bootstrap.Modal.getOrCreateInstance(document.getElementById('liveMeterModal')).show();
+}
+
+async function toggleMeterFullscreen(){
+ const modal=document.getElementById('liveMeterModal');
+ try{
+   if(document.fullscreenElement){await document.exitFullscreen();return;}
+   if(modal.requestFullscreen){await modal.requestFullscreen();}
+   else {modal.classList.add('meter-fullscreen-host');}
+ }catch(e){modal.classList.toggle('meter-fullscreen-host');}
+}
+document.addEventListener('fullscreenchange',()=>{
+ const modal=document.getElementById('liveMeterModal'),btn=document.getElementById('meterFullscreenBtn');
+ const full=!!document.fullscreenElement;
+ modal.classList.toggle('meter-fullscreen-host',full);
+ if(btn)btn.innerHTML=full?'<i class="bi bi-fullscreen-exit"></i> <span class="btn-label">Exit Full Screen</span>':'<i class="bi bi-fullscreen"></i> <span class="btn-label">Full Screen</span>';
+ if(full)setTimeout(()=>mapResize(meterMap,meterMapProvider),150);
+});
+document.getElementById('liveMeterModal').addEventListener('hidden.bs.modal',async()=>{
+ if(document.fullscreenElement){try{await document.exitFullscreen()}catch(e){}}
+ document.getElementById('liveMeterModal').classList.remove('meter-fullscreen-host');
+});
+
+function updateTripMeter(speedKmh,accuracy){
+ if(meterKind!=='trip')return;
+ const v=vehicle(document.getElementById('tripVehicle').value),meta=VEHICLE_GAUGE_META[v?.type]||VEHICLE_GAUGE_META.Other;
+ const rpm=estimateEngineRpm(speedKmh,v),rpmMax={'Two Wheeler':10000,'Three Wheeler':6500,'Car':6500,'Pickup':5500,'Truck':3000,'Bus':2800,'Other':6000}[v?.type]||6000;
+ updateMeterGauge(speedKmh,meta.max,rpm,rpmMax);
+ document.getElementById('meterDistance').textContent=trip.km.toFixed(2)+' km';document.getElementById('meterTrip').textContent=trip.km.toFixed(2)+' km';document.getElementById('meterOdo').textContent=estimatedOdometer(v,trip.km).toFixed(1)+' km';
+ document.getElementById('meterTime').textContent=fmtTime(trip.movingMs);const avg=trip.movingMs>0?trip.km/(trip.movingMs/3600000):0;document.getElementById('meterAvg').textContent=avg.toFixed(1)+' km/h';document.getElementById('meterMax').textContent=(trip.maxSpeed||0).toFixed(1)+' km/h';
+ const live=v?estimateLiveMileage(v,speedKmh):0,fuel=v?trip.km/Number(v.mileage):0,cost=v?fuel*Number(v.rate):0;document.getElementById('meterVal4').textContent=v?live.toFixed(1)+' km/L':'--';document.getElementById('meterMileage').textContent=v?live.toFixed(1)+' km/L':'--';document.getElementById('meterVal6').textContent=v?fuel.toFixed(2)+' L':'--';document.getElementById('meterFuel').textContent=v?fuel.toFixed(2)+' L':'--';document.getElementById('meterVal7').textContent=v?money(cost):'--';document.getElementById('meterCost').textContent=v?money(cost):'--';
+ const range=estimatedFuelRange(v,trip.km);document.getElementById('meterRange').textContent=v?(range.available?range.km.toFixed(0)+' km':'--'):'--';document.getElementById('meterEcoBar').style.width=Math.max(0,Math.min(100,(live/(Number(v?.mileage||1)*1.15))*100))+'%';document.getElementById('meterVal8').textContent=accuracy?'±'+Math.round(accuracy)+' m':'--';
+ updateSportGear(speedKmh,v);setMeterStatus(trip.paused);
+ if(meterModalOpen){const vv=v,cfg=VEHICLE_ICON_MAP[vv?.type]||VEHICLE_ICON_MAP.Other,last=trip.points.at(-1);if(last)meterMapUpdate(last,cfg);}
+ syncClassicMeter('trip',speedKmh,accuracy);
+}
+function updateWalkMeter(speedKmh,accuracy){
+ if(meterKind!=='walk') return;
+ updateMeterGauge(speedKmh,WALK_GAUGE_META.max);
+ document.getElementById('meterDistance').textContent=walk.km.toFixed(2)+' km';
+ document.getElementById('meterTime').textContent=fmtTime(walk.movingMs);
+ const avg=walk.movingMs>0?walk.km/(walk.movingMs/3600000):0;
+ document.getElementById('meterAvg').textContent=avg.toFixed(1)+' km/h';
+ document.getElementById('meterMax').textContent=(walk.maxSpeed||0).toFixed(1)+' km/h';
+ document.getElementById('meterVal4').textContent=Math.round(walk.steps);
+ document.getElementById('meterVal6').textContent=Math.round(walk.calories)+' kcal';
+ document.getElementById('meterVal7').textContent=formatPace(avg);
+ document.getElementById('meterVal8').textContent=accuracy?'±'+Math.round(accuracy)+' m':'--';
+ setMeterStatus(walk.paused);
+ if(meterModalOpen){
+   const last=walk.points.at(-1); if(last) meterMapUpdate(last,WALK_ICON);
+ }
+ syncClassicMeter('walk',speedKmh,accuracy);
+}
+function toggleMeterPause(){ if(meterKind==='trip') toggleTripPause(); else toggleWalkPause(); }
+function stopFromMeter(){
+ const modal=bootstrap.Modal.getInstance(document.getElementById('liveMeterModal'));
+ if(meterKind==='trip') finishTrip('manual'); else finishWalk('manual');
+ modal?.hide();
+}
+function emojiMarkerSVG(emoji,bg){
+ return `<svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" viewBox="0 0 46 46">`+
+   `<circle cx="23" cy="23" r="20" fill="${bg}" stroke="#ffffff" stroke-width="3"/>`+
+   `<text x="23" y="30" font-size="20" text-anchor="middle" font-family="Segoe UI Emoji, Apple Color Emoji, sans-serif">${emoji}</text>`+
+   `</svg>`;
+}
+function markerIconFor(provider,cfg){
+ const svg=emojiMarkerSVG(cfg.emoji,cfg.color);
+ const url='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
+ if(provider==='google') return {url,scaledSize:new google.maps.Size(46,46),anchor:new google.maps.Point(23,23)};
+ return L.icon({iconUrl:url,iconSize:[46,46],iconAnchor:[23,23]});
+}
+function currentTripVehicleIcon(provider){
+ const v=vehicle(document.getElementById('tripVehicle').value);
+ const cfg=VEHICLE_ICON_MAP[v?.type]||VEHICLE_ICON_MAP.Other;
+ return markerIconFor(provider,cfg);
+}
+
+let tripMap=null, tripMapProvider=null, tripMarker=null, tripPolyline=null, tripPath=[], wakeLock=null;
+function initTripMap(){
+ if(tripMap) return;
+ withMapProvider(provider=>{
+   if(tripMap) return;
+   const el=document.getElementById('tripMap'); if(!el) return;
+   tripMapProvider=provider;
+   tripMap=createLiveMap(el,provider);
+   tripPolyline=createLivePolyline(tripMap,provider,'#0d6efd');
+ });
+}
+function mapUpdate(p){
+ withMapProvider(provider=>{
+   if(!tripMap) initTripMap();
+   if(!tripMap) return;
+   const icon=currentTripVehicleIcon(provider);
+   if(!tripMarker){ tripMarker=createLiveMarker(tripMap,provider,p.lat,p.lon,icon); mapSetCenterZoom(tripMap,provider,p.lat,p.lon,17); }
+   else { markerSetPos(tripMarker,provider,p.lat,p.lon); tripMarker.setIcon(icon); }
+   polylineAddPoint(tripPolyline,provider,p.lat,p.lon);
+   mapPanTo(tripMap,provider,p.lat,p.lon);
+ });
+}
+async function requestWakeLock(){ try{ if('wakeLock' in navigator) wakeLock=await navigator.wakeLock.request('screen'); }catch(e){} }
+function releaseWakeLock(){ try{ if(wakeLock){ wakeLock.release(); wakeLock=null; } }catch(e){} }
+document.addEventListener('visibilitychange',()=>{
+ if(document.visibilityState==='visible' && (trip.running||walk.running)) requestWakeLock();
+ if(document.visibilityState==='hidden'){
+   // Persist immediately before the browser/OS may throttle or suspend this page.
+   if(trip.running) autosaveActiveTrip();
+   if(walk.running) autosaveActiveWalk();
+ }
+});
+window.addEventListener('pagehide',()=>{if(trip.running)autosaveActiveTrip();if(walk.running)autosaveActiveWalk();});
+
+function fmtTime(ms){ const s=Math.floor(ms/1000); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+
+function renderFuelLog(){
+ document.getElementById('fuelLogList').innerHTML=trip.fuelLog.map((f,i)=>`<div class="fuel-log-item d-flex justify-content-between"><span>${f.liters||0} L/kWh</span><span>${money(f.cost)}</span></div>`).join('');
+ document.getElementById('tripFuelAdded').textContent=money(trip.fuelLog.reduce((s,f)=>s+f.cost,0));
+}
+document.getElementById('startTrip').onclick=()=>{
+ // Ask the browser for location access right here, at the moment of the click — this is
+ // what makes the permission prompt appear, and the trip starts the instant it's granted.
+ if(locationConsent && gpsPermission==='granted'){ startTripInternal(false); openLiveMeter('trip'); return; }
+ requestGPSPermission(()=>{ startTripInternal(false); openLiveMeter('trip'); });
+};
+document.getElementById('stopTrip').onclick=()=>finishTrip('manual');
+document.getElementById('tripPauseBtn').onclick=()=>{ toggleTripPause(); openLiveMeter('trip'); };
+
+let tripStandbyMovingSince=null, tripStandbyLastPoint=null, lastTripAutosave=0;
+
+function startTripInternal(auto){
+ trip={running:true,paused:false,pausedManually:false,points:[],km:0,tripB:0,movingMs:0,maxSpeed:0,lastMoveAt:Date.now(),idleSince:null,fuelLog:[]};
+ tripPath=[]; polylineReset(tripPolyline,tripMapProvider); markerRemove(tripMarker,tripMapProvider); tripMarker=null;
+ if(meterKind==='trip') meterMapReset();
+ resetGear();
+ tripStandbyMovingSince=null; tripStandbyLastPoint=null;
+ document.getElementById('startTrip').disabled=true;document.getElementById('stopTrip').disabled=false;document.getElementById('tripPauseBtn').disabled=false;
+ syncTripPauseButton();
+ document.getElementById('gpsStatus').innerHTML='<span class="gps-dot on"></span> GPS tracking';
+ document.getElementById('gpsInfo').textContent=auto?'Movement detected — trip started automatically.':'Tracking location…';
+ document.getElementById('pausedBanner').classList.add('d-none');
+ document.getElementById('fuelAddBox').classList.remove('d-none');
+ initTripMap(); renderFuelLog();
+ requestWakeLock();
+ beginTripWatch();
+}
+
+// Manual pause/resume — independent of (and takes priority over) auto-pause: once the
+// user pauses by hand, movement alone won't auto-resume it; they resume it themselves.
+function toggleTripPause(){
+ if(!trip.running) return;
+ if(trip.paused){
+   trip.paused=false; trip.pausedManually=false; trip.lastMoveAt=Date.now(); trip.idleSince=null;
+   document.getElementById('pausedBanner').classList.add('d-none');
+   document.getElementById('gpsStatus').innerHTML='<span class="gps-dot on"></span> GPS tracking';
+ } else {
+   trip.paused=true; trip.pausedManually=true; trip.idleSince=Date.now();
+   document.getElementById('pausedBanner').classList.remove('d-none');
+   document.getElementById('gpsStatus').innerHTML='<span class="gps-dot"></span> Paused';
+ }
+ syncTripPauseButton();
+ updateTripMeter(0);
+}
+function syncTripPauseButton(){
+ const btn=document.getElementById('tripPauseBtn');
+ if(btn) btn.innerHTML = trip.paused ? '<i class="bi bi-play-fill"></i> Resume' : '<i class="bi bi-pause-fill"></i> Pause';
+ setMeterStatus(trip.paused);
+}
+
+function beginTripWatch(){
+ if(watchId!==null) return; // one continuous watch: handles standby auto-start AND active tracking
+ watchId=navigator.geolocation.watchPosition(tripGpsTick,
+   err=>{document.getElementById('gpsStatus').innerHTML='<span class="gps-dot"></span> GPS error';console.warn('GPS error:',err.message);},
+   {enableHighAccuracy:true,maximumAge:3000,timeout:10000});
+}
+
+
+function tripGpsTick(pos){
+ const p={lat:pos.coords.latitude,lon:pos.coords.longitude,acc:pos.coords.accuracy,time:Date.now()};
+ if(!trip.running){ handleTripStandby(p); return; }
+ const last=trip.points.at(-1);
+ let speedKmh=0, dt=0;
+ if(last){
+   const d=hav(last,p); dt=(p.time-last.time)/1000; // seconds
+   if(dt>0) speedKmh=(d*1000/dt)*3.6;
+   if(d>0.002 && d<1){ // ignore GPS noise jumps
+     if(speedKmh<PAUSE_SPEED){
+       if(!trip.paused && (Date.now()-trip.lastMoveAt)>PAUSE_AFTER_MS){
+         trip.paused=true; trip.idleSince=Date.now();
+         document.getElementById('pausedBanner').classList.remove('d-none');
+         document.getElementById('gpsStatus').innerHTML='<span class="gps-dot"></span> Auto-paused';
+         syncTripPauseButton();
+       }
+     } else {
+       trip.lastMoveAt=Date.now(); trip.idleSince=null;
+       if(speedKmh>trip.maxSpeed) trip.maxSpeed=speedKmh;
+       // Only auto-resume if the pause was automatic — a manual pause waits for the user.
+       if(trip.paused && !trip.pausedManually){ trip.paused=false; document.getElementById('pausedBanner').classList.add('d-none'); document.getElementById('gpsStatus').innerHTML='<span class="gps-dot on"></span> GPS tracking'; syncTripPauseButton(); }
+       if(!trip.paused){ trip.km+=d; trip.tripB=(trip.tripB||0)+d; trip.movingMs+=dt*1000; }
+     }
+   }
+ }
+ trip.points.push(p);
+ mapUpdate(p);
+ const v=vehicle(document.getElementById('tripVehicle').value);
+ const fuel=v?trip.km/Number(v.mileage):0, cost=v?fuel*Number(v.rate):0;
+ document.getElementById('tripKm').textContent=trip.km.toFixed(2);
+ document.getElementById('tripTime').textContent=fmtTime(trip.movingMs);
+ document.getElementById('tripSpeed').textContent=speedKmh.toFixed(1);
+ document.getElementById('tripFuel').textContent=fuel.toFixed(2);
+ document.getElementById('tripCost').textContent=money(cost);
+ document.getElementById('gpsInfo').textContent=`Lat ${p.lat.toFixed(5)} • Lon ${p.lon.toFixed(5)} • ±${Math.round(p.acc)}m`;
+ updateTripMeter(speedKmh,p.acc);
+ // Failsafe: if left paused for too long (forgot to press Stop), auto-save & finish so the trip is never lost.
+ if(trip.paused && trip.idleSince && (Date.now()-trip.idleSince)>AUTO_STOP_IDLE_MS){ finishTrip('idle'); return; }
+ // Periodic snapshot to localStorage so a closed tab/crash never loses progress.
+ if(Date.now()-lastTripAutosave>AUTOSAVE_MS){ lastTripAutosave=Date.now(); autosaveActiveTrip(); }
+}
+
+function handleTripStandby(p){
+ if(state.settings.autoTrip===false) return; // auto-detect turned off in Settings
+ if(!document.getElementById('tripVehicle').value) return; // need a vehicle selected first
+ let speedKmh=0;
+ if(tripStandbyLastPoint){
+   const d=hav(tripStandbyLastPoint,p), dt=(p.time-tripStandbyLastPoint.time)/1000;
+   if(dt>0) speedKmh=(d*1000/dt)*3.6;
+ }
+ tripStandbyLastPoint=p;
+ if(speedKmh>=AUTO_START_SPEED){
+   if(!tripStandbyMovingSince) tripStandbyMovingSince=Date.now();
+   if(Date.now()-tripStandbyMovingSince>=AUTO_START_AFTER_MS){ startTripInternal(true); }
+ } else {
+   tripStandbyMovingSince=null;
+ }
+}
+
+function autosaveActiveTrip(){
+ try{
+   if(trip.running && trip.km>0){
+     localStorage.setItem(ACTIVE_TRIP_KEY,JSON.stringify({trip,vehicleId:document.getElementById('tripVehicle').value,purpose:document.getElementById('tripPurpose').value,savedAt:Date.now()}));
+   } else {
+     localStorage.removeItem(ACTIVE_TRIP_KEY);
+   }
+ }catch(e){}
+}
+
+function openManualKmModal(){
+ const sel=document.getElementById('manualKmVehicle');
+ if(sel){sel.innerHTML=state.vehicles.map(v=>`<option value="${v.id}">${v.name} • ${v.type}</option>`).join('');const active=state.vehicles.find(v=>v.active);if(active)sel.value=active.id;}
+ document.getElementById('manualKmValue').value='';
+ document.getElementById('manualKmDate').value=new Date().toISOString().slice(0,10);
+ document.getElementById('manualKmNote').value='';
+ bootstrap.Modal.getOrCreateInstance(document.getElementById('manualKmModal')).show();
+}
+function saveManualKm(){
+ const vehicleId=document.getElementById('manualKmVehicle').value;
+ const km=Number(document.getElementById('manualKmValue').value)||0;
+ if(!vehicleId||km<=0)return alert('Enter a valid travelled distance.');
+ state.manualKmEntries=state.manualKmEntries||[];
+ state.manualKmEntries.push({id:Date.now(),date:document.getElementById('manualKmDate').value||new Date().toISOString().slice(0,10),vehicleId,km:Number(km.toFixed(3)),note:document.getElementById('manualKmNote').value.trim()||'Manual missed trip distance'});
+ persist();renderAll();
+ bootstrap.Modal.getInstance(document.getElementById('manualKmModal'))?.hide();
+ if(meterModalOpen&&meterKind==='trip')updateTripMeter(trip.points.at(-1)?.speed||0,trip.points.at(-1)?.acc);
+ alert(`${km.toFixed(2)} km added successfully. ODO and estimated range have been recalculated.`);
+}
+document.getElementById('addFuelBtn').onclick=()=>{
+ if(!trip.running) return;
+ const liters=Number(document.getElementById('fuelLiters').value)||0;
+ const cost=Number(document.getElementById('fuelCost').value)||0;
+ if(!cost && !liters) return alert('Enter litres/kWh or amount.');
+ trip.fuelLog.push({liters,cost,at:Date.now()});
+ document.getElementById('fuelLiters').value='';document.getElementById('fuelCost').value='';
+ renderFuelLog();
+ // Log it immediately as an expense too, so dashboards/reports reflect it right away.
+ const v=vehicle(document.getElementById('tripVehicle').value);
+ state.expenses.push({id:Date.now(),date:new Date().toISOString().slice(0,10),cat:'Fuel',vehicleId:v?.id||'',note:'Mid-trip fuel top-up',payment:'Cash',amount:cost,fuelRateAtEntry:v?Number(v.rate)||0:0,liters:Number(liters)||0});
+ persist();
+};
+
+function finishTrip(reason){
+ if(watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null;}
+ if(!walk.running) releaseWakeLock();
+ const v=vehicle(document.getElementById('tripVehicle').value);const fuel=v?trip.km/v.mileage:0,cost=v?fuel*v.rate:0;
+ const fuelPurchased=trip.fuelLog.reduce((s,f)=>s+f.cost,0);
+ const km=trip.km;
+ if(km>0){state.trips.push({id:Date.now(),date:new Date().toLocaleString('en-IN'),vehicleId:v?.id,purpose:document.getElementById('tripPurpose').value||'Trip',km:Number(km.toFixed(3)),fuel:Number(fuel.toFixed(3)),cost:Number(cost.toFixed(2)),fuelPurchased:Number(fuelPurchased.toFixed(2)),fuelLog:trip.fuelLog,points:trip.points,autoSaved:reason==='idle'})}
+ trip.running=false;document.getElementById('startTrip').disabled=false;document.getElementById('stopTrip').disabled=true;document.getElementById('tripPauseBtn').disabled=true;document.getElementById('gpsStatus').innerHTML='<span class="gps-dot"></span> GPS idle';
+ document.getElementById('pausedBanner').classList.add('d-none'); document.getElementById('fuelAddBox').classList.add('d-none');
+ localStorage.removeItem(ACTIVE_TRIP_KEY);
+ persist();renderAll();
+ if(meterKind==='trip'){ bootstrap.Modal.getInstance(document.getElementById('liveMeterModal'))?.hide(); meterKind=null; }
+ // Keep the watch alive so a future trip can still be auto-detected while permission remains granted.
+ tripStandbyMovingSince=null; tripStandbyLastPoint=null; beginTripWatch();
+ if(km>0){
+   if(reason==='idle') alert(`No movement for 20+ minutes, so this trip was auto-saved to make sure nothing was lost.\nDistance: ${km.toFixed(2)} km\nEst. fuel cost: ${money(cost)} • Fuel purchased: ${money(fuelPurchased)}`);
+   else alert(`Trip saved.\nDistance: ${km.toFixed(2)} km\nEst. fuel cost: ${money(cost)} • Fuel purchased: ${money(fuelPurchased)}`);
+ }
+}
+function renderTrips(){document.getElementById('tripRows').innerHTML=state.trips.slice().reverse().map(t=>`<tr><td>${t.date}${t.autoSaved?' <span class="badge text-bg-warning ms-1" title="Auto-saved after inactivity">auto</span>':t.recovered?' <span class="badge text-bg-info ms-1" title="Recovered after an unexpected close">recovered</span>':''}</td><td>${vehicle(t.vehicleId)?.name||'-'}</td><td>${t.purpose}</td><td>${(t.km||0).toFixed(2)} km</td><td>${(t.fuel||0).toFixed(2)} L</td><td>${money(t.cost)}</td><td>${money(t.fuelPurchased||0)}</td></tr>`).join('')||'<tr><td colspan=7 class="text-center muted">No trips saved</td></tr>'}
+/* ---------- Walking module: its own independent live tracker, map and history (kept fully separate from vehicle GPS Trip) ---------- */
+let walkMap=null, walkMapProvider=null, walkMarker=null, walkPolyline=null, walkWatchId=null, walkPath=[];
+let walk={running:false,paused:false,pausedManually:false,points:[],km:0,steps:0,calories:0,movingMs:0,maxSpeed:0,lastMoveAt:Date.now(),idleSince:null};
+function initWalkMap(){
+ if(walkMap) return;
+ withMapProvider(provider=>{
+   if(walkMap) return;
+   const el=document.getElementById('walkMap'); if(!el) return;
+   walkMapProvider=provider;
+   walkMap=createLiveMap(el,provider);
+   walkPolyline=createLivePolyline(walkMap,provider,'#198754');
+ });
+}
+function walkMapUpdate(p){
+ withMapProvider(provider=>{
+   if(!walkMap) initWalkMap();
+   if(!walkMap) return;
+   if(!walkMarker){ walkMarker=createLiveMarker(walkMap,provider,p.lat,p.lon,markerIconFor(provider,WALK_ICON)); mapSetCenterZoom(walkMap,provider,p.lat,p.lon,17); }
+   else markerSetPos(walkMarker,provider,p.lat,p.lon);
+   polylineAddPoint(walkPolyline,provider,p.lat,p.lon);
+   mapPanTo(walkMap,provider,p.lat,p.lon);
+ });
+}
+document.getElementById('walkPermissionBtn').onclick=()=>{ locationConsent=true; showLocationHelp(false); requestGPSPermission(); };
+document.getElementById('startWalk').onclick=()=>{
+ if(locationConsent && gpsPermission==='granted'){ startWalkInternal(false); openLiveMeter('walk'); return; }
+ requestGPSPermission(()=>{ startWalkInternal(false); openLiveMeter('walk'); });
+};
+document.getElementById('stopWalk').onclick=()=>finishWalk('manual');
+document.getElementById('walkPauseBtn').onclick=()=>{ toggleWalkPause(); openLiveMeter('walk'); };
+
+let walkStandbyMovingSince=null, walkStandbyLastPoint=null, lastWalkAutosave=0;
+
+function startWalkInternal(auto){
+ walk={running:true,paused:false,pausedManually:false,points:[],km:0,steps:0,calories:0,movingMs:0,maxSpeed:0,lastMoveAt:Date.now(),idleSince:null};
+ walkPath=[]; polylineReset(walkPolyline,walkMapProvider); markerRemove(walkMarker,walkMapProvider); walkMarker=null;
+ if(meterKind==='walk') meterMapReset();
+ walkStandbyMovingSince=null; walkStandbyLastPoint=null;
+ document.getElementById('startWalk').disabled=true;document.getElementById('stopWalk').disabled=false;document.getElementById('walkPauseBtn').disabled=false;
+ syncWalkPauseButton();
+ document.getElementById('walkGpsStatus').innerHTML='<span class="gps-dot on"></span> GPS tracking';
+ document.getElementById('walkGpsInfo').textContent=auto?'Movement detected — walk started automatically.':'Tracking location…';
+ document.getElementById('walkPausedBanner').classList.add('d-none');
+ initWalkMap(); requestWakeLock();
+ beginWalkWatch();
+}
+
+function toggleWalkPause(){
+ if(!walk.running) return;
+ if(walk.paused){
+   walk.paused=false; walk.pausedManually=false; walk.lastMoveAt=Date.now(); walk.idleSince=null;
+   document.getElementById('walkPausedBanner').classList.add('d-none');
+   document.getElementById('walkGpsStatus').innerHTML='<span class="gps-dot on"></span> GPS tracking';
+ } else {
+   walk.paused=true; walk.pausedManually=true; walk.idleSince=Date.now();
+   document.getElementById('walkPausedBanner').classList.remove('d-none');
+   document.getElementById('walkGpsStatus').innerHTML='<span class="gps-dot"></span> Paused';
+ }
+ syncWalkPauseButton();
+ updateWalkMeter(0);
+}
+function syncWalkPauseButton(){
+ const btn=document.getElementById('walkPauseBtn');
+ if(btn) btn.innerHTML = walk.paused ? '<i class="bi bi-play-fill"></i> Resume' : '<i class="bi bi-pause-fill"></i> Pause';
+ setMeterStatus(walk.paused);
+}
+
+function beginWalkWatch(){
+ if(walkWatchId!==null) return;
+ walkWatchId=navigator.geolocation.watchPosition(walkGpsTick,
+   err=>{document.getElementById('walkGpsStatus').innerHTML='<span class="gps-dot"></span> GPS error';console.warn('GPS error:',err.message);},
+   {enableHighAccuracy:true,maximumAge:3000,timeout:10000});
+}
+
+function walkGpsTick(pos){
+ const p={lat:pos.coords.latitude,lon:pos.coords.longitude,acc:pos.coords.accuracy,time:Date.now()};
+ if(!walk.running){ handleWalkStandby(p); return; }
+ const last=walk.points.at(-1);
+ let speedKmh=0, dt=0;
+ if(last){
+   const d=hav(last,p); dt=(p.time-last.time)/1000;
+   if(dt>0) speedKmh=(d*1000/dt)*3.6;
+   if(d>0.002 && d<1){
+     if(speedKmh<PAUSE_SPEED){
+       if(!walk.paused && (Date.now()-walk.lastMoveAt)>PAUSE_AFTER_MS){
+         walk.paused=true; walk.idleSince=Date.now();
+         document.getElementById('walkPausedBanner').classList.remove('d-none');
+         document.getElementById('walkGpsStatus').innerHTML='<span class="gps-dot"></span> Auto-paused';
+         syncWalkPauseButton();
+       }
+     } else {
+       walk.lastMoveAt=Date.now(); walk.idleSince=null;
+       if(speedKmh>walk.maxSpeed) walk.maxSpeed=speedKmh;
+       if(walk.paused && !walk.pausedManually){ walk.paused=false; document.getElementById('walkPausedBanner').classList.add('d-none'); document.getElementById('walkGpsStatus').innerHTML='<span class="gps-dot on"></span> GPS tracking'; syncWalkPauseButton(); }
+       if(!walk.paused){
+         walk.km+=d; walk.movingMs+=dt*1000;
+         const w=activeWalker();
+         walk.steps+=Math.round((d*1000)/strideFor(w?.age));
+         if(w?.weight) walk.calories+=metFor(speedKmh)*w.weight*(dt/3600);
+       }
+     }
+   }
+ }
+ walk.points.push(p);
+ walkMapUpdate(p);
+ document.getElementById('walkKm').textContent=walk.km.toFixed(2);
+ document.getElementById('walkTime').textContent=fmtTime(walk.movingMs);
+ document.getElementById('walkSpeed').textContent=speedKmh.toFixed(1);
+ document.getElementById('walkSteps').textContent=Math.round(walk.steps);
+ document.getElementById('walkCalories').textContent=Math.round(walk.calories);
+ document.getElementById('walkGpsInfo').textContent=`Lat ${p.lat.toFixed(5)} • Lon ${p.lon.toFixed(5)} • ±${Math.round(p.acc)}m`;
+ updateWalkMeter(speedKmh,p.acc);
+ // Failsafe: if left paused for too long (forgot to press Stop), auto-save & finish so the walk is never lost.
+ if(walk.paused && walk.idleSince && (Date.now()-walk.idleSince)>AUTO_STOP_IDLE_MS){ finishWalk('idle'); return; }
+ if(Date.now()-lastWalkAutosave>AUTOSAVE_MS){ lastWalkAutosave=Date.now(); autosaveActiveWalk(); }
+}
+
+function handleWalkStandby(p){
+ if(state.settings.autoTrip===false) return;
+ let speedKmh=0;
+ if(walkStandbyLastPoint){
+   const d=hav(walkStandbyLastPoint,p), dt=(p.time-walkStandbyLastPoint.time)/1000;
+   if(dt>0) speedKmh=(d*1000/dt)*3.6;
+ }
+ walkStandbyLastPoint=p;
+ if(speedKmh>=WALK_AUTO_START_SPEED){
+   if(!walkStandbyMovingSince) walkStandbyMovingSince=Date.now();
+   if(Date.now()-walkStandbyMovingSince>=AUTO_START_AFTER_MS){ startWalkInternal(true); }
+ } else {
+   walkStandbyMovingSince=null;
+ }
+}
+
+function autosaveActiveWalk(){
+ try{
+   if(walk.running && walk.km>0){
+     localStorage.setItem(ACTIVE_WALK_KEY,JSON.stringify({walk,walkerId:activeWalker()?.id,note:document.getElementById('walkPurpose').value,savedAt:Date.now()}));
+   } else {
+     localStorage.removeItem(ACTIVE_WALK_KEY);
+   }
+ }catch(e){}
+}
+
+function finishWalk(reason){
+ if(walkWatchId!==null)navigator.geolocation.clearWatch(walkWatchId);walkWatchId=null;
+ if(!trip.running) releaseWakeLock();
+ const w=activeWalker();
+ const km=walk.km;
+ if(km>0){ state.walks=state.walks||[]; state.walks.push({id:Date.now(),date:new Date().toLocaleString('en-IN'),walkerId:w?.id,walkerName:w?.name||'—',note:document.getElementById('walkPurpose').value||'Walk',km:Number(km.toFixed(3)),movingMs:walk.movingMs,steps:Math.round(walk.steps),calories:Math.round(walk.calories),points:walk.points,autoSaved:reason==='idle'}); }
+ walk.running=false;document.getElementById('startWalk').disabled=false;document.getElementById('stopWalk').disabled=true;document.getElementById('walkPauseBtn').disabled=true;document.getElementById('walkGpsStatus').innerHTML='<span class="gps-dot"></span> GPS idle';
+ document.getElementById('walkPausedBanner').classList.add('d-none');
+ localStorage.removeItem(ACTIVE_WALK_KEY);
+ persist();renderWalkHistory();
+ if(meterKind==='walk'){ bootstrap.Modal.getInstance(document.getElementById('liveMeterModal'))?.hide(); meterKind=null; }
+ walkStandbyMovingSince=null; walkStandbyLastPoint=null; beginWalkWatch();
+ if(km>0){
+   if(reason==='idle') alert(`No movement for 20+ minutes, so this walk was auto-saved to make sure nothing was lost.\nDistance: ${km.toFixed(2)} km\nSteps: ${Math.round(walk.steps)} • Calories: ${Math.round(walk.calories)} kcal`);
+   else alert(`Walk saved.\nDistance: ${km.toFixed(2)} km\nSteps: ${Math.round(walk.steps)} • Calories: ${Math.round(walk.calories)} kcal`);
+ }
+}
+function renderWalkHistory(){document.getElementById('walkRows').innerHTML=(state.walks||[]).slice().reverse().map(w=>`<tr><td>${w.date}${w.autoSaved?' <span class="badge text-bg-warning ms-1" title="Auto-saved after inactivity">auto</span>':w.recovered?' <span class="badge text-bg-info ms-1" title="Recovered after an unexpected close">recovered</span>':''}</td><td>${w.walkerName||'-'}</td><td>${w.note||''}</td><td>${(w.km||0).toFixed(2)} km</td><td>${fmtTime(w.movingMs||0)}</td><td>${w.steps||0}</td><td>${w.calories||0} kcal</td></tr>`).join('')||'<tr><td colspan=7 class="text-center muted">No walks saved</td></tr>'}
+function renderReports(){const cats={};state.expenses.forEach(e=>cats[e.cat]=(cats[e.cat]||0)+Number(e.amount));document.getElementById('reportExpense').innerHTML=Object.entries(cats).map(([k,v])=>`<div class="d-flex justify-content-between border-bottom py-2"><span>${k}</span><b>${money(v)}</b></div>`).join('')||'No data';const vs={};state.trips.forEach(t=>{const n=vehicle(t.vehicleId)?.name||'Unknown';vs[n]=(vs[n]||0)+t.km});document.getElementById('reportVehicle').innerHTML=Object.entries(vs).map(([k,v])=>`<div class="d-flex justify-content-between border-bottom py-2"><span>${k}</span><b>${v.toFixed(1)} km</b></div>`).join('')||'No data'}
+function testMapsKey(){
+ const key=(document.getElementById('gmapsKey').value||'').trim();
+ const out=document.getElementById('gmapsKeyTestResult');
+ if(!key){ out.innerHTML='<span class="text-danger"><i class="bi bi-x-circle"></i> Paste a key first.</span>'; return; }
+ out.innerHTML='<span class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span> Testing the Maps JavaScript API with this key…</span>';
+ const cbName='__gmapsTest_'+Date.now();
+ let settled=false, script=null;
+ const prevAuthFailure=window.gm_authFailure;
+ const finish=(html)=>{
+   if(settled) return; settled=true;
+   out.innerHTML=html;
+   window.gm_authFailure=prevAuthFailure;
+   delete window[cbName];
+   if(script) script.remove();
+ };
+ window.gm_authFailure=function(){
+   finish('<span class="text-danger"><i class="bi bi-x-circle-fill"></i> Rejected by Google — billing, an unlisted API, or a referrer restriction is blocking it. See the checklist above.</span>');
+ };
+ window[cbName]=function(){
+   finish('<span class="text-success"><i class="bi bi-check-circle-fill"></i> Key accepted — the Maps JavaScript API loaded successfully. Save Settings, then reopen GPS Trip / Walking Profile.</span>');
+ };
+ script=document.createElement('script');
+ script.src=`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&callback=${cbName}`;
+ script.onerror=()=>finish('<span class="text-danger"><i class="bi bi-x-circle-fill"></i> Could not reach Google (check your internet connection, or an ad-blocker/firewall may be blocking maps.googleapis.com).</span>');
+ document.head.appendChild(script);
+ setTimeout(()=>finish('<span class="text-warning"><i class="bi bi-exclamation-circle-fill"></i> No response after 10s — check the key and your connection.</span>'),10000);
+}
+function saveSettings(){
+ state.settings.rate=Number(document.getElementById('defaultRate').value)||105;
+ state.settings.autoTrip=!!document.getElementById('autoTripToggle').checked;
+ const newKey=(document.getElementById('gmapsKey').value||'').trim();
+ const keyChanged=newKey!==(state.settings.gmapsKey||'');
+ state.settings.gmapsKey=newKey;
+ persist();
+ if(keyChanged){
+   resetMapProvider();
+   tripMap=null; tripMarker=null; tripPolyline=null; tripMapProvider=null; tripPath=[];
+   walkMap=null; walkMarker=null; walkPolyline=null; walkMapProvider=null; walkPath=[];
+   document.getElementById('tripMap').innerHTML=''; document.getElementById('walkMap').innerHTML='';
+ }
+ alert(keyChanged?'Settings saved. The map will reload with the new key next time you open GPS Trip / Walking Profile.':'Settings saved.');
+}
+function renderUsers(){if(currentUser!=='admin')return;document.getElementById('userRows').innerHTML=state.users.map((u,i)=>`<tr><td>${u.business}</td><td>${u.username}</td><td>${u.plan}</td><td>${u.expiry}</td><td><span class="badge ${u.status==='Active'?'text-bg-success':'text-bg-warning'}">${u.status}</span></td><td><button class="btn btn-sm btn-outline-secondary" onclick="toggleUser(${i})">Toggle</button></td></tr>`).join('')}
+function addUser(){const u={business:document.getElementById('uBusiness').value,username:document.getElementById('uName').value,plan:document.getElementById('uPlan').value,expiry:new Date(Date.now()+30*864e5).toISOString().slice(0,10),status:document.getElementById('uStatus').value};if(!u.business||!u.username)return alert('Enter business and username.');state.users.push(u);persist();bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();document.getElementById('uBusiness').value='';document.getElementById('uName').value='';document.getElementById('uPass').value='';renderUsers();alert('Subscriber created. In production, credentials should be generated/stored by the Apps Script backend.')}
+function toggleUser(i){state.users[i].status=state.users[i].status==='Active'?'Pending':'Active';persist();renderUsers()}
+document.getElementById('eDate').value=new Date().toISOString().slice(0,10);
+
+/* ---------- Adaptive night-mode illumination for the live vehicle meter ---------- */
+function syncMeterNightMode(){
+  const modal=document.getElementById('liveMeterModal');
+  if(!modal) return;
+  const isNight=window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  modal.classList.toggle('night-meter-mode',!!isNight);
+  modal.dataset.meterTheme=isNight?'night':'day';
+}
+(function(){
+  syncMeterNightMode();
+  if(window.matchMedia){
+    const mq=window.matchMedia('(prefers-color-scheme: dark)');
+    if(mq.addEventListener) mq.addEventListener('change',syncMeterNightMode);
+    else if(mq.addListener) mq.addListener(syncMeterNightMode);
+  }
+})();
+</script>
+</body>
+</html>
