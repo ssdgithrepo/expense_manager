@@ -70,6 +70,29 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
  .meter-fullscreen-btn .btn-label{display:none}
 }
 
+/* ---------- Responsive wide live-meter sizing (additive; existing meter logic unchanged) ---------- */
+#liveMeterModal .modal-dialog{width:min(96vw,1100px);max-width:1100px;margin:1rem auto}
+#liveMeterModal .meter-modal-content{width:100%;overflow:hidden}
+#liveMeterModal .modal-body{width:100%;}
+.sport-meter-shell{width:100%;max-width:1000px;margin-left:auto;margin-right:auto}
+.sport-dial{width:min(100%,760px)}
+.classic-meter-shell{width:100%;max-width:1000px}
+.classic-dial-wrap.classic-dial-main{width:clamp(220px,29vw,330px);max-width:none}
+.classic-dial-wrap.classic-dial-sub{width:clamp(105px,12vw,150px);max-width:none;margin-top:-22px}
+@media(min-width:768px){
+  .classic-gauges-row{gap:12px}
+  .classic-mini-gauge{height:150px;width:22px}
+}
+@media(max-width:767.98px){
+  #liveMeterModal .modal-dialog{width:98vw;max-width:none;margin:.5rem auto}
+  .sport-meter-shell{padding-left:4px;padding-right:4px}
+  .classic-meter-shell{padding-left:7px;padding-right:7px}
+}
+@media(max-width:575.98px){
+  .classic-dial-wrap.classic-dial-main{width:min(72vw,250px)}
+  .classic-dial-wrap.classic-dial-sub{width:min(31vw,100px);margin-top:-14px}
+}
+
 /* ---------- Enhanced sports vehicle meter (additive layer) ---------- */
 .sport-meter-shell{position:relative;margin:0 auto;padding:10px 8px 4px;max-width:720px}
 .sport-meter-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:2px}
@@ -302,7 +325,36 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
  .classic-mini-gauge{width:14px;height:88px}
  .classic-dial-number{font-size:11px}
 }
-#liveMeterModal.night-meter-mode .classic-meter-shell{box-shadow:0 0 20px rgba(90,180,255,.14),inset 0 0 40px rgba(0,0,0,.7)}
+/* Classic meter follows the same adaptive day/night theme used by Sport. */
+#liveMeterModal:not(.night-meter-mode) .classic-meter-shell{
+  background:radial-gradient(ellipse at 50% 0%,#334155,#0f172a 72%);
+  border-color:rgba(148,163,184,.22);
+  box-shadow:0 8px 30px rgba(0,0,0,.22),inset 0 0 30px rgba(255,255,255,.035);
+}
+#liveMeterModal:not(.night-meter-mode) .classic-dial-track{stroke:#334155}
+#liveMeterModal:not(.night-meter-mode) .classic-dial-tick{stroke:#94a3b8}
+#liveMeterModal:not(.night-meter-mode) .classic-dial-number{fill:#f8fafc;text-shadow:0 1px 2px rgba(0,0,0,.5)}
+#liveMeterModal:not(.night-meter-mode) .classic-info-panel,
+#liveMeterModal:not(.night-meter-mode) .classic-stat,
+#liveMeterModal:not(.night-meter-mode) .classic-tripb-row{background:rgba(255,255,255,.065);border-color:rgba(255,255,255,.10)}
+#liveMeterModal.night-meter-mode .classic-meter-shell{
+  background:radial-gradient(ellipse at 50% 35%,#18263a,#02060c 76%);
+  box-shadow:0 0 24px rgba(90,180,255,.18),inset 0 0 45px rgba(0,0,0,.82);
+  border-color:rgba(120,190,255,.30);
+}
+#liveMeterModal.night-meter-mode .classic-dial-track{stroke:#172235;filter:drop-shadow(0 0 4px rgba(70,170,255,.18))}
+#liveMeterModal.night-meter-mode .classic-dial-tick.major{stroke:#dbeafe}
+#liveMeterModal.night-meter-mode .classic-dial-number,
+#liveMeterModal.night-meter-mode .classic-mini-label,
+#liveMeterModal.night-meter-mode .classic-stat-label{filter:drop-shadow(0 0 5px rgba(120,205,255,.45))}
+#liveMeterModal.night-meter-mode .classic-digital-value,
+#liveMeterModal.night-meter-mode .classic-gear-big,
+#liveMeterModal.night-meter-mode .classic-stat-val{filter:drop-shadow(0 0 6px rgba(120,205,255,.4))}
+#liveMeterModal.night-meter-mode .classic-needle,
+#liveMeterModal.night-meter-mode .classic-mini-needle{filter:drop-shadow(0 0 5px rgba(255,255,255,.95))}
+#liveMeterModal.night-meter-mode .classic-info-panel,
+#liveMeterModal.night-meter-mode .classic-stat,
+#liveMeterModal.night-meter-mode .classic-tripb-row{box-shadow:inset 0 0 12px rgba(40,130,210,.07)}
 </style>
 </head>
 <body>
@@ -471,7 +523,7 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
         SRD DriveLedger will ask your browser for location access to calculate the distance travelled,
         vehicle mileage and estimated fuel cost for this trip.
       </div>
-      <div class="small mt-2"><b>Your browser will show the location prompt the moment you press “Start Trip” below — nothing is tracked before that.</b></div>
+      <div class="small mt-2"><b>Your browser will ask for location access when this page loads/reloads. If the browser requires a user gesture or the permission was previously blocked, use “Grant Location Access Now” or “Start Trip”.</b></div>
       <div class="small mt-2 text-muted"><i class="bi bi-info-circle me-1"></i>To keep tracking running while you switch apps: keep this tab open (a screen wake-lock is requested automatically so the phone won't sleep) and, on Android, use "Add to Home screen" for the steadiest background behaviour. Locking the screen or fully closing the browser can still pause GPS updates — that's a phone/browser limit that applies to every website, not just this one. Whatever distance was recorded right up to that point is always saved automatically, so nothing is lost.</div>
       <div class="mt-2"><span class="badge text-bg-secondary" id="permissionState">Not Requested</span></div>
     </div>
@@ -2375,6 +2427,19 @@ function renderUsers(){if(currentUser!=='admin')return;document.getElementById('
 function addUser(){const u={business:document.getElementById('uBusiness').value,username:document.getElementById('uName').value,plan:document.getElementById('uPlan').value,expiry:new Date(Date.now()+30*864e5).toISOString().slice(0,10),status:document.getElementById('uStatus').value};if(!u.business||!u.username)return alert('Enter business and username.');state.users.push(u);persist();bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();document.getElementById('uBusiness').value='';document.getElementById('uName').value='';document.getElementById('uPass').value='';renderUsers();alert('Subscriber created. In production, credentials should be generated/stored by the Apps Script backend.')}
 function toggleUser(i){state.users[i].status=state.users[i].status==='Active'?'Pending':'Active';persist();renderUsers()}
 document.getElementById('eDate').value=new Date().toISOString().slice(0,10);
+
+/* ---------- Request location permission on every page load/reload ---------- */
+function requestLocationPermissionOnPageLoad(){
+  if(!navigator.geolocation) return;
+  // Wait briefly for the application/login state and controls to initialize.
+  // This does not start a trip; it only asks the browser for permission.
+  setTimeout(function(){
+    try{
+      if(typeof requestGPSPermission==='function') requestGPSPermission();
+    }catch(e){ console.warn('Location permission request on reload failed:',e); }
+  },600);
+}
+window.addEventListener('load',requestLocationPermissionOnPageLoad,{once:true});
 
 /* ---------- Adaptive night-mode illumination for the live vehicle meter ---------- */
 function syncMeterNightMode(){
