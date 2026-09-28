@@ -118,7 +118,7 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
 .sport-readout{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.055);border-radius:11px;padding:7px 5px;min-width:0}
 .sport-readout-label{font-size:.56rem;letter-spacing:.65px;text-transform:uppercase;color:#94a3b8;font-weight:800}
 .sport-readout-value{font-family:'Courier New',monospace;font-size:.9rem;font-weight:900;color:#f8fafc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sport-subgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:7px}
+.sport-subgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-top:7px}
 .sport-sub{background:rgba(2,6,23,.38);border-radius:10px;padding:6px;text-align:center}
 .sport-sub b{display:block;font-family:'Courier New',monospace;font-size:.82rem}
 .sport-sub span{font-size:.52rem;text-transform:uppercase;letter-spacing:.5px;color:#64748b}
@@ -240,8 +240,15 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
 .classic-telltale-row{display:flex;justify-content:space-between;align-items:center;gap:3px;padding:2px 2px 8px;flex-wrap:nowrap;overflow-x:auto}
 .classic-telltale{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;color:#334155;background:rgba(255,255,255,.03);flex:0 0 auto}
 .classic-telltale.on{text-shadow:0 0 8px currentColor}
-.classic-gauges-row{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;margin-top:2px}
-.classic-gauge-block{display:flex;align-items:center;gap:4px;flex:1 1 240px;justify-content:center;max-width:300px}
+.classic-gauges-row{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px;margin-top:2px}
+.classic-main-col{display:flex;flex-direction:column;align-items:center;gap:0;flex:0 0 auto}
+.classic-dial-wrap.classic-dial-main{width:220px;max-width:62vw;position:relative;z-index:1}
+.classic-dial-wrap.classic-dial-sub{width:104px;max-width:32vw;margin-top:-20px;z-index:2}
+.classic-dial-sub .classic-dial-number{font-size:11px}
+.classic-dial-sub .classic-digital-overlay{bottom:6%}
+.classic-dial-sub .classic-digital-value{font-size:.85rem!important;color:#fca5a5!important;text-shadow:0 0 8px rgba(251,113,133,.5)!important}
+.classic-dial-sub .classic-digital-unit{font-size:.42rem!important}
+.classic-gear-row-wrap{text-align:center;margin-top:2px}
 .classic-dial-col{display:flex;flex-direction:column;align-items:center;gap:3px}
 .classic-mini-label{font-size:.55rem;letter-spacing:.06em;color:#94a3b8;font-weight:800}
 .classic-mini-gauge{width:18px;height:110px;border-radius:10px;border:1.5px solid #334155;position:relative;background:linear-gradient(180deg,rgba(96,165,250,.10),rgba(2,6,23,.4));overflow:hidden}
@@ -290,6 +297,8 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
 .classic-tripb-row button{font-size:.62rem;padding:3px 10px}
 @media(max-width:575.98px){
  .classic-dial-wrap{width:120px}
+ .classic-dial-wrap.classic-dial-main{width:168px;max-width:66vw}
+ .classic-dial-wrap.classic-dial-sub{width:82px;max-width:34vw;margin-top:-14px}
  .classic-mini-gauge{width:14px;height:88px}
  .classic-dial-number{font-size:11px}
 }
@@ -305,12 +314,22 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
       <div class="muted">Daily Expenses • Vehicle • GPS Trips</div>
     </div>
     <div class="alert alert-info py-2"><i class="bi bi-info-circle"></i> Demo mode is enabled. No Google Sheet is required for testing.</div>
+    <div id="loginRememberPrompt" class="d-none text-center">
+      <div class="display-6 text-primary"><i class="bi bi-person-check-fill"></i></div>
+      <h5 class="mb-2">Welcome back, <span id="rememberedUserName">demo</span></h5>
+      <div class="muted mb-3">You stayed signed in on this device. Continue with this session?</div>
+      <button class="btn btn-primary w-100 py-2 mb-2" onclick="continueAsRememberedUser()"><i class="bi bi-box-arrow-in-right"></i> Continue</button>
+      <button class="btn btn-outline-secondary w-100" onclick="forgetRememberedUser()">Not you? Sign in differently</button>
+    </div>
+    <div id="loginFormFields">
     <label class="form-label">Username</label>
     <input id="loginUser" class="form-control mb-3" value="demo">
     <label class="form-label">Password</label>
     <input id="loginPass" type="password" class="form-control mb-3" value="demo123">
+    <div class="form-check mb-3"><input class="form-check-input" type="checkbox" id="loginRemember"><label class="form-check-label small" for="loginRemember">Stay signed in on this device</label></div>
     <button id="loginBtn" class="btn btn-primary w-100 py-2"><i class="bi bi-box-arrow-in-right"></i> Sign in</button>
     <div class="text-center mt-3 small text-muted">Demo admin: <b>admin</b> / <b>admin123</b><br>Demo subscriber: <b>demo</b> / <b>demo123</b></div><button id="resetDemoBtn" class="btn btn-sm btn-outline-secondary w-100 mt-3">Reset Demo Data</button>
+    </div>
     <div class="text-center mt-4 footer">Powered by <b>SRD Sons Tech</b></div>
   </div>
 </div>
@@ -376,7 +395,7 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
 <section id="vehicles" class="view">
 <div class="card p-4"><div class="d-flex justify-content-between align-items-center mb-3"><h5 class="mb-0"><i class="bi bi-car-front-fill me-2"></i>Vehicle Master</h5><button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#vehicleModal"><i class="bi bi-plus"></i> Add Vehicle</button></div>
 <div class="alert alert-light border"><i class="bi bi-calculator me-2"></i> Fuel cost formula: <b>Distance ÷ Mileage × Fuel Rate</b>. Set the actual local fuel rate and vehicle efficiency below.</div>
-<div class="table-responsive"><table class="table align-middle"><thead><tr><th>Vehicle</th><th>Type</th><th>Fuel</th><th>Mileage</th><th>Rate</th><th>Status</th><th></th></tr></thead><tbody id="vehicleRows"></tbody></table></div></div></section>
+<div class="table-responsive"><table class="table align-middle"><thead><tr><th>Vehicle</th><th>Type</th><th>Fuel</th><th>Mileage</th><th>Tank</th><th>Rate</th><th>Status</th><th></th></tr></thead><tbody id="vehicleRows"></tbody></table></div></div></section>
 
 <section id="walking" class="view">
 <div class="row g-3">
@@ -558,9 +577,9 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
 </main></div></div></div>
 
 <!-- Expense Modal -->
-<div class="modal fade" id="expenseModal"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5>Add Expense</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><label class="form-label">Date</label><input id="eDate" type="date" class="form-control mb-2"><label class="form-label">Category</label><select id="eCat" class="form-select mb-2"><option>Fuel</option><option>Food</option><option>Repair</option><option>Toll</option><option>Parking</option><option>Other</option></select><label class="form-label">Vehicle</label><select id="eVehicle" class="form-select mb-2"></select><label class="form-label">Amount</label><input id="eAmount" type="number" min="0" class="form-control mb-2"><label class="form-label">Payment</label><select id="ePayment" class="form-select mb-2"><option>Cash</option><option>UPI</option><option>Card</option><option>Bank</option></select><label class="form-label">Note</label><input id="eNote" class="form-control"></div><div class="modal-footer"><button class="btn btn-primary" onclick="addExpense()">Save</button></div></div></div></div>
+<div class="modal fade" id="expenseModal"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5>Add Expense</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><label class="form-label">Date</label><input id="eDate" type="date" class="form-control mb-2"><label class="form-label">Category</label><select id="eCat" class="form-select mb-2"><option>Fuel</option><option>Food</option><option>Repair</option><option>Service</option><option>Toll</option><option>Parking</option><option>Insurance</option><option>Vehicle Wash</option><option>Accessories</option><option>Fine/Challan</option><option>Tyre</option><option>Permit/RTO</option><option>Medical</option><option>Recharge/Data</option><option>Lodging</option><option>Loan EMI</option><option>Other</option></select><label class="form-label">Vehicle</label><select id="eVehicle" class="form-select mb-2"></select><label class="form-label">Amount</label><input id="eAmount" type="number" min="0" class="form-control mb-2"><label class="form-label">Payment</label><select id="ePayment" class="form-select mb-2"><option>Cash</option><option>UPI</option><option>Card</option><option>Bank</option></select><label class="form-label">Note</label><input id="eNote" class="form-control"></div><div class="modal-footer"><button class="btn btn-primary" onclick="addExpense()">Save</button></div></div></div></div>
 <!-- Vehicle Modal -->
-<div class="modal fade" id="vehicleModal"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5>Add Vehicle</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input id="vName" class="form-control mb-2" placeholder="Vehicle name/number"><select id="vType" class="form-select mb-2"><option>Two Wheeler</option><option>Three Wheeler</option><option>Car</option><option>Pickup</option><option>Truck</option><option>Bus</option><option>Other</option></select><select id="vFuel" class="form-select mb-2"><option>Petrol</option><option>Diesel</option><option>CNG</option><option>EV</option></select><label class="form-label">Mileage / Efficiency</label><input id="vMileage" type="number" min="0.1" step="0.1" class="form-control mb-2" placeholder="km per litre (or km/kWh)"><label class="form-label">Fuel/Energy Rate ₹</label><input id="vRate" type="number" min="0" step="0.01" class="form-control"></div><div class="modal-footer"><button class="btn btn-primary" onclick="addVehicle()">Save Vehicle</button></div></div></div></div>
+<div class="modal fade" id="vehicleModal"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5>Add Vehicle</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input id="vName" class="form-control mb-2" placeholder="Vehicle name/number"><select id="vType" class="form-select mb-2"><option>Two Wheeler</option><option>Three Wheeler</option><option>Car</option><option>Pickup</option><option>Truck</option><option>Bus</option><option>Other</option></select><select id="vFuel" class="form-select mb-2"><option>Petrol</option><option>Diesel</option><option>CNG</option><option>EV</option></select><label class="form-label">Mileage / Efficiency</label><input id="vMileage" type="number" min="0.1" step="0.1" class="form-control mb-2" placeholder="km per litre (or km/kWh)"><label class="form-label">Fuel Tank Capacity (litres / kWh)</label><input id="vTank" type="number" min="0" step="0.1" class="form-control mb-2" placeholder="e.g. 15 — used to auto-calc range &amp; fuel level"><label class="form-label">Fuel/Energy Rate ₹</label><input id="vRate" type="number" min="0" step="0.01" class="form-control"></div><div class="modal-footer"><button class="btn btn-primary" onclick="addVehicle()">Save Vehicle</button></div></div></div></div>
 <!-- Walker Modal -->
 <div class="modal fade" id="walkerModal"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5>Add Walking Profile</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><label class="form-label">Name</label><input id="wName" class="form-control mb-2" placeholder="Name"><label class="form-label">Age</label><input id="wAge" type="number" min="1" max="120" class="form-control mb-2" placeholder="Age (years)"><label class="form-label">Weight</label><input id="wWeight" type="number" min="1" step="0.1" class="form-control" placeholder="Weight (kg)"></div><div class="modal-footer"><button class="btn btn-primary" onclick="addWalker()">Save Profile</button></div></div></div></div>
 <!-- User Modal -->
@@ -601,7 +620,7 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
       <span class="sport-meter-brand">SRD DRIVELEDGER • SPORT CLUSTER</span>
       <span id="meterGear" class="sport-meter-gear"><i id="meterVehicleIcon" class="bi bi-speedometer2 meter-context-icon"></i><span id="meterGearText">READY</span></span>
      </div>
-     <div class="mb-1"><span id="meterStatusBadge" class="badge text-bg-success">Tracking</span> <span class="meter-night-indicator" id="meterNightIndicator"><i class="bi bi-moon-stars-fill"></i> Night</span></div>
+     <div class="mb-1 d-flex align-items-center flex-wrap gap-2"><span id="meterStatusBadge" class="badge text-bg-success">Tracking</span> <span class="meter-night-indicator" id="meterNightIndicator"><i class="bi bi-moon-stars-fill"></i> Night</span> <button type="button" id="meterAddExpenseBtn" class="btn btn-sm btn-outline-warning d-none ms-auto" onclick="openMeterExpense()" title="Log fuel or another expense without leaving the trip"><i class="bi bi-receipt-cutoff"></i> Add Expense</button></div>
      <div id="meterModeRow" class="sport-mode-row d-none"></div>
      <div class="sport-dial">
       <svg id="meterGaugeSvg" viewBox="0 0 200 128" aria-label="Animated vehicle speedometer and RPM gauge"></svg>
@@ -628,6 +647,7 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
      </div>
      <div class="sport-subgrid">
       <div class="sport-sub"><b id="meterMileage">--</b><span><i class="bi bi-speedometer"></i> Live Mileage</span><div class="sport-eco"><i id="meterEcoBar"></i></div></div>
+      <div class="sport-sub"><b id="meterAvgMileage">--</b><span><i class="bi bi-bar-chart-line"></i> Avg Mileage</span></div>
       <div class="sport-sub"><b id="meterFuel">--</b><span><i class="bi bi-fuel-pump"></i> Fuel Used</span></div>
       <div class="sport-sub"><b id="meterRange">--</b><span><i class="bi bi-signpost"></i> Est. Range</span></div>
      </div>
@@ -646,18 +666,22 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
     <div class="classic-meter-shell" id="classicMeterShell">
      <div class="classic-telltale-row" id="classicTopTelltales"></div>
      <div class="classic-gauges-row">
-      <div class="classic-gauge-block">
-       <div class="classic-dial-col"><span class="classic-mini-label">H</span><div class="classic-mini-gauge"><div class="classic-mini-fill temp" id="classicTempFill"></div><div class="classic-mini-needle" id="classicTempNeedle"></div></div><span class="classic-mini-label">C</span></div>
-       <div class="classic-dial-wrap"><svg id="classicTachSvg" viewBox="0 0 200 200" aria-label="RPM gauge"></svg>
-        <div class="classic-gear-overlay"><div class="classic-gear-big" id="classicGearBig">N</div><div class="classic-gear-row" id="classicGearRow"><span data-g="P">P</span><span data-g="R">R</span><span data-g="N" class="active">N</span><span data-g="D">D</span></div></div>
-       </div>
-      </div>
-      <div class="classic-gauge-block">
-       <div class="classic-dial-wrap"><svg id="classicSpeedoSvg" viewBox="0 0 200 200" aria-label="Speedometer gauge"></svg>
+      <div class="classic-dial-col"><span class="classic-mini-label">H</span><div class="classic-mini-gauge"><div class="classic-mini-fill temp" id="classicTempFill"></div><div class="classic-mini-needle" id="classicTempNeedle"></div></div><span class="classic-mini-label">C</span></div>
+      <div class="classic-main-col">
+       <div class="classic-dial-wrap classic-dial-main">
+        <svg id="classicSpeedoSvg" viewBox="0 0 200 200" aria-label="Speedometer gauge (main meter)"></svg>
         <div class="classic-digital-overlay"><div class="classic-digital-value" id="classicSpeedDigital">0</div><div class="classic-digital-unit" id="classicSpeedUnit">KM/H</div></div>
        </div>
-       <div class="classic-dial-col"><span class="classic-mini-label">F</span><div class="classic-mini-gauge"><div class="classic-mini-fill fuel" id="classicFuelFill"></div><div class="classic-mini-needle" id="classicFuelNeedle"></div></div><span class="classic-mini-label">E</span></div>
+       <div class="classic-dial-wrap classic-dial-sub">
+        <svg id="classicTachSvg" viewBox="0 0 200 200" aria-label="RPM sub-gauge"></svg>
+        <div class="classic-digital-overlay"><div class="classic-digital-value" id="classicRpmDigital">0</div><div class="classic-digital-unit">RPM x1000</div></div>
+       </div>
+       <div class="classic-gear-row-wrap">
+        <div class="classic-gear-big" id="classicGearBig">N</div>
+        <div class="classic-gear-row" id="classicGearRow"><span data-g="P">P</span><span data-g="R">R</span><span data-g="N" class="active">N</span><span data-g="D">D</span></div>
+       </div>
       </div>
+      <div class="classic-dial-col"><span class="classic-mini-label">F</span><div class="classic-mini-gauge"><div class="classic-mini-fill fuel" id="classicFuelFill"></div><div class="classic-mini-needle" id="classicFuelNeedle"></div></div><span class="classic-mini-label">E</span></div>
      </div>
      <div class="classic-info-panel">
       <div class="classic-info-top"><span><i class="bi bi-geo-alt-fill"></i> GPS <span class="classic-gps-bars" id="classicGpsBars"><i></i><i></i><i></i><i></i></span></span><span id="classicClockTime">--:--</span></div>
@@ -740,33 +764,65 @@ function persist(){localStorage.setItem(KEY,JSON.stringify(state))}
 function money(n){return '₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2})}
 function vehicle(id){return state.vehicles.find(v=>String(v.id)===String(id))}
 function hav(a,b){const R=6371, p=Math.PI/180, dLat=(b.lat-a.lat)*p,dLon=(b.lon-a.lon)*p;const x=Math.sin(dLat/2)**2+Math.cos(a.lat*p)*Math.cos(b.lat*p)*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))}
+/* ---------- "Stay signed in" ----------
+   Checking the box at login stores only the username (never the password) in localStorage.
+   On the NEXT page load, instead of silently auto-logging the person back in, the login screen
+   shows a "Welcome back — continue?" prompt: the session is only resumed once they explicitly
+   confirm, satisfying "ask permission on refresh" without ever skipping consent. */
+const REMEMBER_KEY='srd_remembered_user';
+function applyLoginSuccess(u){
+ currentUser=u;
+ const loginScreen=document.getElementById('loginScreen');
+ const app=document.getElementById('app');
+ if(loginScreen) loginScreen.classList.add('d-none');
+ if(app) app.classList.remove('d-none');
+ const navAdmin=document.getElementById('navAdmin');
+ if(navAdmin) navAdmin.classList.toggle('d-none',u!=='admin');
+ const welcome=document.getElementById('welcome');
+ if(welcome) welcome.textContent=u==='admin'?'Master Administrator':'Welcome, Demo Subscriber';
+ try{ renderAll(); checkRecoverableSessions(); }catch(e){ console.error(e); alert('Login successful, but the dashboard could not finish loading. Please refresh once.'); }
+}
 function login(){
  const u=(document.getElementById('loginUser').value||'').trim().toLowerCase();
  const p=document.getElementById('loginPass').value||'';
  if((u==='demo'&&p==='demo123')||(u==='admin'&&p==='admin123')){
-  currentUser=u;
-  const loginScreen=document.getElementById('loginScreen');
-  const app=document.getElementById('app');
-  if(loginScreen) loginScreen.classList.add('d-none');
-  if(app) app.classList.remove('d-none');
-  const navAdmin=document.getElementById('navAdmin');
-  if(navAdmin) navAdmin.classList.toggle('d-none',u!=='admin');
-  const welcome=document.getElementById('welcome');
-  if(welcome) welcome.textContent=u==='admin'?'Master Administrator':'Welcome, Demo Subscriber';
-  try{ renderAll(); checkRecoverableSessions(); }catch(e){ console.error(e); alert('Login successful, but the dashboard could not finish loading. Please refresh once.'); }
+  try{
+    if(document.getElementById('loginRemember')?.checked) localStorage.setItem(REMEMBER_KEY,u);
+    else localStorage.removeItem(REMEMBER_KEY);
+  }catch(e){}
+  applyLoginSuccess(u);
  } else {
   alert('Invalid demo credentials.\nSubscriber: demo / demo123\nAdmin: admin / admin123');
  }
 }
+function continueAsRememberedUser(){
+ let u=null; try{u=localStorage.getItem(REMEMBER_KEY)}catch(e){}
+ if(!u) return;
+ applyLoginSuccess(u);
+}
+function forgetRememberedUser(){
+ try{localStorage.removeItem(REMEMBER_KEY)}catch(e){}
+ document.getElementById('loginRememberPrompt')?.classList.add('d-none');
+ document.getElementById('loginFormFields')?.classList.remove('d-none');
+}
+(function initLoginScreen(){
+ let remembered=null; try{remembered=localStorage.getItem(REMEMBER_KEY)}catch(e){}
+ if(remembered){
+   const nameEl=document.getElementById('rememberedUserName'); if(nameEl) nameEl.textContent=remembered;
+   document.getElementById('loginRememberPrompt')?.classList.remove('d-none');
+   document.getElementById('loginFormFields')?.classList.add('d-none');
+ }
+})();
 document.getElementById('loginBtn').onclick=login;
 document.getElementById('loginPass').addEventListener('keydown',e=>{if(e.key==='Enter')login();});
 document.getElementById('resetDemoBtn').onclick=()=>{
  if(confirm('Reset demo data and restore the default demo account?')){
    localStorage.removeItem(KEY);
+   try{localStorage.removeItem(REMEMBER_KEY)}catch(e){}
    location.reload();
  }
 };
-document.getElementById('logoutBtn').onclick=()=>location.reload();
+document.getElementById('logoutBtn').onclick=()=>{ try{localStorage.removeItem(REMEMBER_KEY)}catch(e){} location.reload(); };
 /* ---------- Sidebar navigation toggle (mobile off-canvas + desktop collapse-to-rail) ---------- */
 const sidebarEl=document.getElementById('sidebar');
 const sidebarBackdrop=document.getElementById('sidebarBackdrop');
@@ -823,12 +879,23 @@ const CATEGORY_META={
  Fuel:{icon:'bi-fuel-pump-fill',color:'#0d6efd'},
  Food:{icon:'bi-cup-hot-fill',color:'#fd7e14'},
  Repair:{icon:'bi-tools',color:'#dc3545'},
+ Service:{icon:'bi-wrench-adjustable-circle-fill',color:'#0dcaf0'},
  Toll:{icon:'bi-signpost-split-fill',color:'#6f42c1'},
  Parking:{icon:'bi-p-square-fill',color:'#198754'},
+ Insurance:{icon:'bi-shield-check',color:'#20c997'},
+ 'Vehicle Wash':{icon:'bi-droplet-half',color:'#0ea5e9'},
+ Accessories:{icon:'bi-bag-check-fill',color:'#a855f7'},
+ 'Fine/Challan':{icon:'bi-file-earmark-text-fill',color:'#ef4444'},
+ Tyre:{icon:'bi-circle',color:'#334155'},
+ 'Permit/RTO':{icon:'bi-file-earmark-ruled-fill',color:'#7c3aed'},
+ Medical:{icon:'bi-heart-pulse-fill',color:'#e11d48'},
+ 'Recharge/Data':{icon:'bi-reception-4',color:'#0891b2'},
+ Lodging:{icon:'bi-house-door-fill',color:'#b45309'},
+ 'Loan EMI':{icon:'bi-bank',color:'#475569'},
  Other:{icon:'bi-three-dots',color:'#64748b'}
 };
 function renderDashboard(){
- const total=state.expenses.reduce((s,e)=>s+Number(e.amount),0), dist=state.trips.reduce((s,t)=>s+t.km,0), fuel=state.trips.reduce((s,t)=>s+t.fuel,0), cost=state.trips.reduce((s,t)=>s+t.cost,0);
+ const total=state.expenses.reduce((s,e)=>s+Number(e.amount),0), tripDist=state.trips.reduce((s,t)=>s+t.km,0), manualDist=(state.manualKmEntries||[]).reduce((s,e)=>s+Number(e.km||0),0), dist=tripDist+manualDist, fuel=state.trips.reduce((s,t)=>s+t.fuel,0), cost=state.trips.reduce((s,t)=>s+t.cost,0);
  document.getElementById('mExpense').textContent=money(total);document.getElementById('mDistance').textContent=dist.toFixed(1)+' km';document.getElementById('mFuel').textContent=money(cost);document.getElementById('mVehicle').textContent=(state.vehicles.find(v=>v.active)||state.vehicles[0])?.name||'—';
  document.getElementById('recentExpenses').innerHTML=state.expenses.slice(-6).reverse().map(e=>`<tr><td>${e.date}</td><td>${e.cat}</td><td>${e.note||''}</td><td class="text-end">${money(e.amount)}</td></tr>`).join('')||'<tr><td colspan=4 class="text-center muted">No expenses</td></tr>';
  /* Every expense, automatically summed and grouped by category */
@@ -903,18 +970,33 @@ function renderExpenses(){
  document.getElementById('expenseRows').innerHTML=state.expenses.filter(e=>(!q||(e.note||'').toLowerCase().includes(q)||e.cat.toLowerCase().includes(q))&&(!f||e.cat===f)).slice().reverse().map(e=>`<tr><td>${e.date}</td><td>${e.cat}</td><td>${vehicle(e.vehicleId)?.name||'-'}</td><td>${e.note||''}</td><td>${e.payment}</td><td class="text-end">${money(e.amount)}</td><td><button class="btn btn-sm btn-outline-danger" onclick="delExpense(${e.id})"><i class="bi bi-trash"></i></button></td></tr>`).join('')||'<tr><td colspan=7 class="text-center muted">No matching expenses</td></tr>';
 }
 document.getElementById('expenseSearch').oninput=renderExpenses;document.getElementById('expenseFilter').onchange=renderExpenses;
-function renderVehicles(){document.getElementById('vehicleRows').innerHTML=state.vehicles.map(v=>`<tr><td><b>${v.name}</b></td><td>${v.type}</td><td>${v.fuel}</td><td>${v.mileage}</td><td>${money(v.rate)}</td><td><span class="badge ${v.active?'text-bg-success':'text-bg-secondary'}">${v.active?'Active':'Inactive'}</span></td><td><button class="btn btn-sm btn-outline-secondary me-1" onclick="setActiveVehicle(${v.id})">Set Active</button><button class="btn btn-sm btn-outline-danger" onclick="delVehicle(${v.id})">Delete</button></td></tr>`).join('')||'<tr><td colspan=7 class="text-center muted">No vehicles yet — add one to start tracking fuel cost and trips.</td></tr>'}
+function renderVehicles(){document.getElementById('vehicleRows').innerHTML=state.vehicles.map(v=>`<tr><td><b>${v.name}</b></td><td>${v.type}</td><td>${v.fuel}</td><td>${v.mileage}</td><td>${v.tankCapacity?v.tankCapacity+' L':'—'}</td><td>${money(v.rate)}</td><td><span class="badge ${v.active?'text-bg-success':'text-bg-secondary'}">${v.active?'Active':'Inactive'}</span></td><td><button class="btn btn-sm btn-outline-secondary me-1" onclick="setActiveVehicle(${v.id})">Set Active</button><button class="btn btn-sm btn-outline-danger" onclick="delVehicle(${v.id})">Delete</button></td></tr>`).join('')||'<tr><td colspan=8 class="text-center muted">No vehicles yet — add one to start tracking fuel cost and trips.</td></tr>'}
 function setActiveVehicle(id){state.vehicles.forEach(v=>v.active=(v.id===id));persist();renderAll()}
 function renderWalkers(){document.getElementById('walkerRows').innerHTML=(state.walkers||[]).map(w=>`<tr><td><b>${w.name}</b></td><td>${w.age}</td><td>${w.weight} kg</td><td><span class="badge ${w.active?'text-bg-success':'text-bg-secondary'}">${w.active?'Active':'Inactive'}</span></td><td><button class="btn btn-sm btn-outline-secondary me-1" onclick="setActiveWalker(${w.id})">Set Active</button><button class="btn btn-sm btn-outline-danger" onclick="delWalker(${w.id})">Delete</button></td></tr>`).join('')||'<tr><td colspan=5 class="text-center muted">No walking profile yet — add your name, age and weight to enable step/calorie tracking.</td></tr>'}
 function renderSelects(){const opts=state.vehicles.map(v=>`<option value="${v.id}">${v.name} — ${v.type}</option>`).join('');document.getElementById('tripVehicle').innerHTML=opts;document.getElementById('eVehicle').innerHTML='<option value="">General</option>'+opts;const wopts=(state.walkers||[]).map(w=>`<option value="${w.id}">${w.name} — ${w.age}y, ${w.weight}kg</option>`).join('');document.getElementById('tripWalker').innerHTML=wopts||'<option value="">Add a walking profile first</option>';const active=activeWalker();if(active)document.getElementById('tripWalker').value=active.id}
 document.getElementById('tripWalker').onchange=function(){if(this.value)setActiveWalker(Number(this.value))};
-function addVehicle(){const v={id:Date.now(),name:document.getElementById('vName').value.trim(),type:document.getElementById('vType').value,fuel:document.getElementById('vFuel').value,mileage:Number(document.getElementById('vMileage').value),rate:Number(document.getElementById('vRate').value)||state.settings.rate,active:true};if(!v.name||!v.mileage)return alert('Enter vehicle name and mileage.');state.vehicles.forEach(x=>x.active=false);state.vehicles.push(v);persist();bootstrap.Modal.getInstance(document.getElementById('vehicleModal')).hide();document.getElementById('vName').value='';document.getElementById('vMileage').value='';document.getElementById('vRate').value='';renderAll()}
+function addVehicle(){const v={id:Date.now(),name:document.getElementById('vName').value.trim(),type:document.getElementById('vType').value,fuel:document.getElementById('vFuel').value,mileage:Number(document.getElementById('vMileage').value),tankCapacity:Number(document.getElementById('vTank').value)||0,rate:Number(document.getElementById('vRate').value)||state.settings.rate,active:true,odometer:0};if(!v.name||!v.mileage)return alert('Enter vehicle name and mileage.');state.vehicles.forEach(x=>x.active=false);state.vehicles.push(v);persist();bootstrap.Modal.getInstance(document.getElementById('vehicleModal')).hide();document.getElementById('vName').value='';document.getElementById('vMileage').value='';document.getElementById('vTank').value='';document.getElementById('vRate').value='';renderAll()}
 function delVehicle(id){if(confirm('Delete vehicle?')){const wasActive=state.vehicles.find(v=>v.id===id)?.active;state.vehicles=state.vehicles.filter(v=>v.id!==id);if(wasActive&&state.vehicles.length)state.vehicles[0].active=true;persist();renderAll()}}
 function addWalker(){const w={id:Date.now(),name:document.getElementById('wName').value.trim(),age:Number(document.getElementById('wAge').value),weight:Number(document.getElementById('wWeight').value),active:true};if(!w.name||!w.age||!w.weight)return alert('Enter name, age and weight.');state.walkers=state.walkers||[];state.walkers.forEach(x=>x.active=false);state.walkers.push(w);persist();bootstrap.Modal.getInstance(document.getElementById('walkerModal')).hide();document.getElementById('wName').value='';document.getElementById('wAge').value='';document.getElementById('wWeight').value='';renderAll()}
 function delWalker(id){if(confirm('Delete this walking profile?')){const wasActive=state.walkers.find(w=>w.id===id)?.active;state.walkers=state.walkers.filter(w=>w.id!==id);if(wasActive&&state.walkers.length)state.walkers[0].active=true;persist();renderAll()}}
 function setActiveWalker(id){state.walkers.forEach(w=>w.active=(w.id===id));persist();renderAll()}
 function activeWalker(){return (state.walkers||[]).find(w=>w.active)||(state.walkers||[])[0]}
 function addExpense(){const e={id:Date.now(),date:document.getElementById('eDate').value||new Date().toISOString().slice(0,10),cat:document.getElementById('eCat').value,vehicleId:document.getElementById('eVehicle').value,note:document.getElementById('eNote').value,payment:document.getElementById('ePayment').value,amount:Number(document.getElementById('eAmount').value)};if(!e.amount)return alert('Enter amount.');const ev=vehicle(e.vehicleId);if(String(e.cat).toLowerCase()==='fuel'&&ev){e.fuelRateAtEntry=Number(ev.rate)||Number(state.settings.rate)||0;e.liters=e.fuelRateAtEntry>0?Number((e.amount/e.fuelRateAtEntry).toFixed(3)):0;}state.expenses.push(e);persist();bootstrap.Modal.getInstance(document.getElementById('expenseModal')).hide();document.getElementById('eAmount').value='';document.getElementById('eNote').value='';document.getElementById('eDate').value=new Date().toISOString().slice(0,10);renderAll();if(meterModalOpen&&meterKind==='trip')updateTripMeter(trip.points.at(-1)?.speed||0,trip.points.at(-1)?.acc)}
+/* Quick "Add Expense" from inside the live meter — lets the person log fuel or any other spend
+   (tolls, food, repairs, etc.) mid-trip without stopping tracking. Pre-fills today's date and the
+   vehicle currently being tracked so it's a one-tap flow; saving falls straight back through the
+   normal addExpense() above, which already refreshes the meter's Fuel Used/Cost/Range readouts. */
+function openMeterExpense(){
+ if(meterKind!=='trip') return;
+ renderSelects();
+ const v=vehicle(document.getElementById('tripVehicle').value);
+ const eVehicle=document.getElementById('eVehicle'); if(eVehicle&&v) eVehicle.value=v.id;
+ const eDate=document.getElementById('eDate'); if(eDate) eDate.value=new Date().toISOString().slice(0,10);
+ const eCat=document.getElementById('eCat'); if(eCat) eCat.value='Fuel';
+ const eAmount=document.getElementById('eAmount'); if(eAmount) eAmount.value='';
+ const eNote=document.getElementById('eNote'); if(eNote) eNote.value='';
+ bootstrap.Modal.getOrCreateInstance(document.getElementById('expenseModal')).show();
+}
 function delExpense(id){state.expenses=state.expenses.filter(e=>e.id!==id);persist();renderAll()}
 let gpsPermission='not-requested';
 let locationConsent=false;
@@ -1531,8 +1613,8 @@ function renderClassicStatBar(){
  box.innerHTML=stats.map(([i,l,v])=>`<div class="classic-stat"><div class="classic-stat-label"><i class="bi ${i}"></i> ${l}</div><div class="classic-stat-val">${v}</div></div>`).join('');
 }
 function resetTripB(){ trip.tripB=0; classicVals.tripB=0; const el=document.getElementById('classicTripB'); if(el) el.textContent=classicFmtDist(0); renderClassicInfoBody(); }
-function updateClassicGearUI(gearLetter){
- const big=document.getElementById('classicGearBig'); if(big) big.textContent=gearLetter;
+function updateClassicGearUI(gearLetter,bigText){
+ const big=document.getElementById('classicGearBig'); if(big) big.textContent=bigText!=null?bigText:gearLetter;
  document.querySelectorAll('#classicGearRow span').forEach(s=>s.classList.toggle('active',s.dataset.g===gearLetter));
 }
 function syncClassicMeter(kind,speedKmh,accuracy){
@@ -1552,8 +1634,9 @@ function syncClassicMeter(kind,speedKmh,accuracy){
      fuelPct:range.available&&range.liters>0?Math.max(0,Math.min(1,range.km/(range.liters*Number(v.mileage||1)))):0.5,
      tempPct:trip.running?Math.min(.72,.22+(trip.movingMs/300000)*.5):.12};
    const tb=document.getElementById('classicTripB'); if(tb) tb.textContent=classicFmtDist(classicVals.tripB);
-   updateClassicGearUI(!trip.running?'P':(currentGear==='N'?'N':'D'));
+   updateClassicGearUI(!trip.running?'P':(currentGear==='N'?'N':'D'),!trip.running?'P':currentGear);
    classicAnimateNeedle('classicTachSvg',(rpm||0)/8000,'rpm');
+   const rd=document.getElementById('classicRpmDigital'); if(rd) rd.textContent=((rpm||0)/1000).toFixed(1);
  } else {
    const last=walk.points.at(-1), avg=walk.movingMs>0?walk.km/(walk.movingMs/3600000):0;
    classicVals={tripKm:walk.km,tripB:walk.km,timeStr:fmtTime(walk.movingMs),avgSpeed:avg,
@@ -1562,6 +1645,7 @@ function syncClassicMeter(kind,speedKmh,accuracy){
      voltage:null,engineLoad:null,fuelPct:.5,tempPct:.12};
    updateClassicGearUI('P');
    classicAnimateNeedle('classicTachSvg',0,'rpm');
+   const rd0=document.getElementById('classicRpmDigital'); if(rd0) rd0.textContent='0.0';
  }
  const tf=document.getElementById('classicTempFill'), tn=document.getElementById('classicTempNeedle');
  if(tf) tf.style.height=(classicVals.tempPct*100)+'%'; if(tn) tn.style.bottom=(classicVals.tempPct*100)+'%';
@@ -1597,20 +1681,30 @@ function estimatedOdometer(v,tripKm){
 }
 
 function estimatedFuelRange(v,currentTripKm=0){
- if(!v || !Number(v.mileage) || Number(v.mileage)<=0) return {available:false,km:0,liters:0,spent:0};
- const rate=Number(v.rate)||0;
+ if(!v || !Number(v.mileage) || Number(v.mileage)<=0) return {available:false,km:0,liters:0,spent:0,tankCapacity:0};
+ const rate=Number(v.rate)||0, tank=Number(v.tankCapacity)||0;
  const expenses=(state.expenses||[]).filter(e=>String(e.vehicleId)===String(v.id) && String(e.cat||'').toLowerCase()==='fuel');
- if(!expenses.length)return {available:false,km:0,liters:0,spent:0};
- const sorted=expenses.slice().sort((a,b)=>Number(a.id||0)-Number(b.id||0));
- const lastFuel=sorted[sorted.length-1];
- let liters=Number(lastFuel.liters)||0;
- if(!(liters>0)){const entryRate=Number(lastFuel.fuelRateAtEntry)||rate;if(entryRate>0)liters=(Number(lastFuel.amount)||0)/entryRate;}
- const fuelAnchor=Number(lastFuel.id||Date.now());
+ let liters,fuelAnchor,spent;
+ if(expenses.length){
+   const sorted=expenses.slice().sort((a,b)=>Number(a.id||0)-Number(b.id||0));
+   const lastFuel=sorted[sorted.length-1];
+   liters=Number(lastFuel.liters)||0;
+   if(!(liters>0)){const entryRate=Number(lastFuel.fuelRateAtEntry)||rate;if(entryRate>0)liters=(Number(lastFuel.amount)||0)/entryRate;}
+   if(tank>0)liters=Math.min(liters,tank); // a fill-up can't exceed the tank's capacity
+   fuelAnchor=Number(lastFuel.id||Date.now());
+   spent=Number(lastFuel.amount)||0;
+ } else if(tank>0){
+   // No fuel purchase logged yet — auto-assume a full tank from when the vehicle was added,
+   // so range/fuel-gauge readouts work automatically as soon as tank capacity is filled in.
+   liters=tank; fuelAnchor=0; spent=0;
+ } else {
+   return {available:false,km:0,liters:0,spent:0,tankCapacity:tank};
+ }
  const historicalAfterFuel=state.trips.filter(t=>String(t.vehicleId)===String(v.id) && Number(t.id||0)>fuelAnchor).reduce((sum,t)=>sum+Number(t.km||0),0);
  const manualAfterFuel=(state.manualKmEntries||[]).filter(e=>String(e.vehicleId)===String(v.id) && Number(e.id||0)>fuelAnchor).reduce((sum,e)=>sum+Number(e.km||0),0);
  const consumedKm=historicalAfterFuel+manualAfterFuel+Number(currentTripKm||0);
  const remaining=Math.max(0,liters*Number(v.mileage)-consumedKm);
- return {available:true,km:remaining,liters,spent:Number(lastFuel.amount)||0,consumedKm,lastFuelId:fuelAnchor};
+ return {available:true,km:remaining,liters,spent,consumedKm,lastFuelId:fuelAnchor,tankCapacity:tank};
 }
 
 const VEHICLE_METER_ICON={
@@ -1635,15 +1729,18 @@ function setMeterVehicleIcon(v){
    by vehicle type) changes how eagerly the transmission shifts, the way a real vehicle's drive
    mode selector does, and lights up with that mode's colour across the cluster. */
 let currentGear='N';
-// Upper speed (km/h) bound for gear 1, gear 2, gear 3... per vehicle type (last entry's gear is the top gear).
+// Exact upper speed (km/h) bound for gear 1, gear 2, gear 3... per vehicle type — a vehicle is in
+// gear N as long as its speed is <= that gear's bound; above the last bound it's in the top gear.
+// Two Wheeler: <=10 →1st, <=20 →2nd, <=30 →3rd, <=40 →4th, >40 →5th (as specified).
+// Car gets a 6th gear on the same step pattern, scaled to a car's higher cruising speeds.
 const GEAR_SPEED_BOUNDS={
- 'Two Wheeler':[15,30,45,65,90],
- 'Three Wheeler':[12,25,40,55],
- 'Car':[18,35,55,80,110],
- 'Pickup':[16,32,50,75,100],
- 'Truck':[10,20,32,48,65],
- 'Bus':[10,18,28,42,58],
- 'Other':[18,35,55,80,110]
+ 'Two Wheeler':[10,20,30,40],
+ 'Three Wheeler':[10,20,30,40],
+ 'Car':[10,20,40,60,80],
+ 'Pickup':[10,20,40,60,80],
+ 'Truck':[10,20,35,50,65],
+ 'Bus':[10,20,35,50,65],
+ 'Other':[10,20,40,60,80]
 };
 const DRIVE_MODES={
  eco:{label:'ECO',icon:'bi-leaf-fill',color:'#22c55e',shiftMul:0.8},
@@ -1670,8 +1767,7 @@ function hexToRgba(hex,alpha){
 function recommendedGearFor(speedKmh,type){
  if(!speedKmh||speedKmh<=2) return 'N';
  const bounds=GEAR_SPEED_BOUNDS[type]||GEAR_SPEED_BOUNDS.Other;
- const mul=(DRIVE_MODES[driveMode]||DRIVE_MODES.normal).shiftMul;
- for(let i=0;i<bounds.length;i++){ if(speedKmh<bounds[i]*mul) return String(i+1); }
+ for(let i=0;i<bounds.length;i++){ if(speedKmh<=bounds[i]) return String(i+1); }
  return String(bounds.length+1);
 }
 function applyModeAccent(){
@@ -1759,6 +1855,7 @@ function openLiveMeter(kind){
    renderDriveModeLights(v);
    setMeterStatus(trip.paused);
    updateTripMeter(0,trip.points.at(-1)?.acc);
+   document.getElementById('meterAddExpenseBtn')?.classList.remove('d-none');
   } else {
    const walkIcon=document.getElementById('meterVehicleIcon');
    if(walkIcon) walkIcon.className='bi bi-person-walking meter-context-icon';
@@ -1769,6 +1866,7 @@ function openLiveMeter(kind){
    if(modeRow){modeRow.classList.add('d-none');modeRow.innerHTML='';}
    setMeterStatus(walk.paused);
    updateWalkMeter(0,walk.points.at(-1)?.acc);
+   document.getElementById('meterAddExpenseBtn')?.classList.add('d-none');
  }
  setMeterStyle(meterStyle);
  bootstrap.Modal.getOrCreateInstance(document.getElementById('liveMeterModal')).show();
@@ -1801,7 +1899,7 @@ function updateTripMeter(speedKmh,accuracy){
  updateMeterGauge(speedKmh,meta.max,rpm,rpmMax);
  document.getElementById('meterDistance').textContent=trip.km.toFixed(2)+' km';document.getElementById('meterTrip').textContent=trip.km.toFixed(2)+' km';document.getElementById('meterOdo').textContent=estimatedOdometer(v,trip.km).toFixed(1)+' km';
  document.getElementById('meterTime').textContent=fmtTime(trip.movingMs);const avg=trip.movingMs>0?trip.km/(trip.movingMs/3600000):0;document.getElementById('meterAvg').textContent=avg.toFixed(1)+' km/h';document.getElementById('meterMax').textContent=(trip.maxSpeed||0).toFixed(1)+' km/h';
- const live=v?estimateLiveMileage(v,speedKmh):0,fuel=v?trip.km/Number(v.mileage):0,cost=v?fuel*Number(v.rate):0;document.getElementById('meterVal4').textContent=v?live.toFixed(1)+' km/L':'--';document.getElementById('meterMileage').textContent=v?live.toFixed(1)+' km/L':'--';document.getElementById('meterVal6').textContent=v?fuel.toFixed(2)+' L':'--';document.getElementById('meterFuel').textContent=v?fuel.toFixed(2)+' L':'--';document.getElementById('meterVal7').textContent=v?money(cost):'--';document.getElementById('meterCost').textContent=v?money(cost):'--';
+ const live=v?estimateLiveMileage(v,speedKmh):0,avgMileage=v?estimateLiveMileage(v,avg):0,fuel=v?trip.km/Number(v.mileage):0,cost=v?fuel*Number(v.rate):0;document.getElementById('meterVal4').textContent=v?live.toFixed(1)+' km/L':'--';document.getElementById('meterMileage').textContent=v?live.toFixed(1)+' km/L':'--';document.getElementById('meterAvgMileage').textContent=v?avgMileage.toFixed(1)+' km/L':'--';document.getElementById('meterVal6').textContent=v?fuel.toFixed(2)+' L':'--';document.getElementById('meterFuel').textContent=v?fuel.toFixed(2)+' L':'--';document.getElementById('meterVal7').textContent=v?money(cost):'--';document.getElementById('meterCost').textContent=v?money(cost):'--';
  const range=estimatedFuelRange(v,trip.km);document.getElementById('meterRange').textContent=v?(range.available?range.km.toFixed(0)+' km':'--'):'--';document.getElementById('meterEcoBar').style.width=Math.max(0,Math.min(100,(live/(Number(v?.mileage||1)*1.15))*100))+'%';document.getElementById('meterVal8').textContent=accuracy?'±'+Math.round(accuracy)+' m':'--';
  updateSportGear(speedKmh,v);setMeterStatus(trip.paused);
  if(meterModalOpen){const vv=v,cfg=VEHICLE_ICON_MAP[vv?.type]||VEHICLE_ICON_MAP.Other,last=trip.points.at(-1);if(last)meterMapUpdate(last,cfg);}
