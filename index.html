@@ -76,6 +76,8 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
 .sport-meter-brand{font-size:.65rem;letter-spacing:2px;text-transform:uppercase;opacity:.5;font-weight:800}
 .sport-meter-gear{font-size:.72rem;letter-spacing:1px;color:#93c5fd;font-weight:800}
 .sport-dial{position:relative;width:min(100%,560px);margin:0 auto;aspect-ratio:2/1.08;overflow:hidden}
+.sport-dial.sport-dial-sub{width:54%;max-width:230px;margin:8px auto 0}
+.sport-dial-sub .dial-number{font-size:8px}
 .sport-dial svg{width:100%;height:100%;display:block;overflow:visible}
 .sport-dial .dial-track{fill:none;stroke:#1e293b;stroke-width:13;stroke-linecap:round}
 .sport-dial .dial-progress{fill:none;stroke:url(#sportSpeedGrad);stroke-width:13;stroke-linecap:round;filter:url(#sportGlow);transition:stroke-dashoffset .18s linear}
@@ -106,6 +108,7 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
 .sport-digital{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);text-align:center;line-height:1}
 .sport-digital-speed{font-family:'Courier New',monospace;font-size:clamp(2.2rem,8vw,4.1rem);font-weight:900;letter-spacing:2px;text-shadow:0 0 18px var(--mode-color,rgba(96,165,250,.5))}
 .sport-digital-unit{font-size:.68rem;letter-spacing:2px;opacity:.55;font-weight:800}
+.sport-digital-rpm{font-family:'Courier New',monospace;font-size:clamp(1.1rem,4.5vw,1.7rem);font-weight:900;letter-spacing:1px;color:#fca5a5;text-shadow:0 0 10px rgba(251,113,133,.5)}
 .sport-rpm-live{font-family:'Courier New',monospace;font-size:.72rem;letter-spacing:1px;color:#fb7185;font-weight:800;margin-top:6px}
 .sport-gear-pill{position:absolute;right:14%;bottom:10%;min-width:35px;height:35px;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:#020617;display:flex;align-items:center;justify-content:center;font-weight:900;color:#f8fafc;box-shadow:0 0 18px var(--mode-glow,rgba(59,130,246,.18))}
 .sport-led-row{display:flex;justify-content:center;gap:3px;margin:-4px auto 5px;max-width:360px}
@@ -213,7 +216,7 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
 }
 #liveMeterModal.night-meter-mode .meter-needle,
 #liveMeterModal.night-meter-mode #meterNeedle,
-#liveMeterModal.night-meter-mode #meterRpmNeedle{
+#liveMeterModal.night-meter-mode #meterSubNeedle{
   filter:drop-shadow(0 0 4px rgba(255,255,255,.9));
 }
 #liveMeterModal.night-meter-mode .meter-night-indicator{
@@ -605,9 +608,15 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
       <div class="sport-digital">
        <div id="meterDigital" class="sport-digital-speed">0</div>
        <div class="sport-digital-unit">KM/H</div>
-       <div id="meterRpmLive" class="sport-rpm-live">0 RPM</div>
       </div>
       <div id="meterGearPill" class="sport-gear-pill" title="Automatic gear — shifts with speed">N</div>
+     </div>
+     <div class="sport-dial sport-dial-sub">
+      <svg id="meterSubGaugeSvg" viewBox="0 0 200 128" aria-label="RPM sub-gauge"></svg>
+      <div class="sport-digital">
+       <div id="meterSubDigital" class="sport-digital-rpm">0</div>
+       <div class="sport-digital-unit">RPM</div>
+      </div>
      </div>
      <div class="w-100 small text-secondary text-center" style="font-size:.62rem;opacity:.75">Automatic transmission — gear shifts on its own as speed changes. Tap a drive mode above to change shift behaviour.</div>
      <div id="meterLeds" class="sport-led-row"></div>
@@ -1413,15 +1422,24 @@ function buildMeterGauge(){
  <linearGradient id="sportRpmGrad" x1="20" y1="0" x2="180" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#60a5fa"/><stop offset="72%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#fb7185"/></linearGradient>
  <filter id="sportGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
  h+=`<path class="dial-track" d="${arcPath(82,0,180)}"/><path id="meterValueArc" class="dial-progress" d="${arcPath(82,0,180)}"/>`;
- h+=`<path class="rpm-track" d="${arcPath(67,8,172)}"/><path id="meterRpmArc" class="rpm-progress" d="${arcPath(67,8,172)}"/>`;
  for(let i=0;i<=12;i++){const d=i*15,p1=point(d,72),p2=point(d,i%2===0?78:75);h+=`<line class="dial-tick ${i%2===0?'major':''}" x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}"/>`;if(i%2===0){const n=point(d,61);h+=`<text class="dial-number" x="${n.x}" y="${n.y+2}">${i*20}</text>`;}}
- for(let i=0;i<=8;i++){const d=8+i*20.5,p1=point(d,61),p2=point(d,64);h+=`<line class="dial-tick" x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}"/>`;const n=point(d,55);h+=`<text class="rpm-number" x="${n.x}" y="${n.y+1.5}">${i}</text>`;}
- h+=`<g id="meterNeedle" class="speed-needle" transform="rotate(-90 100 110)"><polygon class="needle-shadow" points="96.9,108.2 99.1,109.2 99.1,43 100,34 100.9,43 100.9,109.2 103.1,108.2 101.2,111 98.8,111"/><polygon class="needle-face" points="98.4,108.8 99.2,109.5 99.2,42 100,35 100.8,42 100.8,109.5 101.6,108.8 100,112"/></g>`;
- h+=`<g id="meterRpmNeedle" class="rpm-needle" transform="rotate(-90 100 110)"><polygon class="rpm-needle-shadow" points="97.5,108.8 99.2,109.5 99.2,53 100,47 100.8,53 100.8,109.5 102.5,108.8 101.2,112 98.8,112"/><polygon class="rpm-needle-face" points="98.7,109 99.3,109.5 99.3,53 100,48 100.7,53 100.7,109.5 101.3,109 100,112"/></g><circle class="hub-outer" cx="100" cy="110" r="8.5"/><circle class="hub" cx="100" cy="110" r="5.5"/><circle class="hub-cap" cx="100" cy="110" r="2"/>`;
+ h+=`<g id="meterNeedle" class="speed-needle" transform="rotate(-90 100 110)"><polygon class="needle-shadow" points="96.9,108.2 99.1,109.2 99.1,43 100,34 100.9,43 100.9,109.2 103.1,108.2 101.2,111 98.8,111"/><polygon class="needle-face" points="98.4,108.8 99.2,109.5 99.2,42 100,35 100.8,42 100.8,109.5 101.6,108.8 100,112"/></g><circle class="hub-outer" cx="100" cy="110" r="8.5"/><circle class="hub" cx="100" cy="110" r="5.5"/><circle class="hub-cap" cx="100" cy="110" r="2"/>`;
  svg.innerHTML=h;
- const a=document.getElementById('meterValueArc'),ra=document.getElementById('meterRpmArc');meterArcLen=a?.getTotalLength()||0;meterRpmArcLen=ra?.getTotalLength()||0;
+ const a=document.getElementById('meterValueArc');meterArcLen=a?.getTotalLength()||0;
  if(a)a.style.strokeDasharray=`${meterArcLen} ${meterArcLen}`;
- if(ra)ra.style.strokeDasharray=`${meterRpmArcLen} ${meterRpmArcLen}`;
+}
+let meterSubArcLen=0;
+function buildMeterSubGauge(){
+ const svg=document.getElementById('meterSubGaugeSvg'); if(!svg) return;
+ const cx=100,cy=110;
+ const point=(deg,rad)=>{const a=(deg-180)*Math.PI/180;return{x:cx+rad*Math.cos(a),y:cy+rad*Math.sin(a)}};
+ const arcPath=(rad,a1,a2)=>{const s=point(a1,rad),e=point(a2,rad),large=Math.abs(a2-a1)>180?1:0;return`M${s.x.toFixed(2)},${s.y.toFixed(2)} A${rad},${rad} 0 ${large} 1 ${e.x.toFixed(2)},${e.y.toFixed(2)}`};
+ let h=`<path class="dial-track" d="${arcPath(82,0,180)}"/><path id="meterSubArc" class="dial-progress" d="${arcPath(82,0,180)}" style="stroke:url(#sportRpmGrad)"/>`;
+ for(let i=0;i<=8;i++){const d=i*22.5,p1=point(d,72),p2=point(d,i%2===0?78:75);h+=`<line class="dial-tick ${i%2===0?'major':''}" x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}"/>`;h+=`<text class="dial-number" x="${point(d,61).x}" y="${point(d,61).y+2}">${i}</text>`;}
+ h+=`<g id="meterSubNeedle" class="rpm-needle" transform="rotate(-90 100 110)"><polygon class="rpm-needle-shadow" points="97.5,108.8 99.2,109.5 99.2,53 100,47 100.8,53 100.8,109.5 102.5,108.8 101.2,112 98.8,112"/><polygon class="rpm-needle-face" points="98.7,109 99.3,109.5 99.3,53 100,48 100.7,53 100.7,109.5 101.3,109 100,112"/></g><circle class="hub-outer" cx="100" cy="110" r="8.5"/><circle class="hub" cx="100" cy="110" r="5.5"/><circle class="hub-cap" cx="100" cy="110" r="2"/>`;
+ svg.innerHTML=h;
+ const sa=document.getElementById('meterSubArc');meterSubArcLen=sa?.getTotalLength()||0;
+ if(sa)sa.style.strokeDasharray=`${meterSubArcLen} ${meterSubArcLen}`;
 }
 
 /* ---------- Classic analog instrument cluster (alternate, user-selectable meter style) ----------
@@ -1712,11 +1730,11 @@ function animateAnalogNeedle(el,target,key){
 }
 function updateMeterGauge(speed,maxSpeed,rpm,rpmMax){
  const pct=Math.max(0,Math.min(1,(Number(speed)||0)/maxSpeed)),rp=Math.max(0,Math.min(1,(Number(rpm)||0)/rpmMax));
- const a=document.getElementById('meterValueArc'),ra=document.getElementById('meterRpmArc');if(a&&meterArcLen)a.style.strokeDashoffset=String(meterArcLen*(1-pct));if(ra&&meterRpmArcLen)ra.style.strokeDashoffset=String(meterRpmArcLen*(1-rp));
- const n=document.getElementById('meterNeedle'),rn=document.getElementById('meterRpmNeedle');animateAnalogNeedle(n,-90+pct*180,'speed');animateAnalogNeedle(rn,-90+rp*180,'rpm');
+ const a=document.getElementById('meterValueArc'),ra=document.getElementById('meterSubArc');if(a&&meterArcLen)a.style.strokeDashoffset=String(meterArcLen*(1-pct));if(ra&&meterSubArcLen)ra.style.strokeDashoffset=String(meterSubArcLen*(1-rp));
+ const n=document.getElementById('meterNeedle'),rn=document.getElementById('meterSubNeedle');animateAnalogNeedle(n,-90+pct*180,'speed');animateAnalogNeedle(rn,-90+rp*180,'rpm');
  updateClassicGauge(speed);
  const d=document.getElementById('meterDigital');if(d){d.textContent=String(Math.round(speed||0));const z=pct<.6?'#4ade80':pct<.85?'#60a5fa':'#f87171';d.style.color=z;d.style.textShadow=`0 0 16px ${z}99`;}
- const rl=document.getElementById('meterRpmLive'),rb=document.getElementById('meterRpm');if(rl)rl.textContent=`${Math.round(rpm||0).toLocaleString('en-IN')} RPM`;if(rb)rb.textContent=Math.round(rpm||0).toLocaleString('en-IN');
+ const rl=document.getElementById('meterSubDigital'),rb=document.getElementById('meterRpm');if(rl)rl.textContent=Math.round(rpm||0).toLocaleString('en-IN');if(rb)rb.textContent=Math.round(rpm||0).toLocaleString('en-IN');
  const leds=document.getElementById('meterLeds');if(leds){let h='',total=24,lit=Math.round(pct*total);for(let i=0;i<total;i++){const c=i<total*.6?'#22c55e':i<total*.84?'#eab308':'#ef4444';h+=`<i class="sport-led${i<lit?' active':''}" style="${i<lit?`background:${c};color:${c}`:''}"></i>`;}leds.innerHTML=h;}
 }
 function setMeterStatus(paused){
@@ -1736,7 +1754,7 @@ function openLiveMeter(kind){
    setMeterVehicleIcon(v);
    title.innerHTML=`<i class="bi bi-speedometer2 me-2"></i>${v?.name||'Trip'} • Live Meter`;
    l4.textContent='Live Mileage'; l6.textContent='Fuel Used'; l7.textContent='Fuel Cost';
-   buildMeterGauge(); buildClassicGauge();
+   buildMeterGauge(); buildMeterSubGauge(); buildClassicGauge();
    if(switchingKind)resetGear();
    renderDriveModeLights(v);
    setMeterStatus(trip.paused);
@@ -1746,7 +1764,7 @@ function openLiveMeter(kind){
    if(walkIcon) walkIcon.className='bi bi-person-walking meter-context-icon';
    title.innerHTML='<i class="bi bi-person-walking me-2"></i>Walk • Live Meter';
    l4.textContent='Steps'; l6.textContent='Calories'; l7.textContent='Avg Pace';
-   buildMeterGauge(); buildClassicGauge();
+   buildMeterGauge(); buildMeterSubGauge(); buildClassicGauge();
    const modeRow=document.getElementById('meterModeRow');
    if(modeRow){modeRow.classList.add('d-none');modeRow.innerHTML='';}
    setMeterStatus(walk.paused);
