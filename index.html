@@ -328,6 +328,45 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
 .classic-telltale{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;color:#334155;background:rgba(255,255,255,.03);flex:0 0 auto}
 .classic-telltale.on{text-shadow:0 0 8px currentColor}
 
+/* Enhanced glossy hazard lamp presentation — visual only */
+.meter-hazard-arrow{
+ width:58px;height:46px;border-radius:14px;position:relative;overflow:hidden;
+ font-size:2.55rem;font-weight:900;opacity:.48;
+ background:linear-gradient(145deg,rgba(255,255,255,.14),rgba(255,255,255,.02) 42%,rgba(15,23,42,.22));
+ border:1px solid rgba(255,255,255,.18);
+ box-shadow:inset 0 2px 5px rgba(255,255,255,.22),inset 0 -4px 8px rgba(0,0,0,.22);
+}
+.meter-hazard-arrow.hazard-on{
+ transform:scale(1.16);color:#fff200;
+ background:radial-gradient(circle at 35% 25%,#fffbd0 0 7%,#fff200 22%,#f59e0b 58%,#b45309 100%);
+ border-color:#fff7a8;
+ filter:drop-shadow(0 0 5px #fff200) drop-shadow(0 0 14px rgba(255,193,7,.95));
+ box-shadow:inset 0 3px 7px rgba(255,255,255,.75),inset 0 -7px 12px rgba(120,53,15,.45),0 0 12px rgba(255,220,40,.9),0 0 28px rgba(255,170,0,.65);
+ animation:glossyHazardLamp .5s steps(2,end) infinite;
+}
+.meter-hazard-arrow.hazard-on::after{
+ content:"";position:absolute;left:12%;right:28%;top:8%;height:28%;
+ border-radius:999px;background:linear-gradient(90deg,rgba(255,255,255,.9),rgba(255,255,255,0));
+ transform:rotate(-8deg);pointer-events:none;
+}
+.classic-telltale.hazard-telltale.hazard-on{
+ width:42px;height:42px;border-radius:50%;font-size:1.65rem;position:relative;overflow:hidden;
+ background:radial-gradient(circle at 35% 25%,#fffbd0 0 7%,#fff200 22%,#f59e0b 58%,#b45309 100%);
+ border:2px solid #fff7a8;
+ text-shadow:0 0 4px #fff,0 0 12px #fff200;
+ box-shadow:inset 0 3px 7px rgba(255,255,255,.75),inset 0 -7px 12px rgba(120,53,15,.45),0 0 12px rgba(255,220,40,.9),0 0 28px rgba(255,170,0,.65);
+ animation:glossyHazardLamp .5s steps(2,end) infinite;
+}
+.classic-telltale.hazard-telltale.hazard-on::after{
+ content:"";position:absolute;left:16%;right:30%;top:9%;height:25%;border-radius:999px;
+ background:linear-gradient(90deg,rgba(255,255,255,.95),rgba(255,255,255,0));transform:rotate(-10deg);pointer-events:none;
+}
+@keyframes glossyHazardLamp{0%,49%{opacity:1}50%,100%{opacity:.28;filter:brightness(.72) saturate(.8)}}
+@media (max-width:600px){
+ .meter-hazard-arrow{width:50px;height:42px;font-size:2.2rem}.classic-telltale.hazard-telltale.hazard-on{width:38px;height:38px;font-size:1.45rem}
+}
+@media (prefers-reduced-motion:reduce){.meter-hazard-arrow.hazard-on,.classic-telltale.hazard-telltale.hazard-on{animation:none}}
+
 /* ---------- Vehicle-specific hazard warning indicators ---------- */
 .meter-hazard-indicator-row{
  display:flex;justify-content:center;align-items:center;gap:18px;
