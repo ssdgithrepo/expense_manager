@@ -327,6 +327,49 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
 .classic-telltale-row{display:flex;justify-content:space-between;align-items:center;gap:3px;padding:2px 2px 8px;flex-wrap:nowrap;overflow-x:auto}
 .classic-telltale{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;color:#334155;background:rgba(255,255,255,.03);flex:0 0 auto}
 .classic-telltale.on{text-shadow:0 0 8px currentColor}
+
+/* ---------- Vehicle-specific hazard warning indicators ---------- */
+.meter-hazard-indicator-row{
+ display:flex;justify-content:center;align-items:center;gap:18px;
+ min-height:32px;margin:3px auto 5px;padding:3px 10px;
+ border:1px solid rgba(255,255,255,.06);border-radius:12px;
+ background:rgba(255,255,255,.025);max-width:340px;
+}
+.meter-hazard-arrow{
+ width:34px;height:28px;display:flex;align-items:center;justify-content:center;
+ border-radius:7px;color:#475569;font-size:1.25rem;opacity:.42;
+ transition:opacity .12s ease,filter .12s ease,transform .12s ease;
+}
+.meter-hazard-arrow.hazard-on{
+ color:#facc15;opacity:1;filter:drop-shadow(0 0 7px #facc15);
+ transform:scale(1.08);
+}
+.meter-hazard-label{
+ font-size:.56rem;letter-spacing:.12em;text-transform:uppercase;
+ color:#64748b;font-weight:800;min-width:72px;text-align:center;
+}
+.meter-hazard-label.hazard-on{color:#facc15;text-shadow:0 0 8px rgba(250,204,21,.75)}
+.meter-hazard-btn{
+ min-width:132px;font-weight:800;letter-spacing:.04em;
+}
+.meter-hazard-btn.active{
+ color:#111827!important;background:#facc15!important;border-color:#facc15!important;
+ box-shadow:0 0 14px rgba(250,204,21,.55);
+}
+.classic-telltale.hazard-telltale.hazard-on{
+ color:#facc15!important;opacity:1!important;
+ text-shadow:0 0 10px #facc15;
+ animation:hazardTelltaleFlash .5s steps(2,end) infinite;
+}
+@keyframes hazardTelltaleFlash{
+ 0%,49%{opacity:1;filter:drop-shadow(0 0 7px #facc15)}
+ 50%,100%{opacity:.25;filter:none}
+}
+@media (prefers-reduced-motion:reduce){
+ .classic-telltale.hazard-telltale.hazard-on{animation:none}
+ .meter-hazard-arrow.hazard-on,.meter-hazard-label.hazard-on{transition:none}
+}
+
 .classic-gauges-row{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px;margin-top:2px}
 .classic-main-col{display:flex;flex-direction:column;align-items:center;gap:0;flex:0 0 auto}
 .classic-dial-wrap.classic-dial-main{width:220px;max-width:62vw;position:relative;z-index:1}
@@ -842,6 +885,11 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
      </div>
      <div class="w-100 small text-secondary text-center" style="font-size:.62rem;opacity:.75">Automatic transmission — gear shifts on its own as speed changes. RPM is an inset sub-meter. GPS auto-start / auto-pause / auto-save-stop remains active when Auto-detect is enabled.</div>
      <div id="meterLeds" class="sport-led-row"></div>
+     <div id="sportHazardIndicatorRow" class="meter-hazard-indicator-row" aria-live="polite">
+      <span id="sportHazardLeft" class="meter-hazard-arrow" aria-label="Left hazard indicator"><i class="bi bi-arrow-left-short"></i></span>
+      <span id="sportHazardLabel" class="meter-hazard-label">HAZARD OFF</span>
+      <span id="sportHazardRight" class="meter-hazard-arrow" aria-label="Right hazard indicator"><i class="bi bi-arrow-right-short"></i></span>
+     </div>
      <div class="sport-readouts">
       <div class="sport-readout"><div class="sport-readout-label"><i class="bi bi-speedometer2"></i> ODO</div><div class="sport-readout-value" id="meterOdo">0.0 km</div></div>
       <div class="sport-readout"><div class="sport-readout-label"><i class="bi bi-signpost-split"></i> Trip</div><div class="sport-readout-value" id="meterTrip">0.00 km</div></div>
@@ -911,7 +959,11 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
    <div class="modal-footer border-0 justify-content-center gap-2 pt-0">
     <button type="button" class="btn btn-sm btn-outline-light meter-bottom-collapse-btn" onclick="toggleMeterBottomControls()" title="Show or hide controls below the meter"><i class="bi bi-chevron-down"></i><span class="collapse-label">Minimize Bottom Controls</span><span class="expand-label">Show Bottom Controls</span></button>
    <div class="meter-bottom-content w-100 d-flex flex-wrap justify-content-center align-items-center gap-2 mt-1">
-    <button class="btn btn-outline-primary" onclick="openManualKmModal()"><i class="bi bi-signpost-2"></i> Add Missed KM</button><button class="btn btn-warning" id="meterPauseBtn" onclick="toggleMeterPause()"><i class="bi bi-pause-fill"></i> Pause</button>
+    <button class="btn btn-outline-primary" onclick="openManualKmModal()"><i class="bi bi-signpost-2"></i> Add Missed KM</button>
+    <button type="button" class="btn btn-outline-warning meter-hazard-btn" id="meterHazardBtn" onclick="toggleHazardLights()" aria-pressed="false" title="Turn hazard warning lights on/off">
+     <i class="bi bi-exclamation-triangle-fill me-1"></i><span>Hazard Lights</span>
+    </button>
+    <button class="btn btn-warning" id="meterPauseBtn" onclick="toggleMeterPause()"><i class="bi bi-pause-fill"></i> Pause</button>
     <button class="btn btn-danger" id="meterStopBtn" onclick="stopFromMeter()"><i class="bi bi-stop-fill"></i> Stop &amp; Save</button>
     <div class="w-100 small text-secondary text-center mt-1">RPM is a speed/GPS-based estimate; true engine RPM requires OBD/CAN data. Range is calculated automatically from recorded fuel expenses, vehicle mileage and tracked distance.</div>
     <div class="w-100 meter-background-status justify-content-center mt-1"><i class="bi bi-broadcast-pin"></i> Background tracking: best-effort browser/OS support • screen wake lock active when supported</div>
@@ -1831,11 +1883,12 @@ function renderClassicTelltales(){
  const top=document.getElementById('classicTopTelltales'), bot=document.getElementById('classicBottomTelltales'); if(!top||!bot) return;
  const lowFuel=classicVals.fuelPct!=null&&classicVals.fuelPct<0.15, lowVolt=classicVals.voltage!=null&&classicVals.voltage<12.2;
  const hotEngine=classicVals.engineLoad!=null&&classicVals.engineLoad>90, eco=driveMode==='eco';
- const topIcons=[['bi-arrow-left-short',false,'#4ade80'],['bi-lightbulb-fill',true,'#60a5fa'],['bi-speedometer2',true,'#4ade80'],['bi-battery-full',lowVolt,'#ef4444'],['bi-brightness-high-fill',true,'#facc15'],['bi-droplet-fill',hotEngine,'#ef4444'],['bi-exclamation-triangle-fill',false,'#ef4444'],['bi-gear-fill',hotEngine,'#facc15'],['bi-leaf-fill',eco,'#22c55e'],['bi-arrow-right-short',false,'#4ade80']];
- top.innerHTML=topIcons.map(([icon,on,color])=>`<span class="classic-telltale${on?' on':''}" style="color:${on?color:'#334155'}"><i class="bi ${icon}"></i></span>`).join('');
- const botIcons=[['bi-fuel-pump-fill',lowFuel,'#facc15'],['bi-snow',false,'#60a5fa'],['bi-p-circle-fill',false,'#ef4444'],['bi-lightbulb-fill',true,'#22c55e'],['bi-life-preserver',false,'#ef4444'],['bi-person-arms-up',false,'#ef4444'],['bi-water',false,'#e2e8f0'],['bi-lightbulb',false,'#facc15']];
- bot.innerHTML=botIcons.map(([icon,on,color])=>`<span class="classic-telltale${on?' on':''}" style="color:${on?color:'#334155'}"><i class="bi ${icon}"></i></span>`).join('');
+ const topIcons=[['bi-arrow-left-short',false,'#4ade80','hazard-telltale'],['bi-lightbulb-fill',true,'#60a5fa',''],['bi-speedometer2',true,'#4ade80',''],['bi-battery-full',lowVolt,'#ef4444',''],['bi-brightness-high-fill',true,'#facc15',''],['bi-droplet-fill',hotEngine,'#ef4444',''],['bi-exclamation-triangle-fill',false,'#ef4444',''],['bi-gear-fill',hotEngine,'#facc15',''],['bi-leaf-fill',eco,'#22c55e',''],['bi-arrow-right-short',false,'#4ade80','hazard-telltale']];
+ top.innerHTML=topIcons.map(([icon,on,color,extra])=>`<span class="classic-telltale ${extra||''}${on?' on':''}" style="color:${on?color:'#334155'}"><i class="bi ${icon}"></i></span>`).join('');
+ const botIcons=[['bi-fuel-pump-fill',lowFuel,'#facc15',''],['bi-snow',false,'#60a5fa',''],['bi-p-circle-fill',false,'#ef4444',''],['bi-lightbulb-fill',true,'#22c55e',''],['bi-life-preserver',false,'#ef4444',''],['bi-person-arms-up',false,'#ef4444',''],['bi-water',false,'#e2e8f0',''],['bi-lightbulb',false,'#facc15','']];
+ bot.innerHTML=botIcons.map(([icon,on,color,extra])=>`<span class="classic-telltale ${extra||''}${on?' on':''}" style="color:${on?color:'#334155'}"><i class="bi ${icon}"></i></span>`).join(''); applyHazardVisuals();
 }
+
 function setClassicPanelMode(mode){
  classicPanelMode=mode;
  document.querySelectorAll('#classicModeGroup .classic-mode-btn').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
@@ -2041,6 +2094,74 @@ function cycleDriveModeTo(m){
  const lastSpeed=trip.points.at(-1)?.speed||0;
  updateSportGear(lastSpeed,v);
 }
+/* ---------- Live hazard warning system ----------
+   This drives the dashboard indicators for the selected trip vehicle. It is a
+   visual instrument-cluster simulation; it does not control the vehicle's
+   physical lamps unless a future vehicle/OBD integration is added. */
+let hazardLightsOn=false;
+let hazardFlashTimer=null;
+let hazardFlashPhase=false;
+const VEHICLE_HAZARD_PROFILES={
+ 'Two Wheeler':{label:'2W HAZARD',period:500},
+ 'Three Wheeler':{label:'3W HAZARD',period:500},
+ 'Car':{label:'CAR HAZARD',period:500},
+ 'Pickup':{label:'PICKUP HAZARD',period:500},
+ 'Truck':{label:'TRUCK HAZARD',period:550},
+ 'Bus':{label:'BUS HAZARD',period:550},
+ 'Other':{label:'HAZARD',period:500}
+};
+function selectedTripVehicleForHazard(){
+ const id=document.getElementById('tripVehicle')?.value;
+ return vehicle(id);
+}
+function applyHazardVisuals(){
+ const v=selectedTripVehicleForHazard();
+ const profile=VEHICLE_HAZARD_PROFILES[v?.type]||VEHICLE_HAZARD_PROFILES.Other;
+ const active=hazardLightsOn && hazardFlashPhase;
+ const left=document.getElementById('sportHazardLeft');
+ const right=document.getElementById('sportHazardRight');
+ const label=document.getElementById('sportHazardLabel');
+ [left,right].forEach(el=>el?.classList.toggle('hazard-on',active));
+ if(label){
+   label.classList.toggle('hazard-on',hazardLightsOn);
+   label.textContent=hazardLightsOn?(active?'HAZARD • FLASH':'HAZARD'):'HAZARD OFF';
+   label.title=hazardLightsOn?profile.label:'Hazard lights off';
+ }
+ const btn=document.getElementById('meterHazardBtn');
+ if(btn){
+   btn.classList.toggle('active',hazardLightsOn);
+   btn.setAttribute('aria-pressed',hazardLightsOn?'true':'false');
+   btn.innerHTML=hazardLightsOn
+    ? '<i class="bi bi-exclamation-triangle-fill me-1"></i><span>Hazard ON</span>'
+    : '<i class="bi bi-exclamation-triangle-fill me-1"></i><span>Hazard Lights</span>';
+ }
+ document.querySelectorAll('#classicTopTelltales .hazard-telltale,#classicBottomTelltales .hazard-telltale')
+   .forEach(el=>el.classList.toggle('hazard-on',active));
+}
+function stopHazardLights(){
+ hazardLightsOn=false;
+ hazardFlashPhase=false;
+ if(hazardFlashTimer){clearInterval(hazardFlashTimer);hazardFlashTimer=null;}
+ applyHazardVisuals();
+}
+function startHazardFlash(){
+ const v=selectedTripVehicleForHazard();
+ const profile=VEHICLE_HAZARD_PROFILES[v?.type]||VEHICLE_HAZARD_PROFILES.Other;
+ if(hazardFlashTimer) clearInterval(hazardFlashTimer);
+ hazardFlashPhase=true;
+ applyHazardVisuals();
+ hazardFlashTimer=setInterval(()=>{
+   if(!hazardLightsOn){stopHazardLights();return;}
+   hazardFlashPhase=!hazardFlashPhase;
+   applyHazardVisuals();
+ },profile.period);
+}
+function toggleHazardLights(){
+ if(meterKind!=='trip') return;
+ hazardLightsOn=!hazardLightsOn;
+ if(hazardLightsOn) startHazardFlash();
+ else stopHazardLights();
+}
 function resetGear(){
  currentGear='N'; driveMode='normal';
  const gp=document.getElementById('meterGearPill');
@@ -2102,7 +2223,10 @@ function openLiveMeter(kind){
    l4.textContent='Live Mileage'; l6.textContent='Fuel Used'; l7.textContent='Fuel Cost';
    buildMeterGauge(); buildMeterSubGauge(); buildClassicGauge();
    if(switchingKind)resetGear();
+   if(switchingKind) stopHazardLights();
    renderDriveModeLights(v);
+   document.getElementById('meterHazardBtn')?.classList.remove('d-none');
+   applyHazardVisuals();
    setMeterStatus(trip.paused);
    updateTripMeter(0,trip.points.at(-1)?.acc);
    document.getElementById('meterAddExpenseBtn')?.classList.remove('d-none');
@@ -2114,6 +2238,8 @@ function openLiveMeter(kind){
    buildMeterGauge(); buildMeterSubGauge(); buildClassicGauge();
    const modeRow=document.getElementById('meterModeRow');
    if(modeRow){modeRow.classList.add('d-none');modeRow.innerHTML='';}
+   stopHazardLights();
+   document.getElementById('meterHazardBtn')?.classList.add('d-none');
    setMeterStatus(walk.paused);
    updateWalkMeter(0,walk.points.at(-1)?.acc);
    document.getElementById('meterAddExpenseBtn')?.classList.add('d-none');
@@ -2151,6 +2277,7 @@ document.addEventListener('fullscreenchange',()=>{
  if(full)setTimeout(()=>mapResize(meterMap,meterMapProvider),150);
 });
 document.getElementById('liveMeterModal').addEventListener('hidden.bs.modal',async()=>{
+ stopHazardLights();
  if(document.fullscreenElement){try{await document.exitFullscreen()}catch(e){}}
  document.getElementById('liveMeterModal').classList.remove('meter-fullscreen-host','meter-bottom-collapsed');
 });
