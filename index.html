@@ -1794,14 +1794,14 @@ function renderClassicInfoBody(){
  const box=document.getElementById('classicInfoBody'); if(!box) return;
  const c=classicVals; let rows;
  if(classicPanelMode==='trip') rows=[['Trip A',classicFmtDist(c.tripKm||0)],['Trip B',classicFmtDist(c.tripB||0)],['Elapsed',c.timeStr||'00:00']];
- else if(classicPanelMode==='economy') rows=[['Instant Econ.',c.liveEcon||'--'],['Avg Speed',classicFmtSpeed(c.avgSpeed||0)],['Fuel Used',c.fuelUsed||'--']];
+ else if(classicPanelMode==='economy') rows=[['Avg Mileage',c.avgMileage||'--'],['Instant Econ.',c.liveEcon||'--'],['Avg Speed',classicFmtSpeed(c.avgSpeed||0)],['Fuel Used',c.fuelUsed||'--']];
  else if(classicPanelMode==='range') rows=[['Range',c.range||'--'],['ODO',classicFmtDist(c.odo||0)],['Fuel Cost',c.fuelCost||'--']];
- else rows=[['Coordinates',c.coords||'--'],['Trip A',classicFmtDist(c.tripKm||0)],['Avg Speed',classicFmtSpeed(c.avgSpeed||0)],['Instant Econ.',c.liveEcon||'--']];
+ else rows=[['Coordinates',c.coords||'--'],['Trip A',classicFmtDist(c.tripKm||0)],['Avg Speed',classicFmtSpeed(c.avgSpeed||0)],['Avg Mileage',c.avgMileage||'--'],['Instant Econ.',c.liveEcon||'--']];
  box.innerHTML=rows.map(([l,v])=>`<div class="classic-info-row"><span>${l}</span><b>${v}</b></div>`).join('');
 }
 function renderClassicStatBar(){
  const box=document.getElementById('classicStatBar'); if(!box) return; const c=classicVals;
- const stats=[['bi-signpost','Range',c.range||'--'],['bi-fuel-pump','Fuel Econ.',c.liveEcon||'--'],['bi-droplet','Fuel Used',c.fuelUsed||'--'],['bi-battery-charging','Voltage',c.voltage!=null?c.voltage.toFixed(1)+' V':'--'],['bi-cpu','Engine Load',c.engineLoad!=null?c.engineLoad+' %':'--']];
+ const stats=[['bi-signpost','Range',c.range||'--'],['bi-speedometer2','Avg Mileage',c.avgMileage||'--'],['bi-fuel-pump','Instant Econ.',c.liveEcon||'--'],['bi-droplet','Fuel Used',c.fuelUsed||'--'],['bi-battery-charging','Voltage',c.voltage!=null?c.voltage.toFixed(1)+' V':'--'],['bi-cpu','Engine Load',c.engineLoad!=null?c.engineLoad+' %':'--']];
  box.innerHTML=stats.map(([i,l,v])=>`<div class="classic-stat"><div class="classic-stat-label"><i class="bi ${i}"></i> ${l}</div><div class="classic-stat-val">${v}</div></div>`).join('');
 }
 function resetTripB(){ trip.tripB=0; classicVals.tripB=0; const el=document.getElementById('classicTripB'); if(el) el.textContent=classicFmtDist(0); renderClassicInfoBody(); }
@@ -1818,6 +1818,7 @@ function syncClassicMeter(kind,speedKmh,accuracy){
    const range=estimatedFuelRange(v,trip.km), avg=trip.movingMs>0?trip.km/(trip.movingMs/3600000):0;
    const rpm=estimateEngineRpm(speedKmh,v), rpmMax={'Two Wheeler':10000,'Three Wheeler':6500,'Car':6500,'Pickup':5500,'Truck':3000,'Bus':2800,'Other':6000}[v?.type]||6000;
    classicVals={tripKm:trip.km,tripB:trip.tripB||0,timeStr:fmtTime(trip.movingMs),avgSpeed:avg,
+     avgMileage:(v&&fuel>0)?(trip.km/fuel).toFixed(1)+' km/L':(v&&Number(v.mileage)>0?Number(v.mileage).toFixed(1)+' km/L':'--'),
      liveEcon:v?live.toFixed(1)+' km/L':'--',fuelUsed:v?fuel.toFixed(2)+' L':'--',fuelCost:v?money(cost):'--',
      range:range.available?range.km.toFixed(0)+' km':'--',odo:estimatedOdometer(v,trip.km),
      coords:last?`${last.lat.toFixed(4)}° N, ${last.lon.toFixed(4)}° E`:'--',
@@ -1832,7 +1833,7 @@ function syncClassicMeter(kind,speedKmh,accuracy){
  } else {
    const last=walk.points.at(-1), avg=walk.movingMs>0?walk.km/(walk.movingMs/3600000):0;
    classicVals={tripKm:walk.km,tripB:walk.km,timeStr:fmtTime(walk.movingMs),avgSpeed:avg,
-     liveEcon:formatPace(avg),fuelUsed:Math.round(walk.calories)+' kcal',fuelCost:Math.round(walk.steps)+' steps',
+     avgMileage:'--',liveEcon:formatPace(avg),fuelUsed:Math.round(walk.calories)+' kcal',fuelCost:Math.round(walk.steps)+' steps',
      range:'--',odo:0,coords:last?`${last.lat.toFixed(4)}° N, ${last.lon.toFixed(4)}° E`:'--',
      voltage:null,engineLoad:null,fuelPct:.5,tempPct:.12};
    updateClassicGearUI('P');
