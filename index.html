@@ -310,6 +310,17 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
  #liveMeterModal.night-meter-mode .meter-night-indicator i{animation:none}
 }
 </style>
+<style id="meter-day-night-flash">
+#liveMeterModal.meter-light-flash::after{
+ content:"";position:fixed;inset:0;pointer-events:none;z-index:9999;
+ background:radial-gradient(circle at 50% 45%,rgba(255,255,255,.34),rgba(120,200,255,.12) 35%,transparent 70%);
+ animation:meterLightFlash .65s ease-out forwards;
+}
+@keyframes meterLightFlash{0%{opacity:0}12%{opacity:1}38%{opacity:.34}100%{opacity:0}}
+#liveMeterModal.day-meter-mode .meter-night-indicator{color:#fbbf24}
+#liveMeterModal.day-meter-mode .meter-night-indicator i{filter:drop-shadow(0 0 6px #fbbf24)}
+@media (prefers-reduced-motion:reduce){#liveMeterModal.meter-light-flash::after{animation:none;opacity:0}}
+</style>
 <style id="classic-meter-styles">
 .classic-meter-shell{display:none;position:relative;margin:0 auto;max-width:760px;background:radial-gradient(ellipse at 50% 0%,#111827,#020617 70%);border-radius:26px;padding:12px 10px 10px;border:1px solid rgba(255,255,255,.07);box-shadow:inset 0 0 40px rgba(0,0,0,.6)}
 .classic-meter-shell.active{display:block}
@@ -566,7 +577,7 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
 <div class="card p-4">
  <div class="d-flex justify-content-between align-items-center mb-3"><h5 class="mb-0"><i class="bi bi-person-walking me-2"></i>Walking Profiles</h5><button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#walkerModal"><i class="bi bi-plus"></i> Add Profile</button></div>
  <div class="alert alert-light border small"><i class="bi bi-calculator me-2"></i> Steps are estimated from GPS distance and an age-based stride length; calories use your weight and walking pace (MET method). These are estimates, not medical-grade measurements.</div>
- <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Name</th><th>Age</th><th>Weight</th><th>Status</th><th></th></tr></thead><tbody id="walkerRows"></tbody></table></div>
+ <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Name</th><th>Age</th><th>Weight</th><th>Status</th><th>Walking Summary</th><th></th></tr></thead><tbody id="walkerRows"></tbody></table></div>
 </div>
 </div>
 <div class="col-lg-7">
@@ -613,7 +624,7 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
 
 <div class="card p-4 mt-3">
  <h5><i class="bi bi-clock-history me-2"></i>Walk History</h5>
- <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Date</th><th>Walker</th><th>Note</th><th>Distance</th><th>Duration</th><th>Steps</th><th>Calories</th></tr></thead><tbody id="walkRows"></tbody></table></div>
+ <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Date</th><th>Walker</th><th>Note</th><th>Distance</th><th>Duration</th><th>Steps</th><th>Calories</th><th></th></tr></thead><tbody id="walkRows"></tbody></table></div>
 </div>
 </section>
 
@@ -697,6 +708,7 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
 </div>
 <div class="d-flex gap-2 mt-2">
  <button class="btn btn-outline-primary flex-fill" onclick="openManualKmModal()"><i class="bi bi-signpost-2"></i> Add Missed KM</button>
+<div class="table-responsive mt-3"><table class="table table-sm align-middle"><thead><tr><th>Date</th><th>Vehicle</th><th>KM</th><th>Note</th><th></th></tr></thead><tbody id="manualKmRows"></tbody></table></div>
 </div>
 </div></div>
 <div class="col-lg-5"><div class="card p-4"><h5><i class="bi bi-info-circle me-2"></i>How it works</h5><ol class="small mt-3"><li>Choose your vehicle.</li><li>Allow browser location permission once.</li><li>Press Start Trip — the app accumulates GPS distance automatically.</li><li>If you stop moving, tracking auto-pauses; it resumes by itself the moment you move again.</li><li>You can log fuel top-ups mid-trip and the totals update instantly.</li><li>Stop to save the trip with its distance and fuel cost breakdown.</li></ol>
@@ -705,7 +717,7 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
 </div></div></div>
 </section>
 
-<section id="trips" class="view"><div class="card p-4"><h5><i class="bi bi-clock-history me-2"></i>Trip History</h5><div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Date</th><th>Vehicle</th><th>Purpose</th><th>Distance</th><th>Est. Fuel</th><th>Est. Fuel Cost</th><th>Fuel Purchased</th></tr></thead><tbody id="tripRows"></tbody></table></div></div></section>
+<section id="trips" class="view"><div class="card p-4"><h5><i class="bi bi-clock-history me-2"></i>Trip History</h5><div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Date</th><th>Vehicle</th><th>Purpose</th><th>Distance</th><th>Est. Fuel</th><th>Est. Fuel Cost</th><th>Fuel Purchased</th><th></th></tr></thead><tbody id="tripRows"></tbody></table></div></div></section>
 
 <section id="reports" class="view">
 <div class="row g-3">
@@ -764,13 +776,17 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
 </main></div></div></div>
 
 <!-- Expense Modal -->
-<div class="modal fade" id="expenseModal"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5>Add Expense</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><label class="form-label">Date</label><input id="eDate" type="date" class="form-control mb-2"><label class="form-label">Category</label><select id="eCat" class="form-select mb-2"><option>Fuel</option><option>Food</option><option>Repair</option><option>Service</option><option>Toll</option><option>Parking</option><option>Insurance</option><option>Vehicle Wash</option><option>Accessories</option><option>Fine/Challan</option><option>Tyre</option><option>Permit/RTO</option><option>Medical</option><option>Recharge/Data</option><option>Lodging</option><option>Loan EMI</option><option>Other</option></select><label class="form-label">Vehicle</label><select id="eVehicle" class="form-select mb-2"></select><label class="form-label">Amount</label><input id="eAmount" type="number" min="0" class="form-control mb-2"><label class="form-label">Payment</label><select id="ePayment" class="form-select mb-2"><option>Cash</option><option>UPI</option><option>Card</option><option>Bank</option></select><label class="form-label">Note</label><input id="eNote" class="form-control"></div><div class="modal-footer"><button class="btn btn-primary" onclick="addExpense()">Save</button></div></div></div></div>
+<div class="modal fade" id="expenseModal"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 id="expenseModalTitle">Add Expense</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><label class="form-label">Date</label><input id="eDate" type="date" class="form-control mb-2"><label class="form-label">Category</label><select id="eCat" class="form-select mb-2"><option>Fuel</option><option>Food</option><option>Repair</option><option>Service</option><option>Toll</option><option>Parking</option><option>Insurance</option><option>Vehicle Wash</option><option>Accessories</option><option>Fine/Challan</option><option>Tyre</option><option>Permit/RTO</option><option>Medical</option><option>Recharge/Data</option><option>Lodging</option><option>Loan EMI</option><option>Other</option></select><label class="form-label">Vehicle</label><select id="eVehicle" class="form-select mb-2"></select><label class="form-label">Amount</label><input id="eAmount" type="number" min="0" class="form-control mb-2"><label class="form-label">Payment</label><select id="ePayment" class="form-select mb-2"><option>Cash</option><option>UPI</option><option>Card</option><option>Bank</option></select><label class="form-label">Note</label><input id="eNote" class="form-control"></div><div class="modal-footer"><button class="btn btn-primary" id="expenseSaveBtn" onclick="addExpense()">Save</button></div></div></div></div>
 <!-- Vehicle Modal -->
-<div class="modal fade" id="vehicleModal"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5>Add Vehicle</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input id="vName" class="form-control mb-2" placeholder="Vehicle name/number"><select id="vType" class="form-select mb-2"><option>Two Wheeler</option><option>Three Wheeler</option><option>Car</option><option>Pickup</option><option>Truck</option><option>Bus</option><option>Other</option></select><select id="vFuel" class="form-select mb-2"><option>Petrol</option><option>Diesel</option><option>CNG</option><option>EV</option></select><label class="form-label">Mileage / Efficiency</label><input id="vMileage" type="number" min="0.1" step="0.1" class="form-control mb-2" placeholder="km per litre (or km/kWh)"><label class="form-label">Fuel Tank Capacity (litres / kWh)</label><input id="vTank" type="number" min="0" step="0.1" class="form-control mb-2" placeholder="e.g. 15 — used to auto-calc range &amp; fuel level"><label class="form-label">Fuel/Energy Rate ₹</label><input id="vRate" type="number" min="0" step="0.01" class="form-control"></div><div class="modal-footer"><button class="btn btn-primary" onclick="addVehicle()">Save Vehicle</button></div></div></div></div>
+<div class="modal fade" id="vehicleModal"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 id="vehicleModalTitle">Add Vehicle</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input id="vName" class="form-control mb-2" placeholder="Vehicle name/number"><select id="vType" class="form-select mb-2"><option>Two Wheeler</option><option>Three Wheeler</option><option>Car</option><option>Pickup</option><option>Truck</option><option>Bus</option><option>Other</option></select><select id="vFuel" class="form-select mb-2"><option>Petrol</option><option>Diesel</option><option>CNG</option><option>EV</option></select><label class="form-label">Mileage / Efficiency</label><input id="vMileage" type="number" min="0.1" step="0.1" class="form-control mb-2" placeholder="km per litre (or km/kWh)"><label class="form-label">Fuel Tank Capacity (litres / kWh)</label><input id="vTank" type="number" min="0" step="0.1" class="form-control mb-2" placeholder="e.g. 15 — used to auto-calc range &amp; fuel level"><label class="form-label">Fuel/Energy Rate ₹</label><input id="vRate" type="number" min="0" step="0.01" class="form-control"></div><div class="modal-footer"><button class="btn btn-primary" id="vehicleSaveBtn" onclick="addVehicle()">Save Vehicle</button></div></div></div></div>
 <!-- Walker Modal -->
-<div class="modal fade" id="walkerModal"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5>Add Walking Profile</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><label class="form-label">Name</label><input id="wName" class="form-control mb-2" placeholder="Name"><label class="form-label">Age</label><input id="wAge" type="number" min="1" max="120" class="form-control mb-2" placeholder="Age (years)"><label class="form-label">Weight</label><input id="wWeight" type="number" min="1" step="0.1" class="form-control" placeholder="Weight (kg)"></div><div class="modal-footer"><button class="btn btn-primary" onclick="addWalker()">Save Profile</button></div></div></div></div>
+<div class="modal fade" id="walkerModal"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 id="walkerModalTitle">Add Walking Profile</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><label class="form-label">Name</label><input id="wName" class="form-control mb-2" placeholder="Name"><label class="form-label">Age</label><input id="wAge" type="number" min="1" max="120" class="form-control mb-2" placeholder="Age (years)"><label class="form-label">Weight</label><input id="wWeight" type="number" min="1" step="0.1" class="form-control" placeholder="Weight (kg)"></div><div class="modal-footer"><button class="btn btn-primary" id="walkerSaveBtn" onclick="addWalker()">Save Profile</button></div></div></div></div>
 <!-- User Modal -->
 <div class="modal fade" id="userModal"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5>Create Subscriber</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input id="uBusiness" class="form-control mb-2" placeholder="Business name"><input id="uName" class="form-control mb-2" placeholder="Username"><input id="uPass" class="form-control mb-2" placeholder="Temporary password"><select id="uPlan" class="form-select mb-2"><option>Starter</option><option>Professional</option><option>Enterprise</option></select><select id="uStatus" class="form-select"><option>Active</option><option>Pending</option></select></div><div class="modal-footer"><button class="btn btn-primary" onclick="addUser()">Create</button></div></div></div></div>
+
+<!-- Edit history modals -->
+<div class="modal fade" id="tripEditModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Edit Trip Record</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><label class="form-label">Date</label><input id="editTripDate" type="datetime-local" class="form-control mb-2"><label class="form-label">Vehicle</label><select id="editTripVehicle" class="form-select mb-2"></select><label class="form-label">Purpose</label><input id="editTripPurpose" class="form-control mb-2"><label class="form-label">Distance (KM)</label><input id="editTripKm" type="number" min="0" step="0.001" class="form-control mb-2"><label class="form-label">Fuel Purchased (₹)</label><input id="editTripFuelPurchased" type="number" min="0" step="0.01" class="form-control"><div class="form-text">Estimated fuel and cost are recalculated from the selected vehicle's mileage and rate.</div></div><div class="modal-footer"><button class="btn btn-primary" onclick="saveTripEdit()">Update Trip</button></div></div></div></div>
+<div class="modal fade" id="walkEditModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Edit Walk Record</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><label class="form-label">Date</label><input id="editWalkDate" type="datetime-local" class="form-control mb-2"><label class="form-label">Walking Profile</label><select id="editWalkWalker" class="form-select mb-2"></select><label class="form-label">Note</label><input id="editWalkNote" class="form-control mb-2"><label class="form-label">Distance (KM)</label><input id="editWalkKm" type="number" min="0" step="0.001" class="form-control mb-2"><label class="form-label">Duration (minutes)</label><input id="editWalkMinutes" type="number" min="0" step="0.1" class="form-control mb-2"><label class="form-label">Steps</label><input id="editWalkSteps" type="number" min="0" step="1" class="form-control mb-2"><label class="form-label">Calories</label><input id="editWalkCalories" type="number" min="0" step="1" class="form-control"></div><div class="modal-footer"><button class="btn btn-primary" onclick="saveWalkEdit()">Update Walk</button></div></div></div></div>
 
 <!-- Live Meter Modal: digital + analog speedometer shown on Start / Pause / Resume -->
 <div class="modal fade" id="manualKmModal" tabindex="-1" aria-hidden="true">
@@ -1066,7 +1082,7 @@ function showView(id){
  if(id==='trip'){initTripMap();setTimeout(()=>mapResize(tripMap,tripMapProvider),150);}
  if(id==='walking'){initWalkMap();setTimeout(()=>mapResize(walkMap,walkMapProvider),150);}
 }
-function renderAll(){renderDashboard();renderExpenses();renderVehicles();renderWalkers();renderSelects();renderTrips();renderWalkHistory();renderUsers();document.getElementById('defaultRate').value=state.settings.rate;const gk=document.getElementById('gmapsKey');if(gk)gk.value=state.settings.gmapsKey||'';const at=document.getElementById('autoTripToggle');if(at)at.checked=state.settings.autoTrip!==false}
+function renderAll(){renderDashboard();renderExpenses();renderVehicles();renderWalkers();renderSelects();renderTrips();renderWalkHistory();renderManualKm();renderUsers();document.getElementById('defaultRate').value=state.settings.rate;const gk=document.getElementById('gmapsKey');if(gk)gk.value=state.settings.gmapsKey||'';const at=document.getElementById('autoTripToggle');if(at)at.checked=state.settings.autoTrip!==false}
 const CATEGORY_META={
  Fuel:{icon:'bi-fuel-pump-fill',color:'#0d6efd'},
  Food:{icon:'bi-cup-hot-fill',color:'#fd7e14'},
@@ -1159,21 +1175,44 @@ function recoverWalk(){
 function discardWalkRecovery(){ localStorage.removeItem(ACTIVE_WALK_KEY); checkRecoverableSessions(); }
 function renderExpenses(){
  const q=(document.getElementById('expenseSearch')?.value||'').toLowerCase(),f=document.getElementById('expenseFilter')?.value||'';
- document.getElementById('expenseRows').innerHTML=state.expenses.filter(e=>(!q||(e.note||'').toLowerCase().includes(q)||e.cat.toLowerCase().includes(q))&&(!f||e.cat===f)).slice().reverse().map(e=>`<tr><td>${e.date}</td><td>${e.cat}</td><td>${vehicle(e.vehicleId)?.name||'-'}</td><td>${e.note||''}</td><td>${e.payment}</td><td class="text-end">${money(e.amount)}</td><td><button class="btn btn-sm btn-outline-danger" onclick="delExpense(${e.id})"><i class="bi bi-trash"></i></button></td></tr>`).join('')||'<tr><td colspan=7 class="text-center muted">No matching expenses</td></tr>';
+ document.getElementById('expenseRows').innerHTML=state.expenses.filter(e=>(!q||(e.note||'').toLowerCase().includes(q)||e.cat.toLowerCase().includes(q))&&(!f||e.cat===f)).slice().reverse().map(e=>`<tr><td>${e.date}</td><td>${e.cat}</td><td>${vehicle(e.vehicleId)?.name||'-'}</td><td>${e.note||''}</td><td>${e.payment}</td><td class="text-end">${money(e.amount)}</td><td><button class="btn btn-sm btn-outline-primary me-1" onclick="editExpense(${e.id})" title="Edit"><i class="bi bi-pencil-square"></i></button><button class="btn btn-sm btn-outline-danger" onclick="delExpense(${e.id})" title="Delete"><i class="bi bi-trash"></i></button></td></tr>`).join('')||'<tr><td colspan=7 class="text-center muted">No matching expenses</td></tr>';
 }
 document.getElementById('expenseSearch').oninput=renderExpenses;document.getElementById('expenseFilter').onchange=renderExpenses;
-function renderVehicles(){document.getElementById('vehicleRows').innerHTML=state.vehicles.map(v=>`<tr><td><b>${v.name}</b></td><td>${v.type}</td><td>${v.fuel}</td><td>${v.mileage}</td><td>${v.tankCapacity?v.tankCapacity+' L':'—'}</td><td>${money(v.rate)}</td><td><span class="badge ${v.active?'text-bg-success':'text-bg-secondary'}">${v.active?'Active':'Inactive'}</span></td><td><button class="btn btn-sm btn-outline-secondary me-1" onclick="setActiveVehicle(${v.id})">Set Active</button><button class="btn btn-sm btn-outline-danger" onclick="delVehicle(${v.id})">Delete</button></td></tr>`).join('')||'<tr><td colspan=8 class="text-center muted">No vehicles yet — add one to start tracking fuel cost and trips.</td></tr>'}
+function renderVehicles(){document.getElementById('vehicleRows').innerHTML=state.vehicles.map(v=>`<tr><td><b>${v.name}</b></td><td>${v.type}</td><td>${v.fuel}</td><td>${v.mileage}</td><td>${v.tankCapacity?v.tankCapacity+' L':'—'}</td><td>${money(v.rate)}</td><td><span class="badge ${v.active?'text-bg-success':'text-bg-secondary'}">${v.active?'Active':'Inactive'}</span></td><td><button class="btn btn-sm btn-outline-secondary me-1" onclick="setActiveVehicle(${v.id})">Set Active</button><button class="btn btn-sm btn-outline-primary me-1" onclick="editVehicle(${v.id})" title="Edit"><i class="bi bi-pencil-square"></i></button><button class="btn btn-sm btn-outline-danger" onclick="delVehicle(${v.id})" title="Delete">Delete</button></td></tr>`).join('')||'<tr><td colspan=8 class="text-center muted">No vehicles yet — add one to start tracking fuel cost and trips.</td></tr>'}
 function setActiveVehicle(id){state.vehicles.forEach(v=>v.active=(v.id===id));persist();renderAll()}
-function renderWalkers(){document.getElementById('walkerRows').innerHTML=(state.walkers||[]).map(w=>`<tr><td><b>${w.name}</b></td><td>${w.age}</td><td>${w.weight} kg</td><td><span class="badge ${w.active?'text-bg-success':'text-bg-secondary'}">${w.active?'Active':'Inactive'}</span></td><td><button class="btn btn-sm btn-outline-secondary me-1" onclick="setActiveWalker(${w.id})">Set Active</button><button class="btn btn-sm btn-outline-danger" onclick="delWalker(${w.id})">Delete</button></td></tr>`).join('')||'<tr><td colspan=5 class="text-center muted">No walking profile yet — add your name, age and weight to enable step/calorie tracking.</td></tr>'}
+function walkerStats(w){
+ const walks=(state.walks||[]).filter(x=>String(x.walkerId)===String(w.id));
+ return {
+   km:walks.reduce((a,x)=>a+Number(x.km||0),0),
+   steps:walks.reduce((a,x)=>a+Number(x.steps||0),0),
+   calories:walks.reduce((a,x)=>a+Number(x.calories||0),0),
+   sessions:walks.length
+ };
+}
+function renderWalkers(){
+ const rows=(state.walkers||[]).map(w=>{
+   const st=walkerStats(w), isActive=!!w.active, isWalking=isActive&&walkingDetected;
+   const status=isWalking?'<span class="badge text-bg-success"><i class="bi bi-person-walking me-1"></i>Walking Now</span>':`<span class="badge ${isActive?'text-bg-primary':'text-bg-secondary'}">${isActive?'Ready':'Inactive'}</span>`;
+   return `<tr><td><b>${w.name}</b></td><td>${w.age}</td><td>${w.weight} kg</td><td>${status}</td><td><span class="small muted">${st.km.toFixed(2)} km • ${Math.round(st.steps).toLocaleString('en-IN')} steps</span></td><td><button class="btn btn-sm btn-outline-secondary me-1" onclick="setActiveWalker(${w.id})">Set Active</button><button class="btn btn-sm btn-outline-primary me-1" onclick="editWalker(${w.id})" title="Edit"><i class="bi bi-pencil-square"></i></button><button class="btn btn-sm btn-outline-danger" onclick="delWalker(${w.id})" title="Delete">Delete</button></td></tr>`;
+ }).join('');
+ document.getElementById('walkerRows').innerHTML=rows||'<tr><td colspan=6 class="text-center muted">No walking profile yet — add your name, age and weight to enable step/calorie tracking.</td></tr>';
+}
 function renderSelects(){const opts=state.vehicles.map(v=>`<option value="${v.id}">${v.name} — ${v.type}</option>`).join('');document.getElementById('tripVehicle').innerHTML=opts;document.getElementById('eVehicle').innerHTML='<option value="">General</option>'+opts;const wopts=(state.walkers||[]).map(w=>`<option value="${w.id}">${w.name} — ${w.age}y, ${w.weight}kg</option>`).join('');document.getElementById('tripWalker').innerHTML=wopts||'<option value="">Add a walking profile first</option>';const active=activeWalker();if(active)document.getElementById('tripWalker').value=active.id}
 document.getElementById('tripWalker').onchange=function(){if(this.value)setActiveWalker(Number(this.value))};
-function addVehicle(){const v={id:Date.now(),name:document.getElementById('vName').value.trim(),type:document.getElementById('vType').value,fuel:document.getElementById('vFuel').value,mileage:Number(document.getElementById('vMileage').value),tankCapacity:Number(document.getElementById('vTank').value)||0,rate:Number(document.getElementById('vRate').value)||state.settings.rate,active:true,odometer:0};if(!v.name||!v.mileage)return alert('Enter vehicle name and mileage.');state.vehicles.forEach(x=>x.active=false);state.vehicles.push(v);persist();bootstrap.Modal.getInstance(document.getElementById('vehicleModal')).hide();document.getElementById('vName').value='';document.getElementById('vMileage').value='';document.getElementById('vTank').value='';document.getElementById('vRate').value='';renderAll()}
+let editingVehicleId=null, editingWalkerId=null, editingExpenseId=null;
+function resetVehicleForm(){editingVehicleId=null;document.getElementById('vehicleModalTitle').textContent='Add Vehicle';document.getElementById('vehicleSaveBtn').textContent='Save Vehicle';['vName','vMileage','vTank','vRate'].forEach(id=>document.getElementById(id).value='');}
+function editVehicle(id){const v=state.vehicles.find(x=>x.id===id);if(!v)return;editingVehicleId=id;document.getElementById('vehicleModalTitle').textContent='Edit Vehicle';document.getElementById('vehicleSaveBtn').textContent='Update Vehicle';document.getElementById('vName').value=v.name||'';document.getElementById('vType').value=v.type||'Other';document.getElementById('vFuel').value=v.fuel||'Petrol';document.getElementById('vMileage').value=v.mileage??'';document.getElementById('vTank').value=v.tankCapacity??'';document.getElementById('vRate').value=v.rate??'';bootstrap.Modal.getOrCreateInstance(document.getElementById('vehicleModal')).show();}
+function addVehicle(){const data={name:document.getElementById('vName').value.trim(),type:document.getElementById('vType').value,fuel:document.getElementById('vFuel').value,mileage:Number(document.getElementById('vMileage').value),tankCapacity:Number(document.getElementById('vTank').value)||0,rate:Number(document.getElementById('vRate').value)||state.settings.rate};if(!data.name||!data.mileage)return alert('Enter vehicle name and mileage.');if(editingVehicleId!==null){const v=state.vehicles.find(x=>x.id===editingVehicleId);if(v){Object.assign(v,data);}persist();bootstrap.Modal.getInstance(document.getElementById('vehicleModal')).hide();resetVehicleForm();renderAll();return;}const v={id:Date.now(),...data,active:true,odometer:0};state.vehicles.forEach(x=>x.active=false);state.vehicles.push(v);persist();bootstrap.Modal.getInstance(document.getElementById('vehicleModal')).hide();resetVehicleForm();renderAll()}
 function delVehicle(id){if(confirm('Delete vehicle?')){const wasActive=state.vehicles.find(v=>v.id===id)?.active;state.vehicles=state.vehicles.filter(v=>v.id!==id);if(wasActive&&state.vehicles.length)state.vehicles[0].active=true;persist();renderAll()}}
-function addWalker(){const w={id:Date.now(),name:document.getElementById('wName').value.trim(),age:Number(document.getElementById('wAge').value),weight:Number(document.getElementById('wWeight').value),active:true};if(!w.name||!w.age||!w.weight)return alert('Enter name, age and weight.');state.walkers=state.walkers||[];state.walkers.forEach(x=>x.active=false);state.walkers.push(w);persist();bootstrap.Modal.getInstance(document.getElementById('walkerModal')).hide();document.getElementById('wName').value='';document.getElementById('wAge').value='';document.getElementById('wWeight').value='';renderAll()}
+function resetWalkerForm(){editingWalkerId=null;document.getElementById('walkerModalTitle').textContent='Add Walking Profile';document.getElementById('walkerSaveBtn').textContent='Save Profile';['wName','wAge','wWeight'].forEach(id=>document.getElementById(id).value='');}
+function editWalker(id){const w=(state.walkers||[]).find(x=>x.id===id);if(!w)return;editingWalkerId=id;document.getElementById('walkerModalTitle').textContent='Edit Walking Profile';document.getElementById('walkerSaveBtn').textContent='Update Profile';document.getElementById('wName').value=w.name||'';document.getElementById('wAge').value=w.age??'';document.getElementById('wWeight').value=w.weight??'';bootstrap.Modal.getOrCreateInstance(document.getElementById('walkerModal')).show();}
+function addWalker(){const data={name:document.getElementById('wName').value.trim(),age:Number(document.getElementById('wAge').value),weight:Number(document.getElementById('wWeight').value)};if(!data.name||!data.age||!data.weight)return alert('Enter name, age and weight.');state.walkers=state.walkers||[];if(editingWalkerId!==null){const w=state.walkers.find(x=>x.id===editingWalkerId);if(w)Object.assign(w,data);persist();bootstrap.Modal.getInstance(document.getElementById('walkerModal')).hide();resetWalkerForm();renderAll();return;}state.walkers.forEach(x=>x.active=false);state.walkers.push({id:Date.now(),...data,active:true});persist();bootstrap.Modal.getInstance(document.getElementById('walkerModal')).hide();resetWalkerForm();renderAll()}
 function delWalker(id){if(confirm('Delete this walking profile?')){const wasActive=state.walkers.find(w=>w.id===id)?.active;state.walkers=state.walkers.filter(w=>w.id!==id);if(wasActive&&state.walkers.length)state.walkers[0].active=true;persist();renderAll()}}
 function setActiveWalker(id){state.walkers.forEach(w=>w.active=(w.id===id));persist();renderAll()}
 function activeWalker(){return (state.walkers||[]).find(w=>w.active)||(state.walkers||[])[0]}
-function addExpense(){const e={id:Date.now(),date:document.getElementById('eDate').value||new Date().toISOString().slice(0,10),cat:document.getElementById('eCat').value,vehicleId:document.getElementById('eVehicle').value,note:document.getElementById('eNote').value,payment:document.getElementById('ePayment').value,amount:Number(document.getElementById('eAmount').value)};if(!e.amount)return alert('Enter amount.');const ev=vehicle(e.vehicleId);if(String(e.cat).toLowerCase()==='fuel'&&ev){e.fuelRateAtEntry=Number(ev.rate)||Number(state.settings.rate)||0;e.liters=e.fuelRateAtEntry>0?Number((e.amount/e.fuelRateAtEntry).toFixed(3)):0;}state.expenses.push(e);persist();bootstrap.Modal.getInstance(document.getElementById('expenseModal')).hide();document.getElementById('eAmount').value='';document.getElementById('eNote').value='';document.getElementById('eDate').value=new Date().toISOString().slice(0,10);renderAll();if(meterModalOpen&&meterKind==='trip')updateTripMeter(trip.points.at(-1)?.speed||0,trip.points.at(-1)?.acc)}
+function resetExpenseForm(){editingExpenseId=null;document.getElementById('expenseModalTitle').textContent='Add Expense';document.getElementById('expenseSaveBtn').textContent='Save';document.getElementById('eAmount').value='';document.getElementById('eNote').value='';document.getElementById('eDate').value=new Date().toISOString().slice(0,10);document.getElementById('eCat').value='Fuel';document.getElementById('ePayment').value='Cash';}
+function editExpense(id){const e=state.expenses.find(x=>x.id===id);if(!e)return;editingExpenseId=id;renderSelects();document.getElementById('expenseModalTitle').textContent='Edit Expense';document.getElementById('expenseSaveBtn').textContent='Update Expense';document.getElementById('eDate').value=e.date||'';document.getElementById('eCat').value=e.cat||'Other';document.getElementById('eVehicle').value=e.vehicleId||'';document.getElementById('eAmount').value=e.amount??'';document.getElementById('ePayment').value=e.payment||'Cash';document.getElementById('eNote').value=e.note||'';bootstrap.Modal.getOrCreateInstance(document.getElementById('expenseModal')).show();}
+function addExpense(){const data={date:document.getElementById('eDate').value||new Date().toISOString().slice(0,10),cat:document.getElementById('eCat').value,vehicleId:document.getElementById('eVehicle').value,note:document.getElementById('eNote').value,payment:document.getElementById('ePayment').value,amount:Number(document.getElementById('eAmount').value)};if(!data.amount)return alert('Enter amount.');const ev=vehicle(data.vehicleId);if(String(data.cat).toLowerCase()==='fuel'&&ev){data.fuelRateAtEntry=Number(ev.rate)||Number(state.settings.rate)||0;data.liters=data.fuelRateAtEntry>0?Number((data.amount/data.fuelRateAtEntry).toFixed(3)):0;}if(editingExpenseId!==null){const e=state.expenses.find(x=>x.id===editingExpenseId);if(e){Object.assign(e,data);e.id=editingExpenseId;}persist();bootstrap.Modal.getInstance(document.getElementById('expenseModal')).hide();resetExpenseForm();renderAll();if(meterModalOpen&&meterKind==='trip')updateTripMeter(trip.points.at(-1)?.speed||0,trip.points.at(-1)?.acc);return;}state.expenses.push({id:Date.now(),...data});persist();bootstrap.Modal.getInstance(document.getElementById('expenseModal')).hide();resetExpenseForm();renderAll();if(meterModalOpen&&meterKind==='trip')updateTripMeter(trip.points.at(-1)?.speed||0,trip.points.at(-1)?.acc)}
 /* Quick "Add Expense" from inside the live meter — lets the person log fuel or any other spend
    (tolls, food, repairs, etc.) mid-trip without stopping tracking. Pre-fills today's date and the
    vehicle currently being tracked so it's a one-tap flow; saving falls straight back through the
@@ -1353,6 +1392,7 @@ const PAUSE_SPEED=0.5;        // km/h below this counts as "stationary"
 const PAUSE_AFTER_MS=45000;   // how long stationary before auto-pause
 const AUTO_START_SPEED=3;       // km/h sustained to auto-start a vehicle trip
 const WALK_AUTO_START_SPEED=1.2;// km/h sustained to auto-start a walk
+const WALK_MAX_AUTO_SPEED=8.5;   // above this, GPS movement is treated as vehicle/non-walking
 const AUTO_START_AFTER_MS=12000;// how long that movement must sustain before auto-starting
 const AUTO_STOP_IDLE_MS=20*60*1000; // auto-save & stop a trip/walk after this long continuously paused
 const AUTOSAVE_MS=15000;        // how often the in-progress trip/walk is snapshotted so nothing is lost
@@ -2122,7 +2162,7 @@ function updateTripMeter(speedKmh,accuracy){
  updateMeterGauge(speedKmh,meta.max,rpm,rpmMax);
  document.getElementById('meterDistance').textContent=trip.km.toFixed(2)+' km';document.getElementById('meterTrip').textContent=trip.km.toFixed(2)+' km';document.getElementById('meterOdo').textContent=estimatedOdometer(v,trip.km).toFixed(1)+' km';
  document.getElementById('meterTime').textContent=fmtTime(trip.movingMs);const avg=trip.movingMs>0?trip.km/(trip.movingMs/3600000):0;document.getElementById('meterAvg').textContent=avg.toFixed(1)+' km/h';document.getElementById('meterMax').textContent=(trip.maxSpeed||0).toFixed(1)+' km/h';
- const live=v?estimateLiveMileage(v,speedKmh):0,avgMileage=v?averageLiveMileage(v,trip.points,speedKmh):0,fuel=v?trip.km/Number(v.mileage):0,cost=v?fuel*Number(v.rate):0;document.getElementById('meterVal4').textContent=v?live.toFixed(1)+' km/L':'--';document.getElementById('meterMileage').textContent=v?live.toFixed(1)+' km/L':'--';document.getElementById('meterAvgMileage').textContent=v?avgMileage.toFixed(1)+' km/L':'--';document.getElementById('meterVal6').textContent=v?fuel.toFixed(2)+' L':'--';document.getElementById('meterFuel').textContent=v?fuel.toFixed(2)+' L':'--';document.getElementById('meterVal7').textContent=v?money(cost):'--';document.getElementById('meterCost').textContent=v?money(cost):'--';
+ const live=v?estimateLiveMileage(v,speedKmh):0,avgMileage=v?estimateLiveMileage(v,avg):0,fuel=v?trip.km/Number(v.mileage):0,cost=v?fuel*Number(v.rate):0;document.getElementById('meterVal4').textContent=v?live.toFixed(1)+' km/L':'--';document.getElementById('meterMileage').textContent=v?live.toFixed(1)+' km/L':'--';document.getElementById('meterAvgMileage').textContent=v?avgMileage.toFixed(1)+' km/L':'--';document.getElementById('meterVal6').textContent=v?fuel.toFixed(2)+' L':'--';document.getElementById('meterFuel').textContent=v?fuel.toFixed(2)+' L':'--';document.getElementById('meterVal7').textContent=v?money(cost):'--';document.getElementById('meterCost').textContent=v?money(cost):'--';
  const range=estimatedFuelRange(v,trip.km);document.getElementById('meterRange').textContent=v?(range.available?range.km.toFixed(0)+' km':'--'):'--';document.getElementById('meterEcoBar').style.width=Math.max(0,Math.min(100,(live/(Number(v?.mileage||1)*1.15))*100))+'%';document.getElementById('meterVal8').textContent=accuracy?'±'+Math.round(accuracy)+' m':'--';
  updateSportGear(speedKmh,v);setMeterStatus(trip.paused);
  if(meterModalOpen){const vv=v,cfg=VEHICLE_ICON_MAP[vv?.type]||VEHICLE_ICON_MAP.Other,last=trip.points.at(-1);if(last)meterMapUpdate(last,cfg);}
@@ -2354,25 +2394,23 @@ function autosaveActiveTrip(){
  }catch(e){}
 }
 
-function openManualKmModal(){
+let editingManualKmId=null;
+function openManualKmModal(editId=null){
+ editingManualKmId=editId;
  const sel=document.getElementById('manualKmVehicle');
- if(sel){sel.innerHTML=state.vehicles.map(v=>`<option value="${v.id}">${v.name} • ${v.type}</option>`).join('');const active=state.vehicles.find(v=>v.active);if(active)sel.value=active.id;}
- document.getElementById('manualKmValue').value='';
- document.getElementById('manualKmDate').value=new Date().toISOString().slice(0,10);
- document.getElementById('manualKmNote').value='';
+ if(sel){sel.innerHTML=state.vehicles.map(v=>`<option value="${v.id}">${v.name} • ${v.type}</option>`).join('');}
+ if(editId!==null){const e=(state.manualKmEntries||[]).find(x=>x.id===editId);if(!e)return;document.getElementById('manualKmModal').querySelector('.modal-title').innerHTML='<i class="bi bi-pencil-square me-2"></i>Edit Missed KM';document.getElementById('manualKmValue').value=e.km??'';document.getElementById('manualKmDate').value=e.date||new Date().toISOString().slice(0,10);document.getElementById('manualKmNote').value=e.note||'';if(sel)sel.value=e.vehicleId||'';}else{document.getElementById('manualKmModal').querySelector('.modal-title').innerHTML='<i class="bi bi-signpost-2 me-2"></i>Add Missed KM';document.getElementById('manualKmValue').value='';document.getElementById('manualKmDate').value=new Date().toISOString().slice(0,10);document.getElementById('manualKmNote').value='';const active=state.vehicles.find(v=>v.active);if(active&&sel)sel.value=active.id;}
  bootstrap.Modal.getOrCreateInstance(document.getElementById('manualKmModal')).show();
 }
 function saveManualKm(){
- const vehicleId=document.getElementById('manualKmVehicle').value;
- const km=Number(document.getElementById('manualKmValue').value)||0;
- if(!vehicleId||km<=0)return alert('Enter a valid travelled distance.');
- state.manualKmEntries=state.manualKmEntries||[];
- state.manualKmEntries.push({id:Date.now(),date:document.getElementById('manualKmDate').value||new Date().toISOString().slice(0,10),vehicleId,km:Number(km.toFixed(3)),note:document.getElementById('manualKmNote').value.trim()||'Manual missed trip distance'});
- persist();renderAll();
- bootstrap.Modal.getInstance(document.getElementById('manualKmModal'))?.hide();
- if(meterModalOpen&&meterKind==='trip')updateTripMeter(trip.points.at(-1)?.speed||0,trip.points.at(-1)?.acc);
- alert(`${km.toFixed(2)} km added successfully. ODO and estimated range have been recalculated.`);
+ const vehicleId=document.getElementById('manualKmVehicle').value,km=Number(document.getElementById('manualKmValue').value)||0;
+ if(!vehicleId||km<=0)return alert('Enter a valid travelled distance.');state.manualKmEntries=state.manualKmEntries||[];
+ const data={date:document.getElementById('manualKmDate').value||new Date().toISOString().slice(0,10),vehicleId,km:Number(km.toFixed(3)),note:document.getElementById('manualKmNote').value.trim()||'Manual missed trip distance'};
+ if(editingManualKmId!==null){const e=state.manualKmEntries.find(x=>x.id===editingManualKmId);if(e)Object.assign(e,data);persist();renderAll();bootstrap.Modal.getInstance(document.getElementById('manualKmModal'))?.hide();editingManualKmId=null;if(meterModalOpen&&meterKind==='trip')updateTripMeter(trip.points.at(-1)?.speed||0,trip.points.at(-1)?.acc);return;}
+ state.manualKmEntries.push({id:Date.now(),...data});persist();renderAll();bootstrap.Modal.getInstance(document.getElementById('manualKmModal'))?.hide();if(meterModalOpen&&meterKind==='trip')updateTripMeter(trip.points.at(-1)?.speed||0,trip.points.at(-1)?.acc);alert(`${km.toFixed(2)} km added successfully. ODO and estimated range have been recalculated.`);
 }
+function editManualKm(id){openManualKmModal(id)}
+function delManualKm(id){if(confirm('Delete this missed KM record?')){state.manualKmEntries=(state.manualKmEntries||[]).filter(x=>x.id!==id);persist();renderAll();}}
 document.getElementById('addFuelBtn').onclick=()=>{
  if(!trip.running) return;
  const liters=Number(document.getElementById('fuelLiters').value)||0;
@@ -2406,7 +2444,16 @@ function finishTrip(reason){
    else alert(`Trip saved.\nDistance: ${km.toFixed(2)} km\nEst. fuel cost: ${money(cost)} • Fuel purchased: ${money(fuelPurchased)}`);
  }
 }
-function renderTrips(){document.getElementById('tripRows').innerHTML=state.trips.slice().reverse().map(t=>`<tr><td>${t.date}${t.autoSaved?' <span class="badge text-bg-warning ms-1" title="Auto-saved after inactivity">auto</span>':t.recovered?' <span class="badge text-bg-info ms-1" title="Recovered after an unexpected close">recovered</span>':''}</td><td>${vehicle(t.vehicleId)?.name||'-'}</td><td>${t.purpose}</td><td>${(t.km||0).toFixed(2)} km</td><td>${(t.fuel||0).toFixed(2)} L</td><td>${money(t.cost)}</td><td>${money(t.fuelPurchased||0)}</td></tr>`).join('')||'<tr><td colspan=7 class="text-center muted">No trips saved</td></tr>'}
+function renderManualKm(){const rows=document.getElementById('manualKmRows');if(!rows)return;rows.innerHTML=(state.manualKmEntries||[]).slice().reverse().map(e=>`<tr><td>${e.date||'-'}</td><td>${vehicle(e.vehicleId)?.name||'-'}</td><td>${Number(e.km||0).toFixed(2)} km</td><td>${e.note||''}</td><td><button class="btn btn-sm btn-outline-primary me-1" onclick="editManualKm(${e.id})" title="Edit"><i class="bi bi-pencil-square"></i></button><button class="btn btn-sm btn-outline-danger" onclick="delManualKm(${e.id})" title="Delete"><i class="bi bi-trash"></i></button></td></tr>`).join('')||'<tr><td colspan=5 class="text-center muted">No missed KM records</td></tr>';}
+let editingTripId=null,editingWalkId=null;
+function toDateTimeLocal(value){let d=new Date(value);if(Number.isNaN(d.getTime())){const m=String(value||'').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:,?\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);if(m){d=new Date(Number(m[3]),Number(m[2])-1,Number(m[1]),Number(m[4]||0),Number(m[5]||0),Number(m[6]||0));}}if(Number.isNaN(d.getTime()))return '';const pad=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;}
+function editTrip(id){const t=state.trips.find(x=>x.id===id);if(!t)return;editingTripId=id;const sel=document.getElementById('editTripVehicle');sel.innerHTML=state.vehicles.map(v=>`<option value="${v.id}">${v.name} — ${v.type}</option>`).join('');sel.value=t.vehicleId||'';document.getElementById('editTripDate').value=toDateTimeLocal(t.date);document.getElementById('editTripPurpose').value=t.purpose||'';document.getElementById('editTripKm').value=t.km??0;document.getElementById('editTripFuelPurchased').value=t.fuelPurchased??0;bootstrap.Modal.getOrCreateInstance(document.getElementById('tripEditModal')).show();}
+function saveTripEdit(){const t=state.trips.find(x=>x.id===editingTripId);if(!t)return;const v=vehicle(document.getElementById('editTripVehicle').value),km=Math.max(0,Number(document.getElementById('editTripKm').value)||0);if(!v||km<0)return alert('Select a vehicle and enter valid distance.');const fuel=v.mileage>0?km/Number(v.mileage):0;t.vehicleId=v.id;t.purpose=document.getElementById('editTripPurpose').value.trim()||'Trip';const rawDate=document.getElementById('editTripDate').value;t.date=rawDate?new Date(rawDate).toLocaleString('en-IN'):t.date;t.km=Number(km.toFixed(3));t.fuel=Number(fuel.toFixed(3));t.cost=Number((fuel*Number(v.rate||0)).toFixed(2));t.fuelPurchased=Number((Number(document.getElementById('editTripFuelPurchased').value)||0).toFixed(2));persist();renderAll();bootstrap.Modal.getInstance(document.getElementById('tripEditModal'))?.hide();editingTripId=null;}
+function delTrip(id){if(confirm('Delete this trip record?')){state.trips=state.trips.filter(x=>x.id!==id);persist();renderAll();}}
+function editWalk(id){const w=(state.walks||[]).find(x=>x.id===id);if(!w)return;editingWalkId=id;const sel=document.getElementById('editWalkWalker');sel.innerHTML=(state.walkers||[]).map(x=>`<option value="${x.id}">${x.name} — ${x.age}y, ${x.weight}kg</option>`).join('');sel.value=w.walkerId||'';document.getElementById('editWalkDate').value=toDateTimeLocal(w.date);document.getElementById('editWalkNote').value=w.note||'';document.getElementById('editWalkKm').value=w.km??0;document.getElementById('editWalkMinutes').value=((w.movingMs||0)/60000).toFixed(1);document.getElementById('editWalkSteps').value=w.steps??0;document.getElementById('editWalkCalories').value=w.calories??0;bootstrap.Modal.getOrCreateInstance(document.getElementById('walkEditModal')).show();}
+function saveWalkEdit(){const w=(state.walks||[]).find(x=>x.id===editingWalkId);if(!w)return;const walker=(state.walkers||[]).find(x=>String(x.id)===String(document.getElementById('editWalkWalker').value));w.walkerId=walker?.id;w.walkerName=walker?.name||w.walkerName||'—';w.note=document.getElementById('editWalkNote').value.trim()||'Walk';const rawDate=document.getElementById('editWalkDate').value;if(rawDate)w.date=new Date(rawDate).toLocaleString('en-IN');w.km=Number((Math.max(0,Number(document.getElementById('editWalkKm').value)||0)).toFixed(3));w.movingMs=Math.round(Math.max(0,Number(document.getElementById('editWalkMinutes').value)||0)*60000);w.steps=Math.round(Math.max(0,Number(document.getElementById('editWalkSteps').value)||0));w.calories=Math.round(Math.max(0,Number(document.getElementById('editWalkCalories').value)||0));persist();renderAll();bootstrap.Modal.getInstance(document.getElementById('walkEditModal'))?.hide();editingWalkId=null;}
+function delWalk(id){if(confirm('Delete this walk record?')){state.walks=(state.walks||[]).filter(x=>x.id!==id);persist();renderAll();}}
+function renderTrips(){document.getElementById('tripRows').innerHTML=state.trips.slice().reverse().map(t=>`<tr><td>${t.date}${t.autoSaved?' <span class="badge text-bg-warning ms-1" title="Auto-saved after inactivity">auto</span>':t.recovered?' <span class="badge text-bg-info ms-1" title="Recovered after an unexpected close">recovered</span>':''}</td><td>${vehicle(t.vehicleId)?.name||'-'}</td><td>${t.purpose}</td><td>${(t.km||0).toFixed(2)} km</td><td>${(t.fuel||0).toFixed(2)} L</td><td>${money(t.cost)}</td><td>${money(t.fuelPurchased||0)}</td><td><button class="btn btn-sm btn-outline-primary me-1" onclick="editTrip(${t.id})" title="Edit"><i class="bi bi-pencil-square"></i></button><button class="btn btn-sm btn-outline-danger" onclick="delTrip(${t.id})" title="Delete"><i class="bi bi-trash"></i></button></td></tr>`).join('')||'<tr><td colspan=8 class="text-center muted">No trips saved</td></tr>'}
 /* ---------- Walking module: its own independent live tracker, map and history (kept fully separate from vehicle GPS Trip) ---------- */
 let walkMap=null, walkMapProvider=null, walkMarker=null, walkPolyline=null, walkWatchId=null, walkPath=[];
 let walk={running:false,paused:false,pausedManually:false,points:[],km:0,steps:0,calories:0,movingMs:0,maxSpeed:0,lastMoveAt:Date.now(),idleSince:null};
@@ -2439,6 +2486,7 @@ document.getElementById('stopWalk').onclick=()=>finishWalk('manual');
 document.getElementById('walkPauseBtn').onclick=()=>{ toggleWalkPause(); openLiveMeter('walk'); };
 
 let walkStandbyMovingSince=null, walkStandbyLastPoint=null, lastWalkAutosave=0;
+let walkingDetected=false, walkingDetectedSpeed=0, walkingDetectedAt=null;
 
 function startWalkInternal(auto){
  walk={running:true,paused:false,pausedManually:false,points:[],km:0,steps:0,calories:0,movingMs:0,maxSpeed:0,lastMoveAt:Date.now(),idleSince:null};
@@ -2474,6 +2522,25 @@ function syncWalkPauseButton(){
  setMeterStatus(walk.paused);
 }
 
+function setWalkingDetection(isWalking,speedKmh){
+ walkingDetected=!!isWalking;
+ walkingDetectedSpeed=Number(speedKmh)||0;
+ walkingDetectedAt=isWalking?Date.now():walkingDetectedAt;
+ const status=document.getElementById('walkGpsStatus');
+ if(status && !walk.running){
+   status.innerHTML=isWalking
+     ? `<span class="gps-dot on"></span> Walking detected • ${walkingDetectedSpeed.toFixed(1)} km/h`
+     : '<span class="gps-dot"></span> Not walking';
+ }
+ const w=activeWalker();
+ if(w){
+   w.lastWalkingDetected=!!isWalking;
+   w.lastWalkingSpeed=walkingDetectedSpeed;
+   w.lastWalkingAt=isWalking?Date.now():w.lastWalkingAt||null;
+ }
+ renderWalkers();
+}
+
 function beginWalkWatch(){
  if(walkWatchId!==null) return;
  walkWatchId=navigator.geolocation.watchPosition(walkGpsTick,
@@ -2489,6 +2556,7 @@ function walkGpsTick(pos){
  if(last){
    const d=hav(last,p); dt=(p.time-last.time)/1000;
    if(dt>0) speedKmh=(d*1000/dt)*3.6;
+   setWalkingDetection(speedKmh>=WALK_AUTO_START_SPEED && speedKmh<=WALK_MAX_AUTO_SPEED,speedKmh);
    if(d>0.002 && d<1){
      if(speedKmh<PAUSE_SPEED){
        if(!walk.paused && (Date.now()-walk.lastMoveAt)>PAUSE_AFTER_MS){
@@ -2526,13 +2594,17 @@ function walkGpsTick(pos){
 
 function handleWalkStandby(p){
  if(state.settings.autoTrip===false) return;
+ // Do not classify movement as walking while a vehicle trip is active.
+ if(trip.running){ setWalkingDetection(false,0); walkStandbyMovingSince=null; walkStandbyLastPoint=p; return; }
  let speedKmh=0;
  if(walkStandbyLastPoint){
    const d=hav(walkStandbyLastPoint,p), dt=(p.time-walkStandbyLastPoint.time)/1000;
    if(dt>0) speedKmh=(d*1000/dt)*3.6;
  }
  walkStandbyLastPoint=p;
- if(speedKmh>=WALK_AUTO_START_SPEED){
+ const walkingSpeed=speedKmh>=WALK_AUTO_START_SPEED && speedKmh<=WALK_MAX_AUTO_SPEED;
+ setWalkingDetection(walkingSpeed,speedKmh);
+ if(walkingSpeed){
    if(!walkStandbyMovingSince) walkStandbyMovingSince=Date.now();
    if(Date.now()-walkStandbyMovingSince>=AUTO_START_AFTER_MS){ startWalkInternal(true); }
  } else {
@@ -2556,7 +2628,7 @@ function finishWalk(reason){
  const w=activeWalker();
  const km=walk.km;
  if(km>0){ state.walks=state.walks||[]; state.walks.push({id:Date.now(),date:new Date().toLocaleString('en-IN'),walkerId:w?.id,walkerName:w?.name||'—',note:document.getElementById('walkPurpose').value||'Walk',km:Number(km.toFixed(3)),movingMs:walk.movingMs,steps:Math.round(walk.steps),calories:Math.round(walk.calories),points:walk.points,autoSaved:reason==='idle'}); }
- walk.running=false;document.getElementById('startWalk').disabled=false;document.getElementById('stopWalk').disabled=true;document.getElementById('walkPauseBtn').disabled=true;document.getElementById('walkGpsStatus').innerHTML='<span class="gps-dot"></span> GPS idle';
+ walk.running=false;setWalkingDetection(false,0);document.getElementById('startWalk').disabled=false;document.getElementById('stopWalk').disabled=true;document.getElementById('walkPauseBtn').disabled=true;document.getElementById('walkGpsStatus').innerHTML='<span class="gps-dot"></span> GPS idle';
  document.getElementById('walkPausedBanner').classList.add('d-none');
  localStorage.removeItem(ACTIVE_WALK_KEY);
  persist();renderWalkHistory();
@@ -2567,7 +2639,7 @@ function finishWalk(reason){
    else alert(`Walk saved.\nDistance: ${km.toFixed(2)} km\nSteps: ${Math.round(walk.steps)} • Calories: ${Math.round(walk.calories)} kcal`);
  }
 }
-function renderWalkHistory(){document.getElementById('walkRows').innerHTML=(state.walks||[]).slice().reverse().map(w=>`<tr><td>${w.date}${w.autoSaved?' <span class="badge text-bg-warning ms-1" title="Auto-saved after inactivity">auto</span>':w.recovered?' <span class="badge text-bg-info ms-1" title="Recovered after an unexpected close">recovered</span>':''}</td><td>${w.walkerName||'-'}</td><td>${w.note||''}</td><td>${(w.km||0).toFixed(2)} km</td><td>${fmtTime(w.movingMs||0)}</td><td>${w.steps||0}</td><td>${w.calories||0} kcal</td></tr>`).join('')||'<tr><td colspan=7 class="text-center muted">No walks saved</td></tr>'}
+function renderWalkHistory(){document.getElementById('walkRows').innerHTML=(state.walks||[]).slice().reverse().map(w=>`<tr><td>${w.date}${w.autoSaved?' <span class="badge text-bg-warning ms-1" title="Auto-saved after inactivity">auto</span>':w.recovered?' <span class="badge text-bg-info ms-1" title="Recovered after an unexpected close">recovered</span>':''}</td><td>${w.walkerName||'-'}</td><td>${w.note||''}</td><td>${(w.km||0).toFixed(2)} km</td><td>${fmtTime(w.movingMs||0)}</td><td>${w.steps||0}</td><td>${w.calories||0} kcal</td><td><button class="btn btn-sm btn-outline-primary me-1" onclick="editWalk(${w.id})" title="Edit"><i class="bi bi-pencil-square"></i></button><button class="btn btn-sm btn-outline-danger" onclick="delWalk(${w.id})" title="Delete"><i class="bi bi-trash"></i></button></td></tr>`).join('')||'<tr><td colspan=8 class="text-center muted">No walks saved</td></tr>'}
 function reportDateKey(value){
  const s=String(value||'').trim();
  if(!s) return '';
@@ -2670,21 +2742,41 @@ function requestLocationPermissionOnPageLoad(){
 }
 window.addEventListener('load',requestLocationPermissionOnPageLoad,{once:true});
 
-/* ---------- Adaptive night-mode illumination for the live vehicle meter ---------- */
-function syncMeterNightMode(){
+/* ---------- Automatic local-clock day/night meter illumination ---------- */
+let meterThemeTimer=null;
+function getAutomaticMeterTheme(){
+  const h=new Date().getHours();
+  // Day = 06:00–17:59; night = 18:00–05:59 using the device's local time.
+  return (h>=6 && h<18)?'day':'night';
+}
+function flashMeterLight(){
   const modal=document.getElementById('liveMeterModal');
-  if(!modal) return;
-  const isNight=window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  modal.classList.toggle('night-meter-mode',!!isNight);
-  modal.dataset.meterTheme=isNight?'night':'day';
+  if(!modal)return;
+  modal.classList.remove('meter-light-flash');
+  void modal.offsetWidth;
+  modal.classList.add('meter-light-flash');
+  setTimeout(()=>modal.classList.remove('meter-light-flash'),700);
+}
+function syncMeterNightMode(forceFlash=false){
+  const modal=document.getElementById('liveMeterModal');
+  if(!modal)return;
+  const theme=getAutomaticMeterTheme();
+  const previous=modal.dataset.meterTheme||'';
+  const isNight=theme==='night';
+  modal.classList.toggle('night-meter-mode',isNight);
+  modal.classList.toggle('day-meter-mode',!isNight);
+  modal.dataset.meterTheme=theme;
+  const ind=document.getElementById('meterNightIndicator');
+  if(ind){
+    ind.innerHTML=isNight?'<i class="bi bi-moon-stars-fill"></i> Night':'<i class="bi bi-sun-fill"></i> Day';
+    ind.style.display='inline-flex';
+  }
+  if(forceFlash || (previous && previous!==theme)) flashMeterLight();
 }
 (function(){
-  syncMeterNightMode();
-  if(window.matchMedia){
-    const mq=window.matchMedia('(prefers-color-scheme: dark)');
-    if(mq.addEventListener) mq.addEventListener('change',syncMeterNightMode);
-    else if(mq.addListener) mq.addListener(syncMeterNightMode);
-  }
+  syncMeterNightMode(false);
+  meterThemeTimer=setInterval(()=>syncMeterNightMode(false),30000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncMeterNightMode(false)});
 })();
 </script>
 </body>
