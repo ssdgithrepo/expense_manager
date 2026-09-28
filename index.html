@@ -560,6 +560,67 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
   .classic-dial-wrap.classic-dial-sub{width:min(38vw,125px)}
 }
 </style>
+
+<style id="hazard-layout-stability-fix">
+/* Hazard flash stability: keep the lamp footprint identical in ON/OFF states. */
+.classic-telltale.hazard-telltale{
+  width:42px !important;
+  height:42px !important;
+  min-width:42px !important;
+  min-height:42px !important;
+  max-width:42px !important;
+  max-height:42px !important;
+  box-sizing:border-box !important;
+  flex:0 0 42px !important;
+  position:relative;
+  overflow:hidden;
+  transform:none !important;
+}
+.classic-telltale.hazard-telltale:not(.hazard-on){
+  border:2px solid rgba(148,163,184,.28);
+  background:radial-gradient(circle at 35% 25%,rgba(255,255,255,.10),rgba(71,85,105,.10) 55%,rgba(15,23,42,.25));
+  box-shadow:inset 0 2px 5px rgba(255,255,255,.10),inset 0 -5px 9px rgba(0,0,0,.25);
+  opacity:.42;
+}
+.classic-telltale.hazard-telltale.hazard-on{
+  width:42px !important;
+  height:42px !important;
+  min-width:42px !important;
+  min-height:42px !important;
+  max-width:42px !important;
+  max-height:42px !important;
+  transform:none !important;
+  animation:hazardStableFlash .5s steps(2,end) infinite;
+}
+.meter-hazard-arrow{
+  box-sizing:border-box !important;
+  transform:none !important;
+}
+.meter-hazard-arrow.hazard-on{
+  transform:none !important;
+  animation:hazardArrowStableFlash .5s steps(2,end) infinite;
+}
+@keyframes hazardStableFlash{
+  0%,49%{opacity:1;filter:brightness(1.18) saturate(1.12) drop-shadow(0 0 7px #fff200) drop-shadow(0 0 18px rgba(255,170,0,.9));}
+  50%,100%{opacity:.28;filter:brightness(.72) saturate(.82);}
+}
+@keyframes hazardArrowStableFlash{
+  0%,49%{opacity:1;filter:brightness(1.18) saturate(1.12) drop-shadow(0 0 7px #fff200) drop-shadow(0 0 18px rgba(255,170,0,.9));}
+  50%,100%{opacity:.28;filter:brightness(.72) saturate(.82);}
+}
+@media (max-width:600px){
+  .classic-telltale.hazard-telltale,
+  .classic-telltale.hazard-telltale.hazard-on{
+    width:42px !important;height:42px !important;
+    min-width:42px !important;min-height:42px !important;
+    max-width:42px !important;max-height:42px !important;
+    flex:0 0 42px !important;
+  }
+}
+@media (prefers-reduced-motion:reduce){
+  .classic-telltale.hazard-telltale.hazard-on,.meter-hazard-arrow.hazard-on{animation:none !important;}
+}
+</style>
 </head>
 <body>
 <div id="loginScreen" class="login-wrap d-flex align-items-center justify-content-center p-3">
