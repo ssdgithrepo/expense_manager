@@ -62,6 +62,14 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
 #liveMeterModal.meter-fullscreen-host .modal-dialog{width:100vw;max-width:none;height:100vh;margin:0}
 #liveMeterModal.meter-fullscreen-host .meter-modal-content{height:100vh;border-radius:0;display:flex;flex-direction:column}
 #liveMeterModal.meter-fullscreen-host .modal-body{overflow:auto;flex:1}
+/* Full-view bottom controls can be collapsed so the complete meter/map content below it is visible. */
+#liveMeterModal .meter-bottom-collapse-btn{display:none}
+#liveMeterModal.meter-fullscreen-host .meter-bottom-collapse-btn{display:inline-flex;align-items:center;gap:.35rem}
+#liveMeterModal.meter-fullscreen-host.meter-bottom-collapsed .modal-footer{padding-top:.25rem!important;padding-bottom:.25rem!important}
+#liveMeterModal.meter-fullscreen-host.meter-bottom-collapsed .meter-bottom-content{display:none!important}
+#liveMeterModal.meter-fullscreen-host.meter-bottom-collapsed .meter-bottom-collapse-btn .collapse-label{display:none}
+#liveMeterModal.meter-fullscreen-host.meter-bottom-collapsed .meter-bottom-collapse-btn .expand-label{display:inline}
+#liveMeterModal .meter-bottom-collapse-btn .expand-label{display:none}
 .meter-fullscreen-btn{min-width:42px}
 .meter-background-status{font-size:.68rem;color:#94a3b8;display:inline-flex;align-items:center;gap:.3rem}
 .meter-range-source{font-size:.62rem;color:#94a3b8;margin-top:.15rem}
@@ -816,8 +824,13 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
     </div>
    </div>
    <div class="modal-footer border-0 justify-content-center gap-2 pt-0">
+    <button type="button" class="btn btn-sm btn-outline-light meter-bottom-collapse-btn" onclick="toggleMeterBottomControls()" title="Show or hide controls below the meter"><i class="bi bi-chevron-down"></i><span class="collapse-label">Minimize Bottom Controls</span><span class="expand-label">Show Bottom Controls</span></button>
+   <div class="meter-bottom-content w-100 d-flex flex-wrap justify-content-center align-items-center gap-2 mt-1">
     <button class="btn btn-outline-primary" onclick="openManualKmModal()"><i class="bi bi-signpost-2"></i> Add Missed KM</button><button class="btn btn-warning" id="meterPauseBtn" onclick="toggleMeterPause()"><i class="bi bi-pause-fill"></i> Pause</button>
-    <button class="btn btn-danger" id="meterStopBtn" onclick="stopFromMeter()"><i class="bi bi-stop-fill"></i> Stop &amp; Save</button><div class="w-100 small text-secondary text-center mt-1">RPM is a speed/GPS-based estimate; true engine RPM requires OBD/CAN data. Range is calculated automatically from recorded fuel expenses, vehicle mileage and tracked distance.</div><div class="w-100 meter-background-status justify-content-center mt-1"><i class="bi bi-broadcast-pin"></i> Background tracking: best-effort browser/OS support • screen wake lock active when supported</div>
+    <button class="btn btn-danger" id="meterStopBtn" onclick="stopFromMeter()"><i class="bi bi-stop-fill"></i> Stop &amp; Save</button>
+    <div class="w-100 small text-secondary text-center mt-1">RPM is a speed/GPS-based estimate; true engine RPM requires OBD/CAN data. Range is calculated automatically from recorded fuel expenses, vehicle mileage and tracked distance.</div>
+    <div class="w-100 meter-background-status justify-content-center mt-1"><i class="bi bi-broadcast-pin"></i> Background tracking: best-effort browser/OS support • screen wake lock active when supported</div>
+   </div>
    </div>
   </div>
  </div>
@@ -1982,6 +1995,18 @@ function openLiveMeter(kind){
  bootstrap.Modal.getOrCreateInstance(document.getElementById('liveMeterModal')).show();
 }
 
+function toggleMeterBottomControls(){
+ const modal=document.getElementById('liveMeterModal');
+ if(!modal) return;
+ const collapsed=modal.classList.toggle('meter-bottom-collapsed');
+ const btn=modal.querySelector('.meter-bottom-collapse-btn');
+ if(btn){
+   btn.setAttribute('aria-expanded',String(!collapsed));
+   const icon=btn.querySelector('i');
+   if(icon) icon.className=collapsed?'bi bi-chevron-up':'bi bi-chevron-down';
+ }
+}
+
 async function toggleMeterFullscreen(){
  const modal=document.getElementById('liveMeterModal');
  try{
@@ -1994,12 +2019,13 @@ document.addEventListener('fullscreenchange',()=>{
  const modal=document.getElementById('liveMeterModal'),btn=document.getElementById('meterFullscreenBtn');
  const full=!!document.fullscreenElement;
  modal.classList.toggle('meter-fullscreen-host',full);
+ if(!full) modal.classList.remove('meter-bottom-collapsed');
  if(btn)btn.innerHTML=full?'<i class="bi bi-fullscreen-exit"></i> <span class="btn-label">Exit Full Screen</span>':'<i class="bi bi-fullscreen"></i> <span class="btn-label">Full Screen</span>';
  if(full)setTimeout(()=>mapResize(meterMap,meterMapProvider),150);
 });
 document.getElementById('liveMeterModal').addEventListener('hidden.bs.modal',async()=>{
  if(document.fullscreenElement){try{await document.exitFullscreen()}catch(e){}}
- document.getElementById('liveMeterModal').classList.remove('meter-fullscreen-host');
+ document.getElementById('liveMeterModal').classList.remove('meter-fullscreen-host','meter-bottom-collapsed');
 });
 
 function updateTripMeter(speedKmh,accuracy){
