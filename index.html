@@ -707,7 +707,31 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
 
 <section id="trips" class="view"><div class="card p-4"><h5><i class="bi bi-clock-history me-2"></i>Trip History</h5><div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Date</th><th>Vehicle</th><th>Purpose</th><th>Distance</th><th>Est. Fuel</th><th>Est. Fuel Cost</th><th>Fuel Purchased</th></tr></thead><tbody id="tripRows"></tbody></table></div></div></section>
 
-<section id="reports" class="view"><div class="row g-3"><div class="col-md-6"><div class="card p-4"><h5><i class="bi bi-cash-stack me-2"></i>Expense Summary</h5><div id="reportExpense"></div></div></div><div class="col-md-6"><div class="card p-4"><h5><i class="bi bi-car-front-fill me-2"></i>Vehicle Running Summary</h5><div id="reportVehicle"></div></div></div></div></section>
+<section id="reports" class="view">
+<div class="row g-3">
+ <div class="col-md-6"><div class="card p-4 h-100"><h5><i class="bi bi-cash-stack me-2"></i>Expense Summary</h5><div id="reportExpense"></div></div></div>
+ <div class="col-md-6"><div class="card p-4 h-100"><h5><i class="bi bi-car-front-fill me-2"></i>Vehicle Running Summary</h5><div id="reportVehicle"></div></div></div>
+</div>
+<div class="card p-3 p-md-4 mt-3">
+ <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
+  <div><h5 class="mb-1"><i class="bi bi-calendar3 me-2"></i>Daily / Date-wise Vehicle Expense &amp; Distance</h5><div class="small muted">Every saved expense and travelled distance is grouped by date. GPS trips and manually added missed KM are both included.</div></div>
+  <button type="button" class="btn btn-sm btn-outline-secondary" onclick="renderReports()"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+ </div>
+ <div class="row g-2 mt-2">
+  <div class="col-sm-6 col-lg-4"><label class="form-label small mb-1">Vehicle</label><select id="reportVehicleFilter" class="form-select form-select-sm" onchange="renderDailyVehicleReport()"><option value="all">All Vehicles</option></select></div>
+  <div class="col-sm-6 col-lg-4"><label class="form-label small mb-1">Date</label><input id="reportDateFilter" type="date" class="form-control form-control-sm" onchange="renderDailyVehicleReport()"></div>
+  <div class="col-sm-12 col-lg-4 d-flex align-items-end"><button type="button" class="btn btn-sm btn-outline-primary w-100" onclick="clearDailyVehicleReportFilters()"><i class="bi bi-x-circle me-1"></i>Show All Dates</button></div>
+ </div>
+ <div id="dailyVehicleReportCards" class="row g-2 mt-2"></div>
+ <div class="table-responsive mt-3">
+  <table class="table table-sm table-hover align-middle mb-0" id="dailyVehicleReportTable">
+   <thead><tr><th>Date</th><th>Vehicle</th><th class="text-end">Expenses</th><th class="text-end">GPS Distance</th><th class="text-end">Missed KM</th><th class="text-end">Total Distance</th><th class="text-end">Trips</th></tr></thead>
+   <tbody id="dailyVehicleReportRows"></tbody>
+   <tfoot id="dailyVehicleReportFoot"></tfoot>
+  </table>
+ </div>
+</div>
+</section>
 
 <section id="settings" class="view"><div class="card p-4"><h5><i class="bi bi-gear-fill me-2"></i>Settings</h5><div class="row g-3 mt-1"><div class="col-md-6"><label class="form-label">Default petrol rate (₹/L)</label><input id="defaultRate" type="number" class="form-control"></div><div class="col-md-6"><label class="form-label">Currency</label><input class="form-control" value="INR (₹)" disabled></div>
 <div class="col-12"><label class="form-label">Google Maps API Key</label><input id="gmapsKey" class="form-control" placeholder="Paste your Google Maps JavaScript API key">
@@ -2526,7 +2550,48 @@ function finishWalk(reason){
  }
 }
 function renderWalkHistory(){document.getElementById('walkRows').innerHTML=(state.walks||[]).slice().reverse().map(w=>`<tr><td>${w.date}${w.autoSaved?' <span class="badge text-bg-warning ms-1" title="Auto-saved after inactivity">auto</span>':w.recovered?' <span class="badge text-bg-info ms-1" title="Recovered after an unexpected close">recovered</span>':''}</td><td>${w.walkerName||'-'}</td><td>${w.note||''}</td><td>${(w.km||0).toFixed(2)} km</td><td>${fmtTime(w.movingMs||0)}</td><td>${w.steps||0}</td><td>${w.calories||0} kcal</td></tr>`).join('')||'<tr><td colspan=7 class="text-center muted">No walks saved</td></tr>'}
-function renderReports(){const cats={};state.expenses.forEach(e=>cats[e.cat]=(cats[e.cat]||0)+Number(e.amount));document.getElementById('reportExpense').innerHTML=Object.entries(cats).map(([k,v])=>`<div class="d-flex justify-content-between border-bottom py-2"><span>${k}</span><b>${money(v)}</b></div>`).join('')||'No data';const vs={};state.trips.forEach(t=>{const n=vehicle(t.vehicleId)?.name||'Unknown';vs[n]=(vs[n]||0)+t.km});document.getElementById('reportVehicle').innerHTML=Object.entries(vs).map(([k,v])=>`<div class="d-flex justify-content-between border-bottom py-2"><span>${k}</span><b>${v.toFixed(1)} km</b></div>`).join('')||'No data'}
+function reportDateKey(value){
+ const s=String(value||'').trim();
+ if(!s) return '';
+ if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+ const m=s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/);
+ if(m) return `${m[3]}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`;
+ const d=new Date(s); return isNaN(d.getTime())?'':`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function reportDateLabel(key){
+ if(!key) return 'Unknown date';
+ const d=new Date(key+'T00:00:00');
+ return isNaN(d.getTime())?key:d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric',weekday:'short'});
+}
+function reportVehicleName(id){return vehicle(id)?.name||'General / Unknown'}
+function renderReports(){
+ const cats={};state.expenses.forEach(e=>cats[e.cat]=(cats[e.cat]||0)+Number(e.amount||0));
+ document.getElementById('reportExpense').innerHTML=Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="d-flex justify-content-between border-bottom py-2"><span>${k}</span><b>${money(v)}</b></div>`).join('')||'No data';
+ const vs={};state.trips.forEach(t=>{const n=reportVehicleName(t.vehicleId);vs[n]=(vs[n]||0)+Number(t.km||0)});
+ const manualByVehicle={};(state.manualKmEntries||[]).forEach(e=>{const n=reportVehicleName(e.vehicleId);manualByVehicle[n]=(manualByVehicle[n]||0)+Number(e.km||0)});
+ Object.entries(manualByVehicle).forEach(([n,v])=>vs[n]=(vs[n]||0)+v);
+ document.getElementById('reportVehicle').innerHTML=Object.entries(vs).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="d-flex justify-content-between border-bottom py-2"><span>${k}</span><b>${v.toFixed(1)} km</b></div>`).join('')||'No data';
+ const filter=document.getElementById('reportVehicleFilter');
+ if(filter){const current=filter.value||'all';filter.innerHTML='<option value="all">All Vehicles</option>'+state.vehicles.map(v=>`<option value="${v.id}">${v.name} — ${v.type}</option>`).join('');if([...filter.options].some(o=>o.value===current))filter.value=current;else filter.value='all';}
+ renderDailyVehicleReport();
+}
+function renderDailyVehicleReport(){
+ const filterEl=document.getElementById('reportVehicleFilter'),dateEl=document.getElementById('reportDateFilter');
+ if(!filterEl||!dateEl)return;
+ const vehicleFilter=filterEl.value||'all',dateFilter=dateEl.value||'';
+ const byDay={};
+ const ensure=(date,vehicleId)=>{const key=(date||'')+'|'+String(vehicleId||'');if(!byDay[key])byDay[key]={date:date||'',vehicleId:vehicleId||'',expense:0,gpsKm:0,manualKm:0,trips:0};return byDay[key]};
+ state.expenses.forEach(e=>{const vid=e.vehicleId||'';if(vehicleFilter!=='all'&&String(vid)!==String(vehicleFilter))return;const date=reportDateKey(e.date);if(dateFilter&&date!==dateFilter)return;ensure(date,vid).expense+=Number(e.amount||0)});
+ state.trips.forEach(t=>{const vid=t.vehicleId||'';if(vehicleFilter!=='all'&&String(vid)!==String(vehicleFilter))return;const date=reportDateKey(t.date);if(dateFilter&&date!==dateFilter)return;const row=ensure(date,vid);row.gpsKm+=Number(t.km||0);row.trips++});
+ (state.manualKmEntries||[]).forEach(e=>{const vid=e.vehicleId||'';if(vehicleFilter!=='all'&&String(vid)!==String(vehicleFilter))return;const date=reportDateKey(e.date);if(dateFilter&&date!==dateFilter)return;ensure(date,vid).manualKm+=Number(e.km||0)});
+ const rows=Object.values(byDay).filter(r=>r.expense||r.gpsKm||r.manualKm||r.trips).sort((a,b)=>b.date.localeCompare(a.date)||reportVehicleName(a.vehicleId).localeCompare(reportVehicleName(b.vehicleId)));
+ const tbody=document.getElementById('dailyVehicleReportRows'),tfoot=document.getElementById('dailyVehicleReportFoot'),cards=document.getElementById('dailyVehicleReportCards');
+ const totalExpense=rows.reduce((s,r)=>s+r.expense,0),totalGps=rows.reduce((s,r)=>s+r.gpsKm,0),totalManual=rows.reduce((s,r)=>s+r.manualKm,0),totalKm=totalGps+totalManual,totalTrips=rows.reduce((s,r)=>s+r.trips,0);
+ cards.innerHTML=`<div class="col-6 col-md-3"><div class="border rounded p-2 h-100"><div class="small muted">Total Expense</div><b>${money(totalExpense)}</b></div></div><div class="col-6 col-md-3"><div class="border rounded p-2 h-100"><div class="small muted">GPS Distance</div><b>${totalGps.toFixed(2)} km</b></div></div><div class="col-6 col-md-3"><div class="border rounded p-2 h-100"><div class="small muted">Missed KM</div><b>${totalManual.toFixed(2)} km</b></div></div><div class="col-6 col-md-3"><div class="border rounded p-2 h-100"><div class="small muted">Total Distance</div><b>${totalKm.toFixed(2)} km</b></div></div>`;
+ tbody.innerHTML=rows.map(r=>`<tr><td><b>${reportDateLabel(r.date)}</b><div class="small muted">${r.date||'Date not available'}</div></td><td>${reportVehicleName(r.vehicleId)}</td><td class="text-end">${money(r.expense)}</td><td class="text-end">${r.gpsKm.toFixed(2)} km</td><td class="text-end">${r.manualKm.toFixed(2)} km</td><td class="text-end"><b>${(r.gpsKm+r.manualKm).toFixed(2)} km</b></td><td class="text-end">${r.trips}</td></tr>`).join('')||'<tr><td colspan="7" class="text-center muted py-4">No vehicle expense or distance data for the selected date/filter.</td></tr>';
+ tfoot.innerHTML=rows.length?`<tr class="table-light"><th colspan="2">Total</th><th class="text-end">${money(totalExpense)}</th><th class="text-end">${totalGps.toFixed(2)} km</th><th class="text-end">${totalManual.toFixed(2)} km</th><th class="text-end">${totalKm.toFixed(2)} km</th><th class="text-end">${totalTrips}</th></tr>`:'';
+}
+function clearDailyVehicleReportFilters(){const d=document.getElementById('reportDateFilter');if(d)d.value='';const v=document.getElementById('reportVehicleFilter');if(v)v.value='all';renderDailyVehicleReport()}
 function testMapsKey(){
  const key=(document.getElementById('gmapsKey').value||'').trim();
  const out=document.getElementById('gmapsKeyTestResult');
