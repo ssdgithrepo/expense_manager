@@ -781,7 +781,7 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
 
 <section id="trip" class="view">
 <div class="row g-3"><div class="col-lg-7"><div class="card p-4">
-<div class="d-flex justify-content-between align-items-center flex-wrap gap-2"><h5 class="mb-0">Live Trip</h5><div class="d-flex align-items-center gap-2"><span id="gpsStatus" class="d-none"><span class="gps-dot"></span> GPS idle</span><button id="permissionBtn" type="button" class="btn btn-sm btn-outline-primary gps-toggle-btn" aria-pressed="false"><i class="bi bi-geo-alt-fill me-1"></i><span>Enable GPS</span></button></div></div>
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2"><h5 class="mb-0">Live Trip</h5><div class="d-flex align-items-center gap-2"><span id="gpsStatus" class="d-none"><span class="gps-dot"></span> GPS idle</span><span id="gpsInfo" class="d-none" aria-hidden="true"></span><button id="permissionBtn" type="button" class="btn btn-sm btn-outline-primary gps-toggle-btn" aria-pressed="false"><i class="bi bi-geo-alt-fill me-1"></i><span>Enable GPS</span></button></div></div>
 <div class="row g-2 mt-2">
  <div class="col-md-6"><label class="form-label">Vehicle</label><select id="tripVehicle" class="form-select"></select></div>
  <div class="col-md-6"><label class="form-label">Purpose</label><input id="tripPurpose" class="form-control" placeholder="Delivery / personal / field work"></div>
@@ -2468,7 +2468,7 @@ function startTripInternal(auto){
  document.getElementById('startTrip').disabled=true;document.getElementById('stopTrip').disabled=false;document.getElementById('tripPauseBtn').disabled=false;
  syncTripPauseButton();
  document.getElementById('gpsStatus').innerHTML='<span class="gps-dot on"></span> GPS tracking';
- document.getElementById('gpsInfo').textContent=auto?'Movement detected — trip started automatically.':'Tracking location…';
+ const gpsInfo=document.getElementById('gpsInfo'); if(gpsInfo) gpsInfo.textContent=auto?'Movement detected — trip started automatically.':'Tracking location…';
  document.getElementById('pausedBanner').classList.add('d-none');
  document.getElementById('fuelAddBox').classList.remove('d-none');
  initTripMap(); renderFuelLog();
@@ -2556,7 +2556,7 @@ function tripGpsTick(pos){
  document.getElementById('tripSpeed').textContent=speedKmh.toFixed(1);
  document.getElementById('tripFuel').textContent=fuel.toFixed(2);
  document.getElementById('tripCost').textContent=money(cost);
- document.getElementById('gpsInfo').textContent=`Lat ${p.lat.toFixed(5)} • Lon ${p.lon.toFixed(5)} • ±${Math.round(p.acc)}m`;
+ const gpsInfo=document.getElementById('gpsInfo'); if(gpsInfo) gpsInfo.textContent=`Lat ${p.lat.toFixed(5)} • Lon ${p.lon.toFixed(5)} • ±${Math.round(p.acc)}m`;
  updateTripMeter(speedKmh,p.acc);
  // After prolonged automatic inactivity, save and finish the trip automatically.
  if(trip.paused && trip.idleSince && (p.time-trip.idleSince)>AUTO_STOP_IDLE_MS){ finishTrip('idle'); return; }
