@@ -1111,7 +1111,26 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
  </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script id="bootstrapRuntimeLoader">
+/* Bootstrap JS is non-critical for first paint/login. Load it asynchronously so a slow CDN
+   cannot block the application's own startup code. */
+(function(){
+  const src='https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js';
+  let loading=null;
+  function load(){
+    if(window.bootstrap) return Promise.resolve(window.bootstrap);
+    if(loading) return loading;
+    loading=new Promise((resolve,reject)=>{
+      const s=document.createElement('script'); s.src=src; s.async=true; s.onload=()=>resolve(window.bootstrap);
+      s.onerror=()=>reject(new Error('Bootstrap JS failed to load')); document.head.appendChild(s);
+    });
+    return loading;
+  }
+  window.ensureBootstrap=load;
+  // Begin immediately but asynchronously: the download can proceed while the app's own JS starts.
+  load().catch(()=>{});
+})();
+</script>
 <script>
 const KEY='srd_driveledger_demo_v1';
 const DEMO_DEFAULTS={
@@ -1143,13 +1162,19 @@ function loadDemoState(){
    return JSON.parse(JSON.stringify(DEMO_DEFAULTS));
  }
 }
-let state=loadDemoState();
-state.vehicles=(state.vehicles||[]).map(v=>Object.assign({odometer:0,tankCapacity:5},v));
-state.manualKmEntries=state.manualKmEntries||[];
-state.vehicles=(state.vehicles||[]).map(v=>Object.assign({odometer:0,tankCapacity:5},v));
+// Do not parse the potentially large saved history before the login screen is usable.
+// State is loaded immediately after successful authentication instead.
+let state=null;
+function ensureStateLoaded(){
+ if(state) return state;
+ state=loadDemoState();
+ state.vehicles=(state.vehicles||[]).map(v=>Object.assign({odometer:0,tankCapacity:5},v));
+ state.manualKmEntries=state.manualKmEntries||[];
+ return state;
+}
 let currentUser=null, watchId=null, trip={running:false,paused:false,points:[],km:0,tripB:0,movingMs:0,lastMoveAt:Date.now(),fuelLog:[]};
 
-function persist(){localStorage.setItem(KEY,JSON.stringify(state))}
+function persist(){ensureStateLoaded();localStorage.setItem(KEY,JSON.stringify(state))}
 function money(n){return '₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2})}
 function vehicle(id){return state.vehicles.find(v=>String(v.id)===String(id))}
 function hav(a,b){const R=6371, p=Math.PI/180, dLat=(b.lat-a.lat)*p,dLon=(b.lon-a.lon)*p;const x=Math.sin(dLat/2)**2+Math.cos(a.lat*p)*Math.cos(b.lat*p)*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))}
@@ -1160,6 +1185,7 @@ function hav(a,b){const R=6371, p=Math.PI/180, dLat=(b.lat-a.lat)*p,dLon=(b.lon-
    confirm, satisfying "ask permission on refresh" without ever skipping consent. */
 const REMEMBER_KEY='srd_remembered_user';
 function applyLoginSuccess(u){
+ ensureStateLoaded();
  currentUser=u;
  const loginScreen=document.getElementById('loginScreen');
  const app=document.getElementById('app');
@@ -1169,7 +1195,7 @@ function applyLoginSuccess(u){
  if(navAdmin) navAdmin.classList.toggle('d-none',u!=='admin');
  const welcome=document.getElementById('welcome');
  if(welcome) welcome.textContent=u==='admin'?'Master Administrator':'Welcome, Demo Subscriber';
- try{ renderAll(); checkRecoverableSessions(); }catch(e){ console.error(e); alert('Login successful, but the dashboard could not finish loading. Please refresh once.'); }
+ try{ renderStartupFast(); checkRecoverableSessions(); }catch(e){ console.error(e); alert('Login successful, but the dashboard could not finish loading. Please refresh once.'); }
 }
 function login(){
  const u=(document.getElementById('loginUser').value||'').trim().toLowerCase();
@@ -1264,6 +1290,29 @@ function showView(id){
  if(id==='walking'){initWalkMap();setTimeout(()=>mapResize(walkMap,walkMapProvider),150);}
 }
 function renderAll(){renderDashboard();renderExpenses();renderVehicles();renderWalkers();renderSelects();renderTrips();renderWalkHistory();renderManualKm();renderUsers();document.getElementById('defaultRate').value=state.settings.rate;const gk=document.getElementById('gmapsKey');if(gk)gk.value=state.settings.gmapsKey||'';const at=document.getElementById('autoTripToggle');if(at)at.checked=state.settings.autoTrip!==false}
+function renderStartupFast(){
+  // Critical path: only paint the dashboard and required selectors immediately.
+  renderDashboard();
+  renderSelects();
+  const r=document.getElementById('defaultRate');if(r)r.value=state.settings.rate;
+  const g=document.getElementById('gmapsKey');if(g)g.value=state.settings.gmapsKey||'';
+  const a=document.getElementById('autoTripToggle');if(a)a.checked=state.settings.autoTrip!==false;
+  const jobs=[renderExpenses,renderVehicles,renderWalkers,renderTrips,renderWalkHistory,renderManualKm,renderUsers];
+  let i=0;
+  const pump=(deadline)=>{
+    const end=deadline&&typeof deadline.timeRemaining==='function'?deadline.timeRemaining():5;
+    const started=performance.now();
+    while(i<jobs.length && (performance.now()-started<Math.max(3,end))){
+      try{jobs[i++]();}catch(e){console.warn('Deferred rendering:',e);i++;}
+    }
+    if(i<jobs.length){
+      if('requestIdleCallback' in window) requestIdleCallback(pump,{timeout:1200});
+      else setTimeout(()=>pump(),32);
+    }
+  };
+  if('requestIdleCallback' in window) requestIdleCallback(pump,{timeout:1200});
+  else setTimeout(()=>pump(),32);
+}
 const CATEGORY_META={
  Fuel:{icon:'bi-fuel-pump-fill',color:'#0d6efd'},
  Food:{icon:'bi-cup-hot-fill',color:'#fd7e14'},
@@ -3133,18 +3182,8 @@ function addUser(){const u={business:document.getElementById('uBusiness').value,
 function toggleUser(i){state.users[i].status=state.users[i].status==='Active'?'Pending':'Active';persist();renderUsers()}
 document.getElementById('eDate').value=new Date().toISOString().slice(0,10);
 
-/* ---------- Request location permission on every page load/reload ---------- */
-function requestLocationPermissionOnPageLoad(){
-  if(!navigator.geolocation) return;
-  // Wait briefly for the application/login state and controls to initialize.
-  // This does not start a trip; it only asks the browser for permission.
-  setTimeout(function(){
-    try{
-      if(typeof requestGPSPermission==='function') requestGPSPermission();
-    }catch(e){ console.warn('Location permission request on reload failed:',e); }
-  },600);
-}
-window.addEventListener('load',requestLocationPermissionOnPageLoad,{once:true});
+/* ---------- GPS permission is user-initiated only ---------- */
+function requestLocationPermissionOnPageLoad(){ return false; }
 
 /* ---------- Automatic local-clock day/night meter illumination ---------- */
 let meterThemeTimer=null;
@@ -3762,6 +3801,62 @@ setClassicOnlyMeter();
 }
 </style>
 
+
+<style id="final-classic-speed-vehicle-polish">
+/* Final Classic meter placement polish: speed remains the visual anchor */
+#classicMeterShell .classic-dial-col.classic-speedo-col{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:flex-start!important;min-width:0!important;}
+#classicMeterShell .classic-speedo-col .classic-dial-wrap{position:relative!important;margin-inline:auto!important;}
+#classicMeterShell .classic-speedo-col .classic-digital-overlay{position:absolute!important;inset:0!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;transform:translateY(7%)!important;pointer-events:none!important;}
+#classicMeterShell .classic-speedo-col .classic-digital-value#classicSpeedDigital{font-size:clamp(2.65rem,7vw,4.6rem)!important;line-height:.9!important;font-weight:950!important;letter-spacing:-.055em!important;white-space:nowrap!important;}
+#classicMeterShell .classic-speedo-col .classic-digital-unit#classicSpeedUnit{font-size:clamp(.68rem,1.5vw,1rem)!important;line-height:1!important;font-weight:900!important;letter-spacing:.16em!important;margin-top:.5rem!important;white-space:nowrap!important;}
+#classicMeterShell .classic-speedo-col .classic-dial-wrap.classic-dial-main{overflow:visible!important;}
+/* Aesthetic vehicle tile in Instrument Info */
+#classicMeterShell .classic-vehicle-info-wrap{display:flex!important;align-items:center!important;gap:.7rem!important;min-width:0!important;}
+#classicMeterShell .classic-vehicle-icon-tile{width:52px!important;height:40px!important;display:flex!important;align-items:center!important;justify-content:center!important;border-radius:12px!important;background:linear-gradient(145deg,rgba(255,255,255,.11),rgba(255,255,255,.025))!important;border:1px solid rgba(255,255,255,.12)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 5px 16px rgba(0,0,0,.28)!important;flex:0 0 auto!important;}
+#classicMeterShell .classic-vehicle-icon-tile i{font-size:1.55rem!important;line-height:1!important;filter:drop-shadow(0 2px 5px rgba(0,0,0,.45))!important;}
+#classicMeterShell .classic-vehicle-road-icon{font-size:2.6rem!important;filter:drop-shadow(0 3px 7px rgba(0,0,0,.45))!important;}
+@media(max-width:575.98px){
+ #classicMeterShell .classic-speedo-col .classic-digital-value#classicSpeedDigital{font-size:clamp(2.45rem,14vw,3.7rem)!important;}
+ #classicMeterShell .classic-speedo-col .classic-digital-unit#classicSpeedUnit{font-size:.66rem!important;margin-top:.35rem!important;}
+ #classicMeterShell .classic-vehicle-icon-tile{width:46px!important;height:36px!important;}
+ #classicMeterShell .classic-vehicle-icon-tile i{font-size:1.35rem!important;}
+}
+</style>
+<script>
+(function(){
+ const iconMap={
+  'Two Wheeler':'bi-scooter',
+  'Three Wheeler':'bi-truck-front-fill',
+  'Car':'bi-car-front-fill',
+  'Pickup':'bi-truck-front-fill',
+  'Truck':'bi-truck-front-fill',
+  'Bus':'bi-bus-front-fill',
+  'Other':'bi-car-front'
+ };
+ function vehicleIconClass(type){return iconMap[type]||'bi-car-front-fill';}
+ function syncClassicVehicleIcon(){
+  const sel=document.getElementById('tripVehicle');
+  const type=(typeof vehicle==='function' && sel && sel.value)?(vehicle(sel.value)?.type||'Other'):'Other';
+  const cls='bi '+vehicleIconClass(type);
+  ['classicVehicleInfoIcon','classicVehicleRoadIcon'].forEach(id=>{
+   const el=document.getElementById(id); if(!el)return;
+   el.className=cls+' classic-vehicle-icon';
+   el.setAttribute('aria-label',type);
+  });
+  const name=document.getElementById('classicVehicleInfoName');
+  if(name) name.textContent=type;
+ }
+ window.syncClassicVehicleIcon=syncClassicVehicleIcon;
+ const sel=document.getElementById('tripVehicle');
+ if(sel) sel.addEventListener('change',syncClassicVehicleIcon);
+ if(typeof window.MutationObserver==='function'){
+  const obs=new MutationObserver(syncClassicVehicleIcon);
+  const info=document.getElementById('classicMeterShell'); if(info)obs.observe(info,{childList:true,subtree:true});
+ }
+ setTimeout(syncClassicVehicleIcon,0);
+ setTimeout(syncClassicVehicleIcon,250);
+})();
+</script>
 </body>
 </html>
 <style>
