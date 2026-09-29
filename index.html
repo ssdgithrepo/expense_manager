@@ -924,7 +924,7 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
     <h5 class="modal-title mb-0" id="meterTitle"><i class="bi bi-speedometer2 me-2"></i>Live Meter</h5>
     <div class="d-flex align-items-center gap-2">
      <div class="btn-group btn-group-sm" role="group" aria-label="Meter style">
-      <button type="button" class="btn btn-outline-light active" id="meterStyleSportBtn" onclick="setMeterStyle('sport')" title="Digital sport cluster"><i class="bi bi-speedometer2"></i> <span class="btn-label">Sport</span></button>
+      <button type="button" class="btn btn-outline-light active" id="meterStyleClassicBtn" onclick="setMeterStyle('classic')" title="Classic analog vehicle cluster"><i class="bi bi-speedometer2"></i> <span class="btn-label">Classic</span></button>
      </div>
      <button type="button" class="btn btn-sm btn-outline-light meter-fullscreen-btn" id="meterFullscreenBtn" onclick="toggleMeterFullscreen()" title="Show meter full screen"><i class="bi bi-fullscreen"></i> <span class="btn-label">Full Screen</span></button><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close meter"></button></div>
    </div>
@@ -1014,6 +1014,7 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
      </div>
      <div class="classic-stat-bar" id="classicStatBar"></div>
      <div class="classic-control-bar">
+      <div class="classic-drive-mode-group" id="classicDriveModeRow" aria-label="Drive mode selection"></div>
       <div class="classic-mode-group" id="classicModeGroup">
        <button type="button" class="classic-mode-btn active" data-mode="drive" onclick="setClassicPanelMode('drive')">DRIVE</button>
        <button type="button" class="classic-mode-btn" data-mode="trip" onclick="setClassicPanelMode('trip')">TRIP</button>
@@ -1913,7 +1914,8 @@ function buildMeterSubGauge(){
    etc.) as a traditional dual-dial car cluster instead of the digital sport cockpit above.
    Both styles are built every time the meter opens and kept in sync on every tick, so switching
    between them with the Sport/Classic buttons never loses or resets any live data. */
-let meterStyle=localStorage.getItem('srd_meter_style')||'sport';
+let meterStyle='classic';
+localStorage.setItem('srd_meter_style','classic');
 let classicUnit=localStorage.getItem('srd_meter_unit')||'kmh';
 let classicPanelMode='drive';
 let classicVals={};
@@ -2035,7 +2037,7 @@ function syncClassicMeter(kind,speedKmh,accuracy){
    const v=vehicle(document.getElementById('tripVehicle').value), last=trip.points.at(-1);
    const live=v?estimateLiveMileage(v,speedKmh):0, fuel=v?trip.km/Number(v.mileage):0, cost=v?fuel*Number(v.rate):0;
    const range=estimatedFuelRange(v,trip.km), avg=trip.movingMs>0?trip.km/(trip.movingMs/3600000):0;
-   const avgLive=averageLiveMileage(v,trip.points,speedKmh);
+   const avgLive=v?((Number(v.mileage)||0)+(live||0))/2:0;
    const rpm=estimateEngineRpm(speedKmh,v), rpmMax={'Two Wheeler':10000,'Three Wheeler':6500,'Car':6500,'Pickup':5500,'Truck':3000,'Bus':2800,'Other':6000}[v?.type]||6000;
    applyEconomyMeterTheme(speedKmh,v?.type);
    classicVals={tripKm:trip.km,tripB:trip.tripB||0,timeStr:fmtTime(trip.movingMs),avgSpeed:avg,
@@ -2079,18 +2081,18 @@ function syncClassicMeter(kind,speedKmh,accuracy){
  renderClassicInfoBody(); renderClassicStatBar(); renderClassicTelltales(); renderMeterFuelNotification(kind);
 }
 function setMeterStyle(style){
-  // SRD DriveLedger now uses the Sport meter as the single live instrument cluster.
-  // Keep the legacy Classic DOM/functions hidden for compatibility with saved sessions.
-  meterStyle='sport';
-  localStorage.setItem('srd_meter_style','sport');
+  // Classic is the single visible live instrument cluster. Keep the Sport DOM hidden
+  // so its legacy IDs/functions remain compatible without presenting a second meter.
+  meterStyle='classic';
+  localStorage.setItem('srd_meter_style','classic');
   const sport=document.querySelector('.sport-meter-shell');
   const classic=document.getElementById('classicMeterShell');
-  if(sport) sport.classList.remove('d-none');
-  if(classic) classic.classList.remove('active');
+  if(sport) sport.classList.add('d-none');
+  if(classic) classic.classList.remove('d-none');
   const sportBtn=document.getElementById('meterStyleSportBtn');
   const classicBtn=document.getElementById('meterStyleClassicBtn');
-  sportBtn?.classList.add('active');
-  classicBtn?.classList.remove('active');
+  sportBtn?.classList.remove('active');
+  classicBtn?.classList.add('active');
 }
 
 function estimateEngineRpm(speedKmh,v){
@@ -2222,12 +2224,15 @@ function applyModeAccent(){
  if(shell){ shell.style.setProperty('--mode-color',hexToRgba(d.color,.6)); shell.style.setProperty('--mode-glow',hexToRgba(d.color,.22)); }
 }
 function renderDriveModeLights(v){
- const row=document.getElementById('meterModeRow'); if(!row) return;
+ const sportRow=document.getElementById('meterModeRow');
+ const classicRow=document.getElementById('classicDriveModeRow');
  const type=v?.type||'Car', modes=VEHICLE_DRIVE_MODES[type]||VEHICLE_DRIVE_MODES.Other;
  if(!modes.includes(driveMode)) driveMode='normal';
- row.classList.remove('d-none');
- row.innerHTML=modes.map(m=>{ const d=DRIVE_MODES[m]; return `<div class="sport-mode-light${m===driveMode?' active':''}" style="--mode-color:${d.color}" onclick="cycleDriveModeTo('${m}')"><i class="bi ${d.icon}"></i><span>${d.label}</span></div>`; }).join('');
+ const html=modes.map(m=>{ const d=DRIVE_MODES[m]; return `<button type="button" class="drive-mode-choice${m===driveMode?' active':''}" style="--mode-color:${d.color}" onclick="cycleDriveModeTo('${m}')" title="${d.label} drive mode"><i class="bi ${d.icon}"></i><span>${d.label}</span></button>`; }).join('');
+ if(sportRow){ sportRow.classList.add('d-none'); sportRow.innerHTML=''; }
+ if(classicRow){ classicRow.classList.remove('d-none'); classicRow.innerHTML=html; }
  applyModeAccent();
+ applyEconomyMeterTheme(trip.points.at(-1)?.speed||0,type);
 }
 function cycleDriveModeTo(m){
  if(m===driveMode||!DRIVE_MODES[m])return;
@@ -2237,6 +2242,9 @@ function cycleDriveModeTo(m){
  showGearToast(`${DRIVE_MODES[driveMode].label} mode engaged.`);
  const lastSpeed=trip.points.at(-1)?.speed||0;
  updateSportGear(lastSpeed,v);
+ updateClassicGauge(lastSpeed);
+ syncClassicMeter('trip',lastSpeed,trip.points.at(-1)?.acc);
+ applyModeAccent();
 }
 /* ---------- Live hazard warning system ----------
    This drives the dashboard indicators for the selected trip vehicle. It is a
@@ -2390,6 +2398,8 @@ function openLiveMeter(kind){
    buildMeterGauge(); buildMeterSubGauge(); buildClassicGauge();
    const modeRow=document.getElementById('meterModeRow');
    if(modeRow){modeRow.classList.add('d-none');modeRow.innerHTML='';}
+   const classicModeRow=document.getElementById('classicDriveModeRow');
+   if(classicModeRow){classicModeRow.classList.add('d-none');classicModeRow.innerHTML='';}
    stopHazardLights();
    document.getElementById('meterHazardBtn')?.classList.add('d-none');
    setMeterStatus(walk.paused);
@@ -3495,117 +3505,105 @@ function syncMeterNightMode(forceFlash=false){
 }
 </style>
 
-<style id="srd-sport-only-final-layout">
-/* SPORT-ONLY LIVE CLUSTER */
-#meterStyleClassicBtn,#classicMeterShell{display:none!important;}
+<style id="srd-classic-only-final-layout">
+/* CLASSIC-ONLY LIVE CLUSTER */
+#meterStyleSportBtn,.sport-meter-shell{display:none!important;}
+#classicMeterShell{display:block!important;}
 #liveMeterModal .modal-header{position:relative;z-index:100;}
 #liveMeterModal.meter-fullscreen-host .modal-header,
 #liveMeterModal:fullscreen .modal-header{
-  position:absolute!important;
-  top:8px!important;left:10px!important;right:10px!important;
-  width:calc(100% - 20px)!important;
-  padding:0!important;
-  background:transparent!important;
-  border:0!important;
-  box-shadow:none!important;
-  pointer-events:none!important;
+  position:absolute!important;top:8px!important;left:10px!important;right:10px!important;
+  width:calc(100% - 20px)!important;padding:0!important;background:transparent!important;
+  border:0!important;box-shadow:none!important;pointer-events:none;
 }
 #liveMeterModal.meter-fullscreen-host .modal-title,
 #liveMeterModal:fullscreen .modal-title{
-  display:inline-flex!important;align-items:center!important;
-  max-width:72vw!important;
-  padding:7px 13px!important;
-  border:1px solid rgba(255,255,255,.20)!important;
-  border-radius:999px!important;
-  background:rgba(2,6,23,.18)!important;
-  backdrop-filter:blur(5px)!important;
-  -webkit-backdrop-filter:blur(5px)!important;
-  color:rgba(255,255,255,.84)!important;
-  text-shadow:0 1px 4px rgba(0,0,0,.8)!important;
-  font-size:clamp(.72rem,2.2vw,1rem)!important;
-  font-weight:700!important;
-  letter-spacing:.02em!important;
+  display:inline-flex!important;align-items:center!important;max-width:72vw!important;
+  padding:7px 13px!important;border:1px solid rgba(255,255,255,.20)!important;
+  border-radius:999px!important;background:rgba(2,6,23,.18)!important;
+  backdrop-filter:blur(5px)!important;-webkit-backdrop-filter:blur(5px)!important;
+  color:rgba(255,255,255,.84)!important;text-shadow:0 1px 4px rgba(0,0,0,.8)!important;
+  font-size:clamp(.72rem,2.2vw,1rem)!important;font-weight:700!important;letter-spacing:.02em!important;
   pointer-events:none!important;
 }
 #liveMeterModal.meter-fullscreen-host .modal-header > .d-flex,
 #liveMeterModal:fullscreen .modal-header > .d-flex{pointer-events:auto!important;}
 #liveMeterModal.meter-fullscreen-host .modal-body,
 #liveMeterModal:fullscreen .modal-body{padding-top:48px!important;}
-#liveMeterModal .sport-meter-shell{--mode-color:#60a5fa;--mode-glow:rgba(96,165,250,.28);}
-/* Selected drive mode is the authoritative cluster colour. Economy status remains available
-   for mileage calculations, but it no longer changes the mode colour into another palette. */
-#liveMeterModal .sport-meter-shell .sport-digital-speed,
-#liveMeterModal .sport-meter-shell .meter-odo-instrument b,
-#liveMeterModal .sport-meter-shell .sport-digital-rpm,
-#liveMeterModal .sport-meter-shell .sport-mode-light.active,
-#liveMeterModal .sport-meter-shell .sport-meter-gear,
-#liveMeterModal .sport-meter-shell .meter-eco,
-#liveMeterModal .sport-meter-shell .meter-needle{color:var(--mode-color)!important;}
-#liveMeterModal .sport-meter-shell .meter-odo-instrument{
-  border-color:color-mix(in srgb,var(--mode-color) 55%,transparent)!important;
-  box-shadow:0 0 16px var(--mode-glow)!important;
-}
-#liveMeterModal .sport-meter-shell .sport-digital-speed{
-  text-shadow:0 0 18px var(--mode-glow)!important;
-}
-#liveMeterModal .sport-meter-shell .sport-mode-light.active{filter:drop-shadow(0 0 7px var(--mode-color))!important;}
+
+/* Drive mode selection is now part of the Classic cluster. The selected mode
+   controls the visible cluster accent while the configured economy band still
+   drives the live-mileage calculation. */
+.classic-drive-mode-group{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin:0 0 6px;padding:4px;border-radius:18px;background:rgba(255,255,255,.035);border:1px solid rgba(148,163,184,.14);}
+.drive-mode-choice{appearance:none;border:1px solid rgba(148,163,184,.20);background:rgba(15,23,42,.72);color:#94a3b8;border-radius:999px;padding:5px 10px;min-height:30px;font-size:.62rem;font-weight:900;letter-spacing:.04em;cursor:pointer;transition:.16s ease;display:inline-flex;align-items:center;justify-content:center;gap:5px;}
+.drive-mode-choice:hover{color:#fff;border-color:var(--mode-color);box-shadow:0 0 10px color-mix(in srgb,var(--mode-color) 28%,transparent);}
+.drive-mode-choice.active{color:#fff;border-color:var(--mode-color);background:color-mix(in srgb,var(--mode-color) 18%,#0f172a);box-shadow:0 0 12px color-mix(in srgb,var(--mode-color) 32%,transparent),inset 0 0 9px color-mix(in srgb,var(--mode-color) 10%,transparent);}
+.drive-mode-choice.active i{color:var(--mode-color);filter:drop-shadow(0 0 5px var(--mode-color));}
 @supports not (color:color-mix(in srgb, red 50%, transparent)){
-  #liveMeterModal .sport-meter-shell .meter-odo-instrument{border-color:var(--mode-color)!important;}
+ .drive-mode-choice:hover,.drive-mode-choice.active{border-color:var(--mode-color);}
+ .drive-mode-choice.active{background:rgba(30,41,59,.9);}
 }
 
-/* Drive-mode colour is applied to the actual Sport gauge graphics as well. */
-#liveMeterModal .sport-meter-shell #meterValueArc,
-#liveMeterModal .sport-meter-shell #meterSubArc{stroke:var(--mode-color)!important;filter:drop-shadow(0 0 4px var(--mode-glow))!important;}
-#liveMeterModal .sport-meter-shell #meterNeedle .needle-face,
-#liveMeterModal .sport-meter-shell #meterSubNeedle .rpm-needle-face{fill:var(--mode-color)!important;}
-#liveMeterModal .sport-meter-shell #meterNeedle .needle-shadow,
-#liveMeterModal .sport-meter-shell #meterSubNeedle .rpm-needle-shadow{fill:color-mix(in srgb,var(--mode-color) 45%,#020617)!important;}
-#liveMeterModal .sport-meter-shell .dial-number{transition:fill .2s ease;}
-#liveMeterModal .sport-meter-shell .sport-meter-top{border-color:color-mix(in srgb,var(--mode-color) 28%,transparent)!important;}
-#liveMeterModal .sport-meter-shell .sport-led.active{box-shadow:0 0 7px var(--mode-color)!important;}
-@supports not (color:color-mix(in srgb, red 50%, transparent)){
-  #liveMeterModal .sport-meter-shell #meterNeedle .needle-shadow,
-  #liveMeterModal .sport-meter-shell #meterSubNeedle .rpm-needle-shadow{fill:#334155!important;}
+/* Selected drive mode colour on the actual Classic gauge, needle, digital readout,
+   ODO and RPM inset. */
+#classicMeterShell{--mode-color:#60a5fa;--mode-glow:rgba(96,165,250,.30);}
+#classicMeterShell .classic-digital-value,
+#classicMeterShell .classic-dial-number,
+#classicMeterShell .classic-odo-instrument b{color:var(--mode-color)!important;text-shadow:0 0 10px var(--mode-glow)!important;}
+#classicMeterShell .classic-dial-tick.major{stroke:var(--mode-color)!important;}
+#classicMeterShell .classic-dial-track{stroke:rgba(148,163,184,.18)!important;}
+#classicMeterShell .classic-dial-red{opacity:.9;}
+#classicMeterShell .classic-needle{stroke:var(--mode-color)!important;filter:drop-shadow(0 0 4px var(--mode-glow));}
+#classicMeterShell .classic-hub{fill:var(--mode-color)!important;stroke:#e2e8f0!important;}
+#classicMeterShell .classic-odo-instrument{border-color:var(--mode-color)!important;box-shadow:0 0 16px var(--mode-glow),inset 0 1px 0 rgba(255,255,255,.10)!important;}
+#classicMeterShell .classic-info-top span:first-child{color:var(--mode-color)!important;}
+#classicMeterShell .classic-gear-big{color:var(--mode-color)!important;text-shadow:0 0 12px var(--mode-glow)!important;}
+@media(max-width:575.98px){
+ .classic-drive-mode-group{gap:4px;padding:3px;}
+ .drive-mode-choice{padding:4px 7px;font-size:.56rem;min-height:28px;}
 }
 </style>
 <script>
-/* Final Sport-only behavior. */
+/* Final Classic-only behavior. */
 function getMeterEconomyPalette(mode,status){
   const d=DRIVE_MODES[mode]||DRIVE_MODES.normal;
   const color=d.color||'#60a5fa';
   return {color,glow:hexToRgba(color,.30)};
 }
 function applyModeAccent(){
-  const shell=document.querySelector('.sport-meter-shell'), d=DRIVE_MODES[driveMode]||DRIVE_MODES.normal;
-  if(shell){
-    shell.style.setProperty('--mode-color',d.color);
-    shell.style.setProperty('--mode-glow',hexToRgba(d.color,.30));
-    shell.dataset.driveMode=driveMode;
+  const classic=document.getElementById('classicMeterShell'), d=DRIVE_MODES[driveMode]||DRIVE_MODES.normal;
+  if(classic){
+    classic.style.setProperty('--mode-color',d.color);
+    classic.style.setProperty('--mode-glow',hexToRgba(d.color,.30));
+    classic.dataset.driveMode=driveMode;
   }
+  const row=document.getElementById('classicDriveModeRow');
+  if(row) row.querySelectorAll('.drive-mode-choice').forEach(b=>b.classList.toggle('active',b.querySelector('span')?.textContent===d.label));
 }
 function applyEconomyMeterTheme(speedKmh,vehicleType){
   const status=economySpeedStatus(speedKmh,vehicleType);
   const pal=getMeterEconomyPalette(driveMode,status);
-  const sport=document.querySelector('.sport-meter-shell');
-  if(sport){
-    sport.style.setProperty('--economy-color',pal.color);
-    sport.style.setProperty('--economy-glow',pal.glow);
-    sport.dataset.economyStatus=status;
-    sport.dataset.driveMode=driveMode;
+  const classic=document.getElementById('classicMeterShell');
+  if(classic){
+    classic.style.setProperty('--economy-color',pal.color);
+    classic.style.setProperty('--economy-glow',pal.glow);
+    classic.dataset.economyStatus=status;
+    classic.dataset.driveMode=driveMode;
   }
-  const sd=document.getElementById('meterDigital');
-  if(sd){sd.style.color=pal.color;sd.style.textShadow=`0 0 18px ${pal.color}99`;sd.dataset.economyStatus=status;}
+  const cd=document.getElementById('classicSpeedDigital');
+  if(cd){cd.style.color=pal.color;cd.style.textShadow=`0 0 16px ${pal.color}99`;cd.dataset.economyStatus=status;}
+  applyModeAccent();
   return status;
 }
-function setSportOnlyMeter(){
-  meterStyle='sport';
-  localStorage.setItem('srd_meter_style','sport');
-  document.querySelector('.sport-meter-shell')?.classList.remove('d-none');
-  document.getElementById('classicMeterShell')?.classList.remove('active');
-  document.getElementById('meterStyleClassicBtn')?.remove();
-  document.getElementById('meterStyleSportBtn')?.classList.add('active');
+function setClassicOnlyMeter(){
+  meterStyle='classic';
+  localStorage.setItem('srd_meter_style','classic');
+  document.querySelector('.sport-meter-shell')?.classList.add('d-none');
+  document.getElementById('classicMeterShell')?.classList.remove('d-none');
+  document.getElementById('meterStyleSportBtn')?.classList.remove('active');
+  document.getElementById('meterStyleClassicBtn')?.classList.add('active');
 }
-setSportOnlyMeter();
+setClassicOnlyMeter();
 </script>
 </body>
 </html>
