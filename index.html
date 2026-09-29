@@ -249,32 +249,6 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
 #trip > .card.mt-3{position:relative;z-index:1;}
 #gpsInfo{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 @media(max-width:576px){#gpsInfo{width:100%;white-space:normal;}}
-
-/* Final Classic cluster enlargement + vehicle-specific instrument icons */
-.classic-meter-shell{width:100%;max-width:none;transform:none;box-sizing:border-box;padding:clamp(10px,2vw,18px);}
-.classic-gauges-row{gap:clamp(8px,1.8vw,22px);}
-.classic-main-col{flex:1 1 auto;min-width:0;}
-.classic-dial-main{width:min(94vw,720px);height:min(94vw,720px);max-width:720px;max-height:720px;margin-inline:auto;}
-.classic-dial-main .classic-dial-wrap{width:100%;height:100%;}
-.classic-digital-value{font-size:clamp(2.8rem,11vw,7rem)!important;line-height:.92;}
-.classic-digital-unit{font-size:clamp(.68rem,1.7vw,1rem)!important;letter-spacing:.14em;}
-.classic-dial-sub{width:clamp(150px,28%,230px)!important;height:clamp(150px,28%,230px)!important;}
-.classic-dial-col{flex:0 0 clamp(44px,8vw,82px);}
-.classic-mini-title{font-size:clamp(.58rem,1.4vw,.82rem)!important;}
-.classic-mini-label{font-size:clamp(.55rem,1.2vw,.72rem)!important;}
-.classic-info-panel{font-size:clamp(.76rem,1.5vw,.95rem);}
-.classic-road{height:clamp(48px,8vw,76px);}
-.classic-road i{font-size:clamp(1.5rem,4vw,2.5rem)!important;transition:transform .2s ease,color .2s ease;}
-.classic-vehicle-icon,.meter-context-icon{display:inline-flex;align-items:center;justify-content:center;min-width:1.35em;font-size:1.15em;}
-.classic-vehicle-caption{display:inline-flex;align-items:center;gap:.45rem;}
-.classic-vehicle-caption i{font-size:1.2em;}
-@media(max-width:575.98px){
- .classic-meter-shell{padding:7px 4px;}
- .classic-dial-main{width:min(96vw,620px);height:min(96vw,620px);}
- .classic-dial-sub{width:clamp(125px,29%,185px)!important;height:clamp(125px,29%,185px)!important;}
- .classic-dial-col{flex-basis:clamp(34px,7vw,54px);}
-}
-@media(min-width:900px){.classic-dial-main{width:min(68vw,760px);height:min(68vw,760px);max-width:760px;max-height:760px;}}
 </style>
 
 <style id="meter-context-icons">
@@ -666,35 +640,6 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
   .classic-telltale.hazard-telltale.hazard-on,.meter-hazard-arrow.hazard-on{animation:none !important;}
 }
 </style>
-
-<style id="final-larger-classic-meter">
-/* Larger Classic meter and larger live-speed readout */
-.classic-meter-shell, #classicMeterShell {
-  width: min(96vw, 980px) !important;
-  max-width: 980px !important;
-  margin-left: auto !important; margin-right: auto !important;
-}
-.classic-meter-shell .classic-speedometer, #classicMeterShell .classic-speedometer {
-  width: min(92vw, 900px) !important;
-  max-width: 900px !important;
-  min-height: 0 !important;
-  margin-left: auto !important; margin-right: auto !important;
-}
-#classicMeterShell #meterDigital, #meterDigital {
-  font-size: clamp(4.4rem, 15vw, 8.5rem) !important;
-  line-height: .88 !important;
-  font-weight: 900 !important;
-  letter-spacing: -.045em !important;
-}
-@media (min-width: 768px){
-  #classicMeterShell #meterDigital, #meterDigital { font-size: clamp(5.5rem, 12vw, 9.5rem) !important; }
-}
-@media (max-width: 480px){
-  .classic-meter-shell, #classicMeterShell { width: 99vw !important; }
-  .classic-meter-shell .classic-speedometer, #classicMeterShell .classic-speedometer { width: 96vw !important; }
-  #classicMeterShell #meterDigital, #meterDigital { font-size: clamp(4.1rem, 19vw, 6.8rem) !important; }
-}
-</style>
 </head>
 <body>
 <div id="loginScreen" class="login-wrap d-flex align-items-center justify-content-center p-3">
@@ -1063,8 +1008,8 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
       <span id="meterFuelAlertText">Fuel level monitoring ready</span>
      </div>
      <div class="classic-info-panel">
-      <div class="classic-info-top"><span class="classic-vehicle-caption"><i class="bi bi-speedometer2"></i> INSTRUMENT INFO <i id="classicVehicleInfoIcon" class="bi bi-car-front-fill classic-vehicle-icon" aria-hidden="true"></i><span id="classicVehicleInfoName">Vehicle</span></span><span id="classicClockTime">--:--</span></div>
-      <div class="classic-road" aria-label="Selected trip vehicle"><i id="classicVehicleRoadIcon" class="bi bi-car-front-fill classic-vehicle-icon"></i></div>
+      <div class="classic-info-top"><span><i class="bi bi-speedometer2"></i> INSTRUMENT INFO</span><span id="classicClockTime">--:--</span></div>
+      <div class="classic-road"><i class="bi bi-car-front-fill"></i></div>
       <div id="classicInfoBody"></div>
      </div>
      <div class="classic-stat-bar" id="classicStatBar"></div>
@@ -2086,7 +2031,6 @@ function renderMeterFuelNotification(kind){
 }
 
 function syncClassicMeter(kind,speedKmh,accuracy){
- try{ if(kind==='trip' && typeof updateClassicVehicleIcon==='function'){ const sel=document.getElementById('tripVehicle'); const v=sel&&typeof vehicle==='function'?vehicle(sel.value):null; if(v) updateClassicVehicleIcon(v); } }catch(e){}
  renderClassicGpsBars(accuracy);
  const clock=document.getElementById('classicClockTime'); if(clock) clock.textContent=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
  if(kind==='trip'){
@@ -3661,107 +3605,6 @@ function setClassicOnlyMeter(){
 }
 setClassicOnlyMeter();
 </script>
-
-<script>
-(function(){
-  const iconMap={
-    'Two Wheeler':'bi-scooter',
-    'Three Wheeler':'bi-truck-front-fill',
-    'Car':'bi-car-front-fill',
-    'Pickup':'bi-truck-front-fill',
-    'Truck':'bi-truck-front-fill',
-    'Bus':'bi-bus-front-fill',
-    'Other':'bi-car-front-fill'
-  };
-  window.updateClassicVehicleIcon=function(vehicle){
-    const type=vehicle&&vehicle.type?String(vehicle.type):'Other';
-    const name=vehicle&&vehicle.name?String(vehicle.name):type;
-    const cls=iconMap[type]||iconMap.Other;
-    ['classicVehicleRoadIcon','classicVehicleInfoIcon'].forEach(id=>{
-      const el=document.getElementById(id); if(!el) return;
-      el.className='bi '+cls+' classic-vehicle-icon';
-      el.title=type;
-    });
-    const n=document.getElementById('classicVehicleInfoName'); if(n) n.textContent=name+' • '+type;
-  };
-  window.refreshClassicVehicleIcon=function(){
-    try{
-      let v=null;
-      if(typeof getSelectedVehicle==='function') v=getSelectedVehicle();
-      if(!v && window.trip && window.trip.vehicleId && Array.isArray(window.state?.vehicles)) v=state.vehicles.find(x=>String(x.id)===String(trip.vehicleId));
-      if(!v && window.trip && window.trip.vehicleType) v={type:window.trip.vehicleType,name:window.trip.vehicleName||window.trip.vehicleType};
-      if(v) window.updateClassicVehicleIcon(v);
-    }catch(e){}
-  };
-  document.addEventListener('DOMContentLoaded',window.refreshClassicVehicleIcon);
-})();
-</script>
-
-<script>
-(function(){
-  const oldOpen=window.openLiveMeter;
-  if(typeof oldOpen==='function'){window.openLiveMeter=function(){const r=oldOpen.apply(this,arguments);setTimeout(()=>window.refreshClassicVehicleIcon&&window.refreshClassicVehicleIcon(),30);return r;};}
-  const oldStarted=window.openStartedTripMeter;
-  if(typeof oldStarted==='function'){window.openStartedTripMeter=function(){const r=oldStarted.apply(this,arguments);setTimeout(()=>window.refreshClassicVehicleIcon&&window.refreshClassicVehicleIcon(),30);return r;};}
-})();
-</script>
-
-<style id="final-classic-placement-correction">
-/* Final Classic cluster placement: enlarge the complete instrument group while keeping every
-   gauge in a predictable three-zone layout. */
-#classicMeterShell .classic-gauges-row{
-  display:grid!important;
-  grid-template-columns:clamp(38px,7vw,78px) minmax(0,1fr) clamp(38px,7vw,78px)!important;
-  align-items:center!important;
-  justify-items:center!important;
-  gap:clamp(6px,1.2vw,18px)!important;
-  width:100%!important;
-  margin:4px auto 0!important;
-}
-#classicMeterShell .classic-temp-gauge-col{grid-column:1!important;grid-row:1!important;width:100%!important;}
-#classicMeterShell .classic-main-col{grid-column:2!important;grid-row:1!important;width:100%!important;min-width:0!important;}
-#classicMeterShell .classic-fuel-gauge-col{grid-column:3!important;grid-row:1!important;width:100%!important;}
-#classicMeterShell .classic-dial-wrap.classic-dial-main{
-  width:min(62vw,680px)!important;
-  max-width:100%!important;
-  margin:0 auto!important;
-}
-#classicMeterShell .classic-dial-wrap.classic-dial-sub{
-  width:min(19vw,210px)!important;
-  max-width:42%!important;
-  margin:-2px auto 0!important;
-}
-#classicMeterShell .classic-mini-gauge{height:clamp(120px,16vw,190px)!important;width:clamp(18px,2vw,28px)!important;}
-#classicMeterShell .classic-digital-value#classicSpeedDigital{
-  font-size:clamp(2.8rem,7vw,5.2rem)!important;
-  line-height:.88!important;
-}
-#classicMeterShell .classic-digital-unit{font-size:clamp(.5rem,1vw,.72rem)!important;}
-#classicMeterShell .classic-odo-instrument{transform:translateX(-50%) scale(1.05);transform-origin:center;}
-#classicMeterShell .classic-gear-row-wrap{margin-top:3px!important;}
-#classicMeterShell .classic-road{height:clamp(48px,7vw,72px)!important;}
-#classicMeterShell .classicVehicleRoadIcon{font-size:clamp(1.35rem,2.8vw,2.15rem)!important;}
-#classicMeterShell .classicVehicleInfoIcon{font-size:1.35em!important;margin-left:.3rem;}
-#classicMeterShell .classic-vehicle-caption{min-width:0;white-space:nowrap;}
-#classicMeterShell .classic-vehicle-caption #classicVehicleInfoName{overflow:hidden;text-overflow:ellipsis;max-width:42vw;display:inline-block;vertical-align:middle;}
-@media(max-width:575.98px){
-  #classicMeterShell .classic-gauges-row{
-    grid-template-columns:34px minmax(0,1fr) 34px!important;
-    gap:4px!important;
-  }
-  #classicMeterShell .classic-dial-wrap.classic-dial-main{width:min(76vw,310px)!important;}
-  #classicMeterShell .classic-dial-wrap.classic-dial-sub{width:min(31vw,108px)!important;max-width:40%!important;margin-top:-1px!important;}
-  #classicMeterShell .classic-mini-gauge{height:clamp(92px,29vw,125px)!important;width:14px!important;}
-  #classicMeterShell .classic-digital-value#classicSpeedDigital{font-size:clamp(2.45rem,14vw,4rem)!important;}
-  #classicMeterShell .classic-digital-unit{font-size:.48rem!important;}
-  #classicMeterShell .classicVehicleInfoIcon{font-size:1.15em!important;}
-  #classicMeterShell .classic-vehicle-caption #classicVehicleInfoName{max-width:34vw;}
-}
-@media(min-width:992px){
-  #classicMeterShell .classic-gauges-row{grid-template-columns:82px minmax(0,1fr) 82px!important;}
-}
-</style>
-
 </body>
 </html>
 <style>
