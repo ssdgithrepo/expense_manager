@@ -2086,6 +2086,7 @@ function renderMeterFuelNotification(kind){
 }
 
 function syncClassicMeter(kind,speedKmh,accuracy){
+ try{ if(kind==='trip' && typeof updateClassicVehicleIcon==='function'){ const sel=document.getElementById('tripVehicle'); const v=sel&&typeof vehicle==='function'?vehicle(sel.value):null; if(v) updateClassicVehicleIcon(v); } }catch(e){}
  renderClassicGpsBars(accuracy);
  const clock=document.getElementById('classicClockTime'); if(clock) clock.textContent=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
  if(kind==='trip'){
@@ -3704,6 +3705,63 @@ setClassicOnlyMeter();
   if(typeof oldStarted==='function'){window.openStartedTripMeter=function(){const r=oldStarted.apply(this,arguments);setTimeout(()=>window.refreshClassicVehicleIcon&&window.refreshClassicVehicleIcon(),30);return r;};}
 })();
 </script>
+
+<style id="final-classic-placement-correction">
+/* Final Classic cluster placement: enlarge the complete instrument group while keeping every
+   gauge in a predictable three-zone layout. */
+#classicMeterShell .classic-gauges-row{
+  display:grid!important;
+  grid-template-columns:clamp(38px,7vw,78px) minmax(0,1fr) clamp(38px,7vw,78px)!important;
+  align-items:center!important;
+  justify-items:center!important;
+  gap:clamp(6px,1.2vw,18px)!important;
+  width:100%!important;
+  margin:4px auto 0!important;
+}
+#classicMeterShell .classic-temp-gauge-col{grid-column:1!important;grid-row:1!important;width:100%!important;}
+#classicMeterShell .classic-main-col{grid-column:2!important;grid-row:1!important;width:100%!important;min-width:0!important;}
+#classicMeterShell .classic-fuel-gauge-col{grid-column:3!important;grid-row:1!important;width:100%!important;}
+#classicMeterShell .classic-dial-wrap.classic-dial-main{
+  width:min(62vw,680px)!important;
+  max-width:100%!important;
+  margin:0 auto!important;
+}
+#classicMeterShell .classic-dial-wrap.classic-dial-sub{
+  width:min(19vw,210px)!important;
+  max-width:42%!important;
+  margin:-2px auto 0!important;
+}
+#classicMeterShell .classic-mini-gauge{height:clamp(120px,16vw,190px)!important;width:clamp(18px,2vw,28px)!important;}
+#classicMeterShell .classic-digital-value#classicSpeedDigital{
+  font-size:clamp(2.8rem,7vw,5.2rem)!important;
+  line-height:.88!important;
+}
+#classicMeterShell .classic-digital-unit{font-size:clamp(.5rem,1vw,.72rem)!important;}
+#classicMeterShell .classic-odo-instrument{transform:translateX(-50%) scale(1.05);transform-origin:center;}
+#classicMeterShell .classic-gear-row-wrap{margin-top:3px!important;}
+#classicMeterShell .classic-road{height:clamp(48px,7vw,72px)!important;}
+#classicMeterShell .classicVehicleRoadIcon{font-size:clamp(1.35rem,2.8vw,2.15rem)!important;}
+#classicMeterShell .classicVehicleInfoIcon{font-size:1.35em!important;margin-left:.3rem;}
+#classicMeterShell .classic-vehicle-caption{min-width:0;white-space:nowrap;}
+#classicMeterShell .classic-vehicle-caption #classicVehicleInfoName{overflow:hidden;text-overflow:ellipsis;max-width:42vw;display:inline-block;vertical-align:middle;}
+@media(max-width:575.98px){
+  #classicMeterShell .classic-gauges-row{
+    grid-template-columns:34px minmax(0,1fr) 34px!important;
+    gap:4px!important;
+  }
+  #classicMeterShell .classic-dial-wrap.classic-dial-main{width:min(76vw,310px)!important;}
+  #classicMeterShell .classic-dial-wrap.classic-dial-sub{width:min(31vw,108px)!important;max-width:40%!important;margin-top:-1px!important;}
+  #classicMeterShell .classic-mini-gauge{height:clamp(92px,29vw,125px)!important;width:14px!important;}
+  #classicMeterShell .classic-digital-value#classicSpeedDigital{font-size:clamp(2.45rem,14vw,4rem)!important;}
+  #classicMeterShell .classic-digital-unit{font-size:.48rem!important;}
+  #classicMeterShell .classicVehicleInfoIcon{font-size:1.15em!important;}
+  #classicMeterShell .classic-vehicle-caption #classicVehicleInfoName{max-width:34vw;}
+}
+@media(min-width:992px){
+  #classicMeterShell .classic-gauges-row{grid-template-columns:82px minmax(0,1fr) 82px!important;}
+}
+</style>
+
 </body>
 </html>
 <style>
