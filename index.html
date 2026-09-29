@@ -3234,6 +3234,128 @@ function syncMeterNightMode(forceFlash=false){
   #classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-dial-wrap.classic-dial-sub{width:34% !important;bottom:7% !important;}
 }
 </style>
+<style id="sport-meter-visibility-layout-fix">
+/* Final Sport cluster geometry: every instrument has its own non-overlapping visual zone. */
+#liveMeterModal .sport-meter-shell{position:relative;overflow:visible;}
+#liveMeterModal .sport-meter-shell > .sport-dial:first-of-type{
+  position:relative;
+  width:min(100%,760px);
+  margin:0 auto;
+  aspect-ratio:2 / 1.08;
+  overflow:visible;
+  z-index:1;
+}
+/* Keep the primary speedometer graphics fully visible. */
+#liveMeterModal .sport-meter-shell > .sport-dial:first-of-type svg{
+  position:relative;
+  z-index:1;
+  overflow:visible;
+}
+/* KM/H digital speed readout sits above the ODO window. */
+#liveMeterModal .sport-meter-shell > .sport-dial:first-of-type > .sport-digital{
+  top:39%;
+  z-index:12;
+  min-width:96px;
+  pointer-events:none;
+}
+#liveMeterModal .sport-meter-shell > .sport-dial:first-of-type > .sport-digital .sport-digital-speed{
+  font-size:clamp(2rem,7vw,4rem);
+  line-height:.92;
+}
+#liveMeterModal .sport-meter-shell > .sport-dial:first-of-type > .sport-digital .sport-digital-unit{
+  display:block;
+  margin-top:5px;
+  font-size:clamp(.55rem,1.4vw,.72rem);
+  letter-spacing:.18em;
+}
+/* ODO is directly below KM/H and has its own protected footprint. */
+#liveMeterModal .sport-meter-shell > .sport-dial:first-of-type > .meter-odo-instrument{
+  left:50%;
+  top:57%;
+  bottom:auto;
+  transform:translate(-50%,-50%);
+  z-index:13;
+  min-width:clamp(92px,18%,118px);
+  padding:4px 9px;
+}
+/* RPM is a true inset sub-meter: smaller, centered, and lower than ODO. */
+#liveMeterModal .sport-meter-shell > .sport-dial.sport-dial-sub{
+  position:absolute;
+  left:50%;
+  top:66%;
+  transform:translate(-50%,-50%);
+  width:clamp(145px,34%,250px);
+  max-width:none;
+  aspect-ratio:2 / 1.08;
+  margin:0 !important;
+  z-index:7;
+  pointer-events:none;
+  overflow:visible;
+  border-radius:50%;
+}
+#liveMeterModal .sport-meter-shell > .sport-dial.sport-dial-sub svg{
+  width:100%;
+  height:100%;
+  overflow:visible;
+}
+#liveMeterModal .sport-meter-shell > .sport-dial.sport-dial-sub > .sport-digital{
+  top:55%;
+  z-index:10;
+  min-width:55px;
+}
+#liveMeterModal .sport-meter-shell > .sport-dial.sport-dial-sub .sport-digital-rpm{
+  font-size:clamp(.85rem,3vw,1.35rem);
+  line-height:.95;
+}
+#liveMeterModal .sport-meter-shell > .sport-dial.sport-dial-sub .sport-digital-unit{
+  font-size:clamp(.42rem,1vw,.58rem);
+  letter-spacing:.1em;
+  margin-top:3px;
+}
+/* Keep the gear badge away from the ODO/RPM stack. */
+#liveMeterModal .sport-meter-shell > .sport-dial:first-of-type > .sport-gear-pill{
+  right:10%;
+  bottom:12%;
+  z-index:14;
+}
+/* Keep the explanatory line and all lower readouts outside the gauge footprint. */
+#liveMeterModal .sport-meter-shell > .sport-dial-sub + .w-100{
+  position:relative;
+  z-index:20;
+  margin-top:4px !important;
+}
+#liveMeterModal .sport-meter-shell .sport-led-row,
+#liveMeterModal .sport-meter-shell .meter-hazard-indicator-row,
+#liveMeterModal .sport-meter-shell .sport-readouts,
+#liveMeterModal .sport-meter-shell .sport-subgrid,
+#liveMeterModal .sport-meter-shell .meter-stats{
+  position:relative;
+  z-index:20;
+}
+@media(max-width:767.98px){
+  #liveMeterModal .sport-meter-shell > .sport-dial:first-of-type{width:min(100%,620px);}
+  #liveMeterModal .sport-meter-shell > .sport-dial.sport-dial-sub{
+    width:clamp(128px,38%,205px);
+    top:67%;
+  }
+  #liveMeterModal .sport-meter-shell > .sport-dial:first-of-type > .sport-digital{top:37%;}
+  #liveMeterModal .sport-meter-shell > .sport-dial:first-of-type > .meter-odo-instrument{top:55%;}
+}
+@media(max-width:575.98px){
+  #liveMeterModal .sport-meter-shell{padding-left:2px;padding-right:2px;}
+  #liveMeterModal .sport-meter-shell > .sport-dial:first-of-type{width:100%;aspect-ratio:2 / 1.12;}
+  #liveMeterModal .sport-meter-shell > .sport-dial.sport-dial-sub{
+    width:min(42vw,170px);
+    top:68%;
+  }
+  #liveMeterModal .sport-meter-shell > .sport-dial:first-of-type > .sport-digital{top:36%;}
+  #liveMeterModal .sport-meter-shell > .sport-dial:first-of-type > .meter-odo-instrument{top:54%;min-width:88px;}
+  #liveMeterModal .sport-meter-shell > .sport-dial:first-of-type > .sport-gear-pill{right:5%;bottom:9%;}
+}
+@media(min-width:992px){
+  #liveMeterModal .sport-meter-shell > .sport-dial.sport-dial-sub{top:65%;width:clamp(170px,30%,250px);}
+}
+</style>
 </body>
 </html>
 <style>
@@ -3420,3 +3542,5 @@ function syncMeterNightMode(forceFlash=false){
   #classicMeterShell .classic-main-col > .classic-dial-wrap.classic-dial-sub{width:min(15vw,150px) !important;top:64% !important;}
 }
 </style>
+
+
