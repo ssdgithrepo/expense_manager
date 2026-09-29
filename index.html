@@ -781,7 +781,7 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
 
 <section id="trip" class="view">
 <div class="row g-3"><div class="col-lg-7"><div class="card p-4">
-<div class="d-flex justify-content-between align-items-center flex-wrap gap-2"><h5 class="mb-0">Live Trip</h5><span id="gpsStatus" class="d-none"><span class="gps-dot"></span> GPS idle</span></div>
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2"><h5 class="mb-0">Live Trip</h5><div class="d-flex align-items-center gap-2"><span id="gpsStatus" class="d-none"><span class="gps-dot"></span> GPS idle</span><button id="permissionBtn" type="button" class="btn btn-sm btn-outline-primary gps-toggle-btn" aria-pressed="false"><i class="bi bi-geo-alt-fill me-1"></i><span>Enable GPS</span></button></div></div>
 <div class="row g-2 mt-2">
  <div class="col-md-6"><label class="form-label">Vehicle</label><select id="tripVehicle" class="form-select"></select></div>
  <div class="col-md-6"><label class="form-label">Purpose</label><input id="tripPurpose" class="form-control" placeholder="Delivery / personal / field work"></div>
@@ -820,12 +820,10 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
 </div>
 </div></div>
 <div class="col-lg-5"><div class="card p-4"><h5><i class="bi bi-info-circle me-2"></i>How it works</h5><ol class="small mt-3"><li>Choose your vehicle.</li><li>Press Start Trip — the app accumulates GPS distance automatically.</li><li>If you stop moving, tracking auto-pauses; it resumes by itself the moment you move again.</li><li>You can log fuel top-ups mid-trip and the totals update instantly.</li><li>Stop to save the trip with its distance and fuel cost breakdown.</li></ol>
-<div class="alert alert-warning small mb-2">Browser GPS accuracy varies from device to device.</div>
-<div class="alert alert-info small mb-0"><i class="bi bi-info-circle"></i> <b>Keeping the trip running in the background:</b> this app requests a screen wake-lock and keeps listening for GPS updates while the tab is open, even if minimized briefly. However, phone browsers (especially Chrome/Safari on mobile) can pause JavaScript entirely once the screen locks or the browser is fully closed — that's an OS-level restriction no website can override. For uninterrupted long trips, keep the screen on and the tab open, or add this page to your home screen and keep it in the foreground.</div>
+
 </div></div></div>
 
 <div class="d-flex justify-content-center mt-3">
- <button id="permissionBtn" type="button" class="btn btn-outline-primary gps-toggle-btn" aria-pressed="false"><i class="bi bi-geo-alt-fill me-1"></i><span>Enable GPS</span></button>
  <button id="retryLocationBtn" type="button" class="d-none" aria-hidden="true">Check Again</button>
 </div>
 </section>
@@ -2429,9 +2427,13 @@ function renderFuelLog(){
  document.getElementById('tripFuelAdded').textContent=money(trip.fuelLog.reduce((s,f)=>s+f.cost,0));
 }
 document.getElementById('startTrip').onclick=()=>{
- // Ask the browser for location access right here, at the moment of the click — this is
- // what makes the permission prompt appear, and the trip starts the instant it's granted.
- if(gpsEnabled && locationConsent && gpsPermission==='granted'){ startTripInternal(false); openLiveMeter('trip'); return; }
+ // Open the live instrument cluster immediately on Start. GPS permission is requested
+ // from the same user gesture, but the Sport/Classic meter is never blocked by the GPS fix.
+ openLiveMeter('trip');
+ if(gpsEnabled && locationConsent && gpsPermission==='granted'){
+   startTripInternal(false);
+   return;
+ }
  requestGPSPermission(()=>{ startTripInternal(false); openLiveMeter('trip'); });
 };
 document.getElementById('stopTrip').onclick=()=>finishTrip('manual');
