@@ -2433,7 +2433,7 @@ function openStartedTripMeter(){
  if(!modal) return;
  modal.classList.remove('meter-bottom-collapsed','meter-fullscreen-host');
  const collapseBtn=modal.querySelector('.meter-bottom-collapse-btn');
- if(collapseBtn) collapseBtn.style.display='none';
+ if(collapseBtn) collapseBtn.style.display='inline-flex';
  const bottom=modal.querySelector('.meter-bottom-content');
  if(bottom) bottom.style.display='flex';
  const hazardBtn=document.getElementById('meterHazardBtn');
@@ -2447,18 +2447,12 @@ function openStartedTripMeter(){
 }
 
 document.getElementById('startTrip').onclick=()=>{
- // Start the trip and open the complete Sport/Classic live meter from the same click.
- // The meter opens immediately; GPS permission/tracking continues independently.
+ // Start Trip is independent of GPS permission: the live meter must open on this click.
+ // GPS can then be enabled/disabled from the GPS button beside the Live Trip heading.
+ if(trip.running) return;
+ startTripInternal(false);
  openStartedTripMeter();
- if(gpsEnabled && locationConsent && gpsPermission==='granted'){
-   startTripInternal(false);
-   updateTripMeter(trip.points.at(-1)?.speed||0,trip.points.at(-1)?.acc);
-   return;
- }
- requestGPSPermission(()=>{
-   startTripInternal(false);
-   openStartedTripMeter();
- });
+ updateTripMeter(trip.points.at(-1)?.speed||0,trip.points.at(-1)?.acc);
 };
 document.getElementById('stopTrip').onclick=()=>finishTrip('manual');
 document.getElementById('tripPauseBtn').onclick=()=>{ toggleTripPause(); openLiveMeter('trip'); };
