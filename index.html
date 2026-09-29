@@ -3158,3 +3158,46 @@ function syncMeterNightMode(forceFlash=false){
  .classic-odo-instrument b{font-size:.92rem;}
 }
 </style>
+<style id="classic-meter-center-responsive-fix">
+/* Responsive Classic cluster alignment: keep the speedometer and inset RPM gauge on one true center axis. */
+#classicMeterShell .classic-gauges-row{align-items:center;}
+#classicMeterShell .classic-main-col{position:relative;display:flex;align-items:center;justify-content:flex-start;}
+#classicMeterShell .classic-dial-wrap.classic-dial-main{position:relative;left:auto;right:auto;margin-left:auto;margin-right:auto;}
+#classicMeterShell .classic-main-col > .classic-dial-wrap.classic-dial-sub{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  margin:0 !important;
+  z-index:5;
+  pointer-events:none;
+  width:clamp(78px,28%,190px) !important;
+  max-width:none !important;
+  aspect-ratio:1/1;
+}
+/* ODO sits exactly 10px above the speedometer needle hub, with the offset preserved on every screen size. */
+#classicMeterShell .classic-odo-instrument{
+  left:50%;
+  top:50%;
+  bottom:auto;
+  transform:translate(-50%,calc(-50% - 10px));
+  z-index:8 !important;
+  min-width:clamp(76px,22%,100px);
+  max-width:calc(100% - 24px);
+}
+#classicMeterShell .classic-odo-instrument b{font-size:clamp(.72rem,1.6vw,.88rem);}
+#classicMeterShell .classic-odo-instrument span{font-size:clamp(.42rem,1vw,.48rem);}
+#classicMeterShell .classic-odo-instrument em{font-size:clamp(.40rem,.9vw,.44rem);}
+@media(max-width:575.98px){
+  #classicMeterShell .classic-main-col > .classic-dial-wrap.classic-dial-sub{
+    width:min(38vw,125px) !important;
+  }
+  #classicMeterShell .classic-odo-instrument{min-width:74px;}
+}
+@media(min-width:576px) and (max-width:991.98px){
+  #classicMeterShell .classic-main-col > .classic-dial-wrap.classic-dial-sub{width:min(28%,145px) !important;}
+}
+@media(min-width:992px){
+  #classicMeterShell .classic-main-col > .classic-dial-wrap.classic-dial-sub{width:min(28%,190px) !important;}
+}
+</style>
