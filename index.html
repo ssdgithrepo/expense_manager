@@ -640,6 +640,35 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
   .classic-telltale.hazard-telltale.hazard-on,.meter-hazard-arrow.hazard-on{animation:none !important;}
 }
 </style>
+
+<style id="final-larger-classic-meter">
+/* Larger Classic meter and larger live-speed readout */
+.classic-meter-shell, #classicMeterShell {
+  width: min(96vw, 980px) !important;
+  max-width: 980px !important;
+  margin-left: auto !important; margin-right: auto !important;
+}
+.classic-meter-shell .classic-speedometer, #classicMeterShell .classic-speedometer {
+  width: min(92vw, 900px) !important;
+  max-width: 900px !important;
+  min-height: 0 !important;
+  margin-left: auto !important; margin-right: auto !important;
+}
+#classicMeterShell #meterDigital, #meterDigital {
+  font-size: clamp(4.4rem, 15vw, 8.5rem) !important;
+  line-height: .88 !important;
+  font-weight: 900 !important;
+  letter-spacing: -.045em !important;
+}
+@media (min-width: 768px){
+  #classicMeterShell #meterDigital, #meterDigital { font-size: clamp(5.5rem, 12vw, 9.5rem) !important; }
+}
+@media (max-width: 480px){
+  .classic-meter-shell, #classicMeterShell { width: 99vw !important; }
+  .classic-meter-shell .classic-speedometer, #classicMeterShell .classic-speedometer { width: 96vw !important; }
+  #classicMeterShell #meterDigital, #meterDigital { font-size: clamp(4.1rem, 19vw, 6.8rem) !important; }
+}
+</style>
 </head>
 <body>
 <div id="loginScreen" class="login-wrap d-flex align-items-center justify-content-center p-3">
