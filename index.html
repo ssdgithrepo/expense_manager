@@ -953,6 +953,11 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
        <div class="sport-digital-unit">RPM</div>
       </div>
      </div>
+     <div class="tach-info-panel" id="sportTachInfo">
+      <span><i class="bi bi-speedometer2"></i> TACHOMETER</span>
+      <b id="sportTachInfoRpm">0 RPM</b>
+      <em id="sportTachInfoLoad">Engine Load 0%</em>
+     </div>
      <div class="w-100 small text-secondary text-center" style="font-size:.62rem;opacity:.75">Automatic transmission — gear shifts on its own as speed changes. RPM is an inset sub-meter.</div>
      <div id="meterLeds" class="sport-led-row"></div>
      <div id="sportHazardIndicatorRow" class="meter-hazard-indicator-row" aria-live="polite">
@@ -986,7 +991,7 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
     <div class="classic-meter-shell" id="classicMeterShell">
      <div class="classic-telltale-row" id="classicTopTelltales"></div>
      <div class="classic-gauges-row">
-      <div class="classic-dial-col"><span class="classic-mini-label">H</span><div class="classic-mini-gauge"><div class="classic-mini-fill temp" id="classicTempFill"></div><div class="classic-mini-needle" id="classicTempNeedle"></div></div><span class="classic-mini-label">C</span></div>
+      <div class="classic-dial-col classic-temp-gauge-col"><div class="classic-mini-title"><i class="bi bi-thermometer-half"></i><span>TEMP</span></div><span class="classic-mini-label">H</span><div class="classic-mini-gauge"><div class="classic-mini-fill temp" id="classicTempFill"></div><div class="classic-mini-needle" id="classicTempNeedle"></div></div><span class="classic-mini-label">C</span></div>
       <div class="classic-main-col">
        <div class="classic-dial-wrap classic-dial-main">
         <svg id="classicSpeedoSvg" viewBox="0 0 200 200" aria-label="Speedometer gauge (main meter)"></svg>
@@ -997,12 +1002,17 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
         <svg id="classicTachSvg" viewBox="0 0 200 200" aria-label="RPM sub-gauge"></svg>
         <div class="classic-digital-overlay"><div class="classic-digital-value" id="classicRpmDigital">0</div><div class="classic-digital-unit">RPM x1000</div></div>
        </div>
+       <div class="tach-info-panel classic-tach-info" id="classicTachInfo">
+        <span><i class="bi bi-speedometer2"></i> TACHOMETER</span>
+        <b id="classicTachInfoRpm">0 RPM</b>
+        <em id="classicTachInfoLoad">Engine Load 0%</em>
+       </div>
        <div class="classic-gear-row-wrap">
         <div class="classic-gear-big" id="classicGearBig">N</div>
         <div class="classic-gear-row" id="classicGearRow"><span data-g="P">P</span><span data-g="R">R</span><span data-g="N" class="active">N</span><span data-g="D">D</span></div>
        </div>
       </div>
-      <div class="classic-dial-col"><span class="classic-mini-label">F</span><div class="classic-mini-gauge"><div class="classic-mini-fill fuel" id="classicFuelFill"></div><div class="classic-mini-needle" id="classicFuelNeedle"></div></div><span class="classic-mini-label">E</span></div>
+      <div class="classic-dial-col classic-fuel-gauge-col"><div class="classic-mini-title"><i id="classicFuelPumpIcon" class="bi bi-fuel-pump-fill"></i><span>FUEL</span></div><span class="classic-mini-label">F</span><div class="classic-mini-gauge"><div class="classic-mini-fill fuel" id="classicFuelFill"></div><div class="classic-mini-needle" id="classicFuelNeedle"></div></div><span class="classic-mini-label">E</span></div>
      </div>
      <div class="classic-info-panel">
       <div class="classic-info-top"><span><i class="bi bi-speedometer2"></i> INSTRUMENT INFO</span><span id="classicClockTime">--:--</span></div>
@@ -2008,6 +2018,17 @@ function syncClassicMeter(kind,speedKmh,accuracy){
  if(tf) tf.style.height=(classicVals.tempPct*100)+'%'; if(tn) tn.style.bottom=(classicVals.tempPct*100)+'%';
  const ff=document.getElementById('classicFuelFill'), fn=document.getElementById('classicFuelNeedle');
  if(ff) ff.style.height=(classicVals.fuelPct*100)+'%'; if(fn) fn.style.bottom=(classicVals.fuelPct*100)+'%';
+ const fuelCol=document.querySelector('.classic-fuel-gauge-col');
+ const lowFuel=Number(classicVals.fuelPct||0)<0.15;
+ if(fuelCol) fuelCol.classList.toggle('low-fuel',lowFuel);
+ const sr=document.getElementById('sportTachInfoRpm'), sl=document.getElementById('sportTachInfoLoad');
+ const cr=document.getElementById('classicTachInfoRpm'), cl=document.getElementById('classicTachInfoLoad');
+ const currentRpm=kind==='trip'?Math.round(estimateEngineRpm(speedKmh,vehicle(document.getElementById('tripVehicle').value))||0):0;
+ const currentLoad=kind==='trip'?(classicVals.engineLoad||0):0;
+ if(sr) sr.textContent=currentRpm.toLocaleString('en-IN')+' RPM';
+ if(sl) sl.textContent='Engine Load '+currentLoad+'%';
+ if(cr) cr.textContent=currentRpm.toLocaleString('en-IN')+' RPM';
+ if(cl) cl.textContent='Engine Load '+currentLoad+'%';
  renderClassicInfoBody(); renderClassicStatBar(); renderClassicTelltales();
 }
 function setMeterStyle(style){
@@ -3019,6 +3040,40 @@ function syncMeterNightMode(forceFlash=false){
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncMeterNightMode(false)});
 })();
 </script>
+
+<style id="srd-tach-fuel-final">
+/* Vehicle-style side gauges and tachometer information. */
+.classic-gauges-row{display:flex!important;flex-wrap:nowrap!important;align-items:center!important;justify-content:center!important;gap:clamp(8px,2vw,24px)!important;width:100%;}
+.classic-dial-col{flex:0 0 clamp(28px,4vw,42px)!important;align-self:center!important;}
+.classic-mini-title{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;margin-bottom:3px;font-size:.55rem;letter-spacing:.08em;color:#94a3b8;font-weight:800;}
+.classic-mini-title i{font-size:.82rem;color:#cbd5e1;}
+.classic-mini-gauge{width:clamp(20px,2.4vw,30px)!important;height:clamp(130px,17vw,210px)!important;}
+.classic-fuel-gauge-col .classic-mini-title i{color:#fbbf24;}
+.classic-fuel-gauge-col .classic-mini-gauge{box-shadow:inset 0 0 10px rgba(251,191,36,.08),0 0 8px rgba(251,191,36,.05);}
+.classic-fuel-gauge-col .classic-mini-fill.fuel{transition:height .25s linear,background .2s ease,box-shadow .2s ease;}
+.classic-fuel-gauge-col.low-fuel .classic-mini-title i,.classic-fuel-gauge-col.low-fuel .classic-mini-label{color:#ef4444!important;}
+.classic-fuel-gauge-col.low-fuel .classic-mini-gauge{border-color:#ef4444;box-shadow:0 0 12px rgba(239,68,68,.35),inset 0 0 12px rgba(239,68,68,.10);}
+.classic-fuel-gauge-col.low-fuel .classic-mini-fill.fuel{background:#ef4444!important;box-shadow:0 0 10px rgba(239,68,68,.8);}
+.classic-fuel-gauge-col.low-fuel .classic-mini-needle{background:#ef4444!important;box-shadow:0 0 7px rgba(239,68,68,.9);}
+.classic-fuel-gauge-col.low-fuel #classicFuelPumpIcon{animation:fuelPumpBlink .72s steps(2,end) infinite;}
+@keyframes fuelPumpBlink{50%{opacity:.25;filter:drop-shadow(0 0 8px #ef4444);}}
+.tach-info-panel{width:min(92%,620px);margin:5px auto 0;padding:6px 10px;border:1px solid rgba(148,163,184,.16);border-radius:10px;background:linear-gradient(180deg,rgba(15,23,42,.88),rgba(2,6,23,.72));display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:inset 0 1px 0 rgba(255,255,255,.06);font-size:.68rem;}
+.tach-info-panel span{font-weight:800;letter-spacing:.08em;color:#94a3b8;}
+.tach-info-panel span i{margin-right:4px;color:#60a5fa;}
+.tach-info-panel b{font-family:'Courier New',monospace;color:#f8fafc;font-size:.78rem;}
+.tach-info-panel em{font-style:normal;color:#64748b;}
+.classic-tach-info{width:min(80%,260px);margin:-3px auto 4px;}
+@media(max-width:575.98px){
+ .classic-gauges-row{gap:6px!important;}
+ .classic-dial-col{flex-basis:24px!important;}
+ .classic-mini-gauge{width:18px!important;height:105px!important;}
+ .classic-mini-title{font-size:.46rem;}
+ .classic-mini-title i{font-size:.68rem;}
+ .tach-info-panel{font-size:.58rem;gap:6px;padding:5px 6px;}
+ .tach-info-panel b{font-size:.66rem;}
+ .classic-tach-info{width:76%;}
+}
+</style>
 </body>
 </html>
 <style>
