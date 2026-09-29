@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SRD DriveLedger — Expense & GPS Tracker</title>
+<title>SRD DriveLedger — Smart Drive, Expense & Live GPS</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <style>
@@ -646,7 +646,7 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
   <div class="card login-card p-4 p-md-5">
     <div class="text-center mb-4">
       <div class="display-6 text-primary"><i class="bi bi-speedometer2"></i></div>
-      <h2 class="brand mb-1">SRD DriveLedger</h2>
+      <div class="srd-brand-lockup" aria-label="SRD DriveLedger"><svg class="srd-brand-mark" viewBox="0 0 64 64" role="img" aria-label="SRD DriveLedger logo"><defs><linearGradient id="srdLogoRing" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#38bdf8"/><stop offset=".55" stop-color="#60a5fa"/><stop offset="1" stop-color="#22c55e"/></linearGradient></defs><circle cx="32" cy="32" r="29" fill="#07111f" stroke="url(#srdLogoRing)" stroke-width="3"/><path d="M13 37a20 20 0 0 1 38 0" fill="none" stroke="#e2e8f0" stroke-width="3.5" stroke-linecap="round"/><path d="M32 35 43 22" fill="none" stroke="#f8fafc" stroke-width="4" stroke-linecap="round"/><circle cx="32" cy="35" r="4.5" fill="#38bdf8" stroke="#fff" stroke-width="2"/><path d="M20 43h24" stroke="#22c55e" stroke-width="3" stroke-linecap="round"/><circle cx="19" cy="43" r="2" fill="#22c55e"/><circle cx="45" cy="43" r="2" fill="#22c55e"/></svg><div><h2 class="brand mb-0">SRD DriveLedger</h2><div class="srd-brand-tagline">Smart Drive • Expenses • Live GPS</div></div></div>
       <div class="muted">Daily Expenses • Vehicle • GPS Trips</div>
     </div>
     <div class="alert alert-info py-2"><i class="bi bi-info-circle"></i> Demo mode is enabled. No Google Sheet is required for testing.</div>
@@ -884,7 +884,7 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
 <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Business</th><th>Username</th><th>Plan</th><th>Expiry</th><th>Status</th><th></th></tr></thead><tbody id="userRows"></tbody></table></div>
 </div></section>
 
-<div class="text-center mt-4 footer">© 2026 SRD Sons Tech • SRD DriveLedger • Demo application</div>
+<div class="text-center mt-4 footer">© 2026 SRD Sons Tech • SRD DriveLedger • Smart Drive, Expense & Live GPS</div>
 </main></div></div></div>
 
 <!-- Expense Modal -->
@@ -932,7 +932,7 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
    <div class="modal-body text-center pt-2">
     <div class="sport-meter-shell">
      <div class="sport-meter-top">
-      <span class="sport-meter-brand">SRD DRIVELEDGER • SPORT CLUSTER</span>
+      <span class="sport-meter-brand">SRD DRIVELEDGER • SMART DRIVE CLUSTER</span>
       <span id="meterGear" class="sport-meter-gear"><i id="meterVehicleIcon" class="bi bi-speedometer2 meter-context-icon"></i><span id="meterGearText">READY</span></span>
      </div>
      <div class="mb-1 d-flex align-items-center flex-wrap gap-2"><span id="meterStatusBadge" class="badge text-bg-success">Tracking</span> <span class="meter-night-indicator" id="meterNightIndicator"><i class="bi bi-moon-stars-fill"></i> Night</span> <button type="button" id="meterAddExpenseBtn" class="btn btn-sm btn-outline-warning d-none ms-auto" onclick="openMeterExpense()" title="Log fuel or another expense without leaving the trip"><i class="bi bi-receipt-cutoff"></i> Add Expense</button></div>
@@ -952,11 +952,6 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
        <div id="meterSubDigital" class="sport-digital-rpm">0</div>
        <div class="sport-digital-unit">RPM</div>
       </div>
-     </div>
-     <div class="tach-info-panel" id="sportTachInfo">
-      <span><i class="bi bi-speedometer2"></i> TACHOMETER</span>
-      <b id="sportTachInfoRpm">0 RPM</b>
-      <em id="sportTachInfoLoad">Engine Load 0%</em>
      </div>
      <div class="w-100 small text-secondary text-center" style="font-size:.62rem;opacity:.75">Automatic transmission — gear shifts on its own as speed changes. RPM is an inset sub-meter.</div>
      <div id="meterLeds" class="sport-led-row"></div>
@@ -1001,11 +996,6 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
        <div class="classic-dial-wrap classic-dial-sub">
         <svg id="classicTachSvg" viewBox="0 0 200 200" aria-label="RPM sub-gauge"></svg>
         <div class="classic-digital-overlay"><div class="classic-digital-value" id="classicRpmDigital">0</div><div class="classic-digital-unit">RPM x1000</div></div>
-       </div>
-       <div class="tach-info-panel classic-tach-info" id="classicTachInfo">
-        <span><i class="bi bi-speedometer2"></i> TACHOMETER</span>
-        <b id="classicTachInfoRpm">0 RPM</b>
-        <em id="classicTachInfoLoad">Engine Load 0%</em>
        </div>
        <div class="classic-gear-row-wrap">
         <div class="classic-gear-big" id="classicGearBig">N</div>
@@ -3074,6 +3064,7 @@ function syncMeterNightMode(forceFlash=false){
  .classic-tach-info{width:76%;}
 }
 </style>
+<style id="srd-brand-odo-finish">.srd-brand-lockup{display:flex;align-items:center;gap:12px;margin-bottom:4px}.srd-brand-mark{width:58px;height:58px;flex:0 0 auto;filter:drop-shadow(0 0 8px rgba(56,189,248,.18))}.srd-brand-tagline{font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:#64748b;font-weight:800;margin-top:2px}.meter-odo-instrument,.classic-odo-instrument{z-index:8!important;background:linear-gradient(180deg,rgba(7,17,31,.96),rgba(2,6,23,.96));border:1px solid rgba(148,163,184,.35);box-shadow:0 0 10px rgba(56,189,248,.10),inset 0 1px 0 rgba(255,255,255,.10)}.meter-odo-instrument b,.classic-odo-instrument b{font-family:"Courier New",monospace;font-variant-numeric:tabular-nums;letter-spacing:.08em;color:#e2f3ff;text-shadow:0 0 7px rgba(56,189,248,.35)}#liveMeterModal.night-meter-mode .meter-odo-instrument,#liveMeterModal.night-meter-mode .classic-odo-instrument{border-color:rgba(96,165,250,.55);box-shadow:0 0 12px rgba(56,189,248,.30),inset 0 0 12px rgba(30,64,175,.18)}#liveMeterModal.night-meter-mode .meter-odo-instrument b,#liveMeterModal.night-meter-mode .classic-odo-instrument b{color:#bde9ff;text-shadow:0 0 5px rgba(56,189,248,.75),0 0 12px rgba(56,189,248,.35)}@media(max-width:575.98px){.srd-brand-lockup{gap:8px}.srd-brand-mark{width:48px;height:48px}.srd-brand-tagline{font-size:.56rem}}</style>
 </body>
 </html>
 <style>
@@ -3084,25 +3075,25 @@ function syncMeterNightMode(forceFlash=false){
 .sport-meter-shell{max-width:none;width:100%;}
 .sport-dial{width:min(94vw,860px);max-width:860px;}
 .sport-dial.sport-dial-sub{width:min(42vw,250px);max-width:250px;}
-.meter-odo-instrument{left:50%;top:64%;bottom:auto;transform:translate(-50%,-50%);min-width:128px;min-height:34px;padding:5px 14px;border-radius:7px;}
+.meter-odo-instrument{left:50%;top:62%;bottom:auto;transform:translate(-50%,-50%);min-width:128px;min-height:34px;padding:5px 14px;border-radius:7px;}
 .meter-odo-instrument b{font-size:1.02rem;}
 .classic-meter-shell{max-width:none;width:100%;}
 .classic-dial-wrap.classic-dial-main{width:clamp(250px,42vw,420px);}
-.classic-odo-instrument{left:50%;top:59%;bottom:auto;transform:translate(-50%,-50%);min-width:112px;min-height:34px;padding:5px 12px;border-radius:7px;}
+.classic-odo-instrument{left:50%;top:47%;bottom:auto;transform:translate(-50%,-50%);min-width:112px;min-height:34px;padding:5px 12px;border-radius:7px;}
 .classic-odo-instrument b{font-size:1rem;}
 @media(max-width:767.98px){
  .sport-dial{width:96vw;max-width:860px;}
  .sport-dial.sport-dial-sub{width:min(48vw,230px);}
- .meter-odo-instrument{top:64%;min-width:116px;}
+ .meter-odo-instrument{top:62%;min-width:116px;}
  .classic-dial-wrap.classic-dial-main{width:min(92vw,390px);}
- .classic-odo-instrument{top:59%;min-width:106px;}
+ .classic-odo-instrument{top:47%;min-width:106px;}
 }
 @media(max-width:420px){
  .sport-dial{width:97vw;}
- .meter-odo-instrument{top:63%;min-width:108px;padding:4px 10px;}
+ .meter-odo-instrument{top:62%;min-width:108px;padding:4px 10px;}
  .meter-odo-instrument b{font-size:.94rem;}
  .classic-dial-wrap.classic-dial-main{width:94vw;}
- .classic-odo-instrument{top:58.5%;min-width:100px;padding:4px 9px;}
+ .classic-odo-instrument{top:47%;min-width:100px;padding:4px 9px;}
  .classic-odo-instrument b{font-size:.92rem;}
 }
 </style>
