@@ -4438,3 +4438,127 @@ setClassicOnlyMeter();
  .classic-digital-value#classicSpeedDigital{font-size:clamp(1.7rem,7.5vw,2.35rem)!important;}
 }
 </style>
+
+<style id="srd-meter-enlarge-final">
+/* ==========================================================================
+   ENLARGED CLASSIC METER (additive, CSS only — no JavaScript / IDs changed)
+   Everything inside the cluster is sized from ONE variable, --cw (= dial size),
+   so the dial, live KM/H, ODO, RPM sub-meter, gear box and side gauges always
+   scale together and keep their placement on every screen size.
+   Vertical bands inside the dial (fractions of dial height):
+     0.22  live speed (KM/H)   0.40  ODO   0.70  RPM sub-meter   0.89  gear box
+   ========================================================================== */
+#liveMeterModal #classicMeterShell{
+  --W:min(96vw,1000px);                      /* fallback when container units are unavailable */
+  --dmax:780px;                              /* largest dial size */
+  --vhoff:200px;                             /* space kept for header when limiting by height */
+  --gw:clamp(28px,calc(var(--W)*.05),58px);  /* side-gauge column width */
+  --cw:min(calc((var(--W) - 2*var(--gw) - 16px)*1.18),var(--dmax),max(300px,calc(100vh - var(--vhoff))));
+  width:100%!important;max-width:1000px!important;
+  margin-left:auto!important;margin-right:auto!important;
+  box-sizing:border-box!important;padding-left:0!important;padding-right:0!important;
+}
+@supports (container-type:inline-size){
+  #liveMeterModal #classicMeterShell{container-type:inline-size;--W:100cqw;}
+}
+/* Full screen: allow an even bigger cluster */
+#liveMeterModal.meter-fullscreen-host #classicMeterShell{max-width:1300px!important;--dmax:1000px;--vhoff:150px;}
+#liveMeterModal:fullscreen #classicMeterShell{max-width:1300px!important;--dmax:1000px;--vhoff:150px;}
+
+/* ---- gauge stage ---- */
+#liveMeterModal #classicMeterShell .classic-gauges-row{
+  display:block!important;position:relative!important;width:100%!important;
+  height:calc(var(--cw)*.93)!important;min-height:0!important;
+  margin:4px 0 0!important;padding:0!important;overflow:visible!important;
+}
+#liveMeterModal #classicMeterShell .classic-main-col{
+  position:relative!important;display:block!important;width:100%!important;height:100%!important;
+  min-height:0!important;margin:0!important;padding:0!important;
+}
+#liveMeterModal #classicMeterShell .classic-dial-wrap.classic-dial-main{
+  position:absolute!important;left:50%!important;top:calc(var(--cw)*-.06)!important;
+  transform:translateX(-50%)!important;
+  width:var(--cw)!important;height:var(--cw)!important;max-width:none!important;max-height:none!important;
+  aspect-ratio:1/1;margin:0!important;z-index:2!important;overflow:visible!important;
+}
+
+/* ---- 1) live KM/H speed: large, centred in the upper part of the dial ---- */
+#liveMeterModal #classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-digital-overlay{
+  position:absolute!important;left:50%!important;top:calc(var(--cw)*.22)!important;bottom:auto!important;
+  transform:translateX(-50%)!important;width:max-content!important;min-width:0!important;
+  text-align:center!important;line-height:1!important;z-index:70!important;pointer-events:none!important;
+}
+#liveMeterModal #classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-digital-overlay .classic-digital-value{
+  display:block!important;font-size:calc(var(--cw)*.17)!important;line-height:.8!important;
+  letter-spacing:-.04em!important;margin:0!important;
+}
+#liveMeterModal #classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-digital-overlay .classic-digital-unit{
+  display:block!important;margin-top:calc(var(--cw)*.004)!important;
+  font-size:calc(var(--cw)*.032)!important;line-height:1!important;
+  letter-spacing:.16em!important;padding-left:.16em!important;
+}
+
+/* ---- 2) ODO window: directly under the speed, just above the needle hub ---- */
+#liveMeterModal #classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-odo-instrument{
+  position:absolute!important;left:50%!important;top:calc(var(--cw)*.40)!important;bottom:auto!important;
+  transform:translateX(-50%)!important;
+  height:calc(var(--cw)*.056)!important;min-width:calc(var(--cw)*.31)!important;max-width:none!important;
+  padding:0 calc(var(--cw)*.025)!important;gap:calc(var(--cw)*.01)!important;
+  align-items:center!important;box-sizing:border-box!important;
+  border-radius:calc(var(--cw)*.014)!important;z-index:75!important;
+}
+#liveMeterModal #classicMeterShell .classic-odo-instrument b{font-size:calc(var(--cw)*.034)!important;line-height:1!important;}
+#liveMeterModal #classicMeterShell .classic-odo-instrument span,
+#liveMeterModal #classicMeterShell .classic-odo-instrument em{font-size:max(6px,calc(var(--cw)*.017))!important;line-height:1!important;}
+
+/* ---- 3) RPM sub-meter: enlarged with the dial, inset in the lower part ---- */
+#liveMeterModal #classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-dial-wrap.classic-dial-sub{
+  position:absolute!important;left:50%!important;top:calc(var(--cw)*.70)!important;bottom:auto!important;
+  transform:translate(-50%,-50%)!important;
+  width:calc(var(--cw)*.32)!important;height:calc(var(--cw)*.32)!important;
+  min-width:0!important;max-width:none!important;max-height:none!important;aspect-ratio:1/1;
+  margin:0!important;z-index:40!important;overflow:hidden!important;border-radius:50%!important;pointer-events:none!important;
+}
+#liveMeterModal #classicMeterShell .classic-dial-wrap.classic-dial-sub > .classic-digital-overlay{
+  position:absolute!important;left:50%!important;top:58%!important;bottom:auto!important;
+  transform:translate(-50%,-50%)!important;width:max-content!important;line-height:1!important;z-index:8!important;
+}
+#liveMeterModal #classicMeterShell .classic-dial-wrap.classic-dial-sub .classic-digital-value{
+  font-size:calc(var(--cw)*.032)!important;line-height:.9!important;white-space:nowrap!important;
+}
+#liveMeterModal #classicMeterShell .classic-dial-wrap.classic-dial-sub .classic-digital-unit{
+  display:block!important;margin-top:2px!important;font-size:max(5.5px,calc(var(--cw)*.0135))!important;white-space:nowrap!important;
+}
+
+/* ---- 4) GEAR box: much larger, in its own band under the RPM sub-meter ---- */
+#liveMeterModal #classicMeterShell .classic-main-col > .classic-gear-row-wrap{
+  position:absolute!important;left:50%!important;top:calc(var(--cw)*.83)!important;bottom:auto!important;
+  transform:translate(-50%,-50%)!important;
+  width:calc(var(--cw)*.36)!important;min-width:0!important;box-sizing:border-box!important;
+  padding:calc(var(--cw)*.008) calc(var(--cw)*.02) calc(var(--cw)*.012)!important;
+  border-radius:calc(var(--cw)*.03)!important;margin:0!important;z-index:90!important;
+}
+#liveMeterModal #classicMeterShell .classic-main-col > .classic-gear-row-wrap .classic-gear-big{
+  font-size:calc(var(--cw)*.085)!important;line-height:1!important;min-height:1em!important;margin:0!important;
+}
+#liveMeterModal #classicMeterShell .classic-main-col > .classic-gear-row-wrap .classic-gear-row{
+  font-size:calc(var(--cw)*.034)!important;gap:calc(var(--cw)*.035)!important;
+  margin-top:calc(var(--cw)*.004)!important;line-height:1.1!important;
+}
+#liveMeterModal #classicMeterShell .classic-main-col > .classic-gear-row-wrap .classic-gear-row span{
+  min-width:calc(var(--cw)*.04)!important;min-height:0!important;
+}
+
+/* ---- side TEMP / FUEL gauges: hug the dial and scale with it ---- */
+#liveMeterModal #classicMeterShell .classic-temp-gauge-col,
+#liveMeterModal #classicMeterShell .classic-fuel-gauge-col{
+  position:absolute!important;top:calc(var(--cw)*.44)!important;transform:translateY(-50%)!important;
+  width:var(--gw)!important;min-width:0!important;z-index:40!important;
+}
+#liveMeterModal #classicMeterShell .classic-temp-gauge-col{left:max(2px,calc(50% - var(--cw)*.4125 - var(--gw) - 10px))!important;right:auto!important;}
+#liveMeterModal #classicMeterShell .classic-fuel-gauge-col{right:max(2px,calc(50% - var(--cw)*.4125 - var(--gw) - 10px))!important;left:auto!important;}
+#liveMeterModal #classicMeterShell .classic-mini-gauge{width:calc(var(--gw)*.6)!important;height:calc(var(--cw)*.36)!important;}
+#liveMeterModal #classicMeterShell .classic-mini-title{font-size:max(.5rem,calc(var(--cw)*.016))!important;}
+#liveMeterModal #classicMeterShell .classic-mini-title i{font-size:max(.8rem,calc(var(--cw)*.036))!important;}
+#liveMeterModal #classicMeterShell .classic-mini-label{font-size:max(.55rem,calc(var(--cw)*.018))!important;}
+</style>
