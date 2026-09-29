@@ -3024,3 +3024,30 @@ function syncMeterNightMode(forceFlash=false){
 <style>
 #tripMap,#gpsInfo,#browserAskText,#browserPermissionBadge,#permissionState,#locationHelp,#retryLocationBtn,#classicGpsBars{display:none!important;}
 </style>
+<style id="srd-odo-final-layout">
+/* Final ODO instrument placement: keep the live odometer inside the main speed dial only. */
+.sport-meter-shell{max-width:none;width:100%;}
+.sport-dial{width:min(94vw,860px);max-width:860px;}
+.sport-dial.sport-dial-sub{width:min(42vw,250px);max-width:250px;}
+.meter-odo-instrument{left:50%;top:64%;bottom:auto;transform:translate(-50%,-50%);min-width:128px;min-height:34px;padding:5px 14px;border-radius:7px;}
+.meter-odo-instrument b{font-size:1.02rem;}
+.classic-meter-shell{max-width:none;width:100%;}
+.classic-dial-wrap.classic-dial-main{width:clamp(250px,42vw,420px);}
+.classic-odo-instrument{left:50%;top:59%;bottom:auto;transform:translate(-50%,-50%);min-width:112px;min-height:34px;padding:5px 12px;border-radius:7px;}
+.classic-odo-instrument b{font-size:1rem;}
+@media(max-width:767.98px){
+ .sport-dial{width:96vw;max-width:860px;}
+ .sport-dial.sport-dial-sub{width:min(48vw,230px);}
+ .meter-odo-instrument{top:64%;min-width:116px;}
+ .classic-dial-wrap.classic-dial-main{width:min(92vw,390px);}
+ .classic-odo-instrument{top:59%;min-width:106px;}
+}
+@media(max-width:420px){
+ .sport-dial{width:97vw;}
+ .meter-odo-instrument{top:63%;min-width:108px;padding:4px 10px;}
+ .meter-odo-instrument b{font-size:.94rem;}
+ .classic-dial-wrap.classic-dial-main{width:94vw;}
+ .classic-odo-instrument{top:58.5%;min-width:100px;padding:4px 9px;}
+ .classic-odo-instrument b{font-size:.92rem;}
+}
+</style>
