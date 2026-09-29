@@ -3544,3 +3544,279 @@ function syncMeterNightMode(forceFlash=false){
 </style>
 
 
+
+<style id="srd-final-meter-no-overlap-v2">
+/* SRD DriveLedger final instrument-cluster geometry.
+   One final responsive layer intentionally overrides earlier layout patches. */
+
+/* ---------- SPORT ---------- */
+#liveMeterModal .sport-meter-shell{
+  position:relative!important;
+  width:100%!important;
+  max-width:100%!important;
+  overflow:visible!important;
+}
+#liveMeterModal .sport-meter-shell > .sport-dial:first-of-type{
+  position:relative!important;
+  left:auto!important;right:auto!important;
+  top:auto!important;bottom:auto!important;
+  width:min(100%,760px)!important;
+  max-width:760px!important;
+  margin:0 auto!important;
+  aspect-ratio:2/1.08!important;
+  overflow:visible!important;
+  z-index:1!important;
+}
+#liveMeterModal .sport-meter-shell > .sport-dial:first-of-type > svg{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;height:100%!important;
+  z-index:1!important;
+  overflow:visible!important;
+}
+/* Digital speed: upper-middle zone. */
+#liveMeterModal .sport-meter-shell > .sport-dial:first-of-type > .sport-digital{
+  position:absolute!important;
+  left:50%!important;
+  top:31%!important;
+  transform:translate(-50%,-50%)!important;
+  width:auto!important;
+  min-width:96px!important;
+  z-index:30!important;
+  pointer-events:none!important;
+}
+#liveMeterModal .sport-meter-shell > .sport-dial:first-of-type > .sport-digital .sport-digital-speed{
+  font-size:clamp(2rem,7vw,4rem)!important;
+  line-height:.9!important;
+}
+#liveMeterModal .sport-meter-shell > .sport-dial:first-of-type > .sport-digital .sport-digital-unit{
+  display:block!important;
+  margin-top:4px!important;
+  font-size:clamp(.52rem,1.3vw,.72rem)!important;
+  letter-spacing:.18em!important;
+}
+/* ODO: dedicated band between KM/H and RPM. */
+#liveMeterModal .sport-meter-shell > .sport-dial:first-of-type > .meter-odo-instrument{
+  position:absolute!important;
+  left:50%!important;
+  top:48%!important;
+  bottom:auto!important;
+  transform:translate(-50%,-50%)!important;
+  min-width:clamp(92px,18%,118px)!important;
+  min-height:31px!important;
+  padding:4px 9px!important;
+  z-index:31!important;
+  white-space:nowrap!important;
+  pointer-events:none!important;
+}
+#liveMeterModal .sport-meter-shell > .sport-dial:first-of-type > .sport-gear-pill{
+  position:absolute!important;
+  right:7%!important;
+  top:52%!important;
+  bottom:auto!important;
+  z-index:32!important;
+}
+/* RPM: small lower inset, never occupying the speed/ODO band. */
+#liveMeterModal .sport-meter-shell > .sport-dial.sport-dial-sub{
+  position:absolute!important;
+  left:50%!important;
+  top:76%!important;
+  transform:translate(-50%,-50%)!important;
+  width:clamp(128px,29%,235px)!important;
+  max-width:235px!important;
+  aspect-ratio:2/1.08!important;
+  height:auto!important;
+  margin:0!important;
+  padding:0!important;
+  z-index:20!important;
+  pointer-events:none!important;
+  overflow:visible!important;
+  border-radius:50%!important;
+}
+#liveMeterModal .sport-meter-shell > .sport-dial.sport-dial-sub > svg{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;height:100%!important;
+  z-index:1!important;
+  overflow:visible!important;
+}
+#liveMeterModal .sport-meter-shell > .sport-dial.sport-dial-sub > .sport-digital{
+  position:absolute!important;
+  left:50%!important;
+  top:55%!important;
+  transform:translate(-50%,-50%)!important;
+  z-index:10!important;
+  min-width:55px!important;
+}
+#liveMeterModal .sport-meter-shell > .sport-dial.sport-dial-sub .sport-digital-rpm{
+  font-size:clamp(.8rem,2.8vw,1.25rem)!important;
+  line-height:.92!important;
+}
+#liveMeterModal .sport-meter-shell > .sport-dial.sport-dial-sub .sport-digital-unit{
+  font-size:clamp(.4rem,.9vw,.56rem)!important;
+  margin-top:2px!important;
+}
+/* Keep everything after the cluster outside the gauge footprint. */
+#liveMeterModal .sport-meter-shell > .sport-dial.sport-dial-sub + .w-100,
+#liveMeterModal .sport-meter-shell > .sport-led-row,
+#liveMeterModal .sport-meter-shell > .meter-hazard-indicator-row,
+#liveMeterModal .sport-meter-shell > .sport-readouts,
+#liveMeterModal .sport-meter-shell > .sport-subgrid,
+#liveMeterModal .sport-meter-shell > .meter-stats{
+  position:relative!important;
+  z-index:50!important;
+}
+#liveMeterModal .sport-meter-shell > .sport-dial.sport-dial-sub + .w-100{
+  margin-top:2px!important;
+}
+
+/* ---------- CLASSIC ---------- */
+#classicMeterShell .classic-gauges-row{
+  position:relative!important;
+  display:block!important;
+  width:100%!important;
+  min-height:clamp(270px,58vw,560px)!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:visible!important;
+}
+#classicMeterShell .classic-main-col{
+  position:relative!important;
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  min-height:inherit!important;
+  margin:0!important;
+  padding:0!important;
+}
+#classicMeterShell .classic-dial-wrap.classic-dial-main{
+  position:absolute!important;
+  left:50%!important;
+  top:50%!important;
+  transform:translate(-50%,-50%)!important;
+  width:clamp(250px,42vw,420px)!important;
+  max-width:calc(100% - 82px)!important;
+  aspect-ratio:1/1!important;
+  margin:0!important;
+  z-index:2!important;
+}
+/* Classic digital speed sits high enough to remain clear of ODO. */
+#classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-digital-overlay{
+  z-index:20!important;
+}
+/* ODO is a dedicated center band, exactly 10px above the needle hub. */
+#classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-odo-instrument{
+  position:absolute!important;
+  left:50%!important;
+  top:50%!important;
+  bottom:auto!important;
+  transform:translate(-50%,calc(-50% - 10px))!important;
+  z-index:25!important;
+  min-width:clamp(78px,22%,112px)!important;
+  min-height:31px!important;
+  white-space:nowrap!important;
+  pointer-events:none!important;
+}
+/* Classic RPM is a genuinely smaller inset sub-meter in the lower dial area. */
+#classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-dial-wrap.classic-dial-sub{
+  position:absolute!important;
+  left:50%!important;
+  top:75%!important;
+  bottom:auto!important;
+  transform:translate(-50%,-50%)!important;
+  width:34%!important;
+  max-width:145px!important;
+  min-width:76px!important;
+  aspect-ratio:1/1!important;
+  height:auto!important;
+  margin:0!important;
+  z-index:15!important;
+  pointer-events:none!important;
+  overflow:hidden!important;
+  border-radius:50%!important;
+}
+#classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-dial-wrap.classic-dial-sub .classic-digital-overlay{
+  z-index:16!important;
+  font-size:.43em!important;
+}
+#classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-dial-wrap.classic-dial-sub .classic-digital-value{
+  font-size:.78rem!important;
+}
+#classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-dial-wrap.classic-dial-sub .classic-digital-unit{
+  font-size:.38rem!important;
+}
+/* Side gauges stay in their own columns and can never sit over the main dial. */
+#classicMeterShell .classic-temp-gauge-col,
+#classicMeterShell .classic-fuel-gauge-col{
+  position:absolute!important;
+  top:50%!important;
+  transform:translateY(-50%)!important;
+  width:clamp(30px,5vw,58px)!important;
+  min-width:30px!important;
+  z-index:40!important;
+}
+#classicMeterShell .classic-temp-gauge-col{left:clamp(2px,1vw,16px)!important;}
+#classicMeterShell .classic-fuel-gauge-col{right:clamp(2px,1vw,16px)!important;}
+#classicMeterShell .classic-gear-row-wrap{
+  position:absolute!important;
+  left:50%!important;
+  bottom:clamp(0px,1vw,8px)!important;
+  transform:translateX(-50%)!important;
+  z-index:45!important;
+  margin:0!important;
+  white-space:nowrap!important;
+}
+#classicMeterShell .meter-fuel-alert,
+#classicMeterShell .classic-info-top,
+#classicMeterShell .classic-readouts,
+#classicMeterShell .classic-subgrid,
+#classicMeterShell .classic-stats{
+  position:relative!important;
+  z-index:60!important;
+}
+
+/* ---------- RESPONSIVE SAFETY ---------- */
+@media(max-width:575.98px){
+  #liveMeterModal .sport-meter-shell > .sport-dial:first-of-type{
+    width:100%!important;
+    aspect-ratio:2/1.12!important;
+  }
+  #liveMeterModal .sport-meter-shell > .sport-dial:first-of-type > .sport-digital{top:28%!important;}
+  #liveMeterModal .sport-meter-shell > .sport-dial:first-of-type > .meter-odo-instrument{top:45%!important;min-width:88px!important;}
+  #liveMeterModal .sport-meter-shell > .sport-dial.sport-dial-sub{
+    width:min(42vw,155px)!important;
+    top:76%!important;
+  }
+  #liveMeterModal .sport-meter-shell > .sport-dial:first-of-type > .sport-gear-pill{
+    right:4%!important;
+    top:48%!important;
+  }
+  #classicMeterShell .classic-gauges-row{min-height:clamp(245px,72vw,345px)!important;}
+  #classicMeterShell .classic-dial-wrap.classic-dial-main{
+    width:min(88vw,330px)!important;
+    max-width:calc(100% - 64px)!important;
+  }
+  #classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-dial-wrap.classic-dial-sub{
+    width:31%!important;
+    min-width:72px!important;
+    top:75%!important;
+  }
+  #classicMeterShell .classic-temp-gauge-col,
+  #classicMeterShell .classic-fuel-gauge-col{width:25px!important;}
+  #classicMeterShell .classic-temp-gauge-col{left:2px!important;}
+  #classicMeterShell .classic-fuel-gauge-col{right:2px!important;}
+}
+@media(min-width:576px) and (max-width:991.98px){
+  #liveMeterModal .sport-meter-shell > .sport-dial:first-of-type{width:min(100%,620px)!important;}
+  #liveMeterModal .sport-meter-shell > .sport-dial.sport-dial-sub{width:clamp(135px,31%,205px)!important;top:76%!important;}
+  #classicMeterShell .classic-gauges-row{min-height:clamp(300px,52vw,450px)!important;}
+  #classicMeterShell .classic-dial-wrap.classic-dial-main{width:min(52vw,390px)!important;}
+  #classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-dial-wrap.classic-dial-sub{width:31%!important;top:75%!important;}
+}
+@media(min-width:992px){
+  #liveMeterModal .sport-meter-shell > .sport-dial.sport-dial-sub{width:clamp(155px,28%,230px)!important;top:76%!important;}
+  #classicMeterShell .classic-gauges-row{min-height:clamp(350px,42vw,560px)!important;}
+  #classicMeterShell .classic-dial-wrap.classic-dial-main{width:min(42vw,420px)!important;}
+  #classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-dial-wrap.classic-dial-sub{width:32%!important;top:75%!important;}
+}
+</style>
