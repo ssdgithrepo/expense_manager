@@ -1111,7 +1111,26 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
  </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script id="bootstrapRuntimeLoader">
+/* Bootstrap JS is non-critical for first paint/login. Load it asynchronously so a slow CDN
+   cannot block the application's own startup code. */
+(function(){
+  const src='https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js';
+  let loading=null;
+  function load(){
+    if(window.bootstrap) return Promise.resolve(window.bootstrap);
+    if(loading) return loading;
+    loading=new Promise((resolve,reject)=>{
+      const s=document.createElement('script'); s.src=src; s.async=true; s.onload=()=>resolve(window.bootstrap);
+      s.onerror=()=>reject(new Error('Bootstrap JS failed to load')); document.head.appendChild(s);
+    });
+    return loading;
+  }
+  window.ensureBootstrap=load;
+  // Begin immediately but asynchronously: the download can proceed while the app's own JS starts.
+  load().catch(()=>{});
+})();
+</script>
 <script>
 const KEY='srd_driveledger_demo_v1';
 const DEMO_DEFAULTS={
@@ -1143,12 +1162,19 @@ function loadDemoState(){
    return JSON.parse(JSON.stringify(DEMO_DEFAULTS));
  }
 }
-let state=loadDemoState();
-state.vehicles=(state.vehicles||[]).map(v=>Object.assign({odometer:0,tankCapacity:5},v));
-state.manualKmEntries=state.manualKmEntries||[];
+// Do not parse the potentially large saved history before the login screen is usable.
+// State is loaded immediately after successful authentication instead.
+let state=null;
+function ensureStateLoaded(){
+ if(state) return state;
+ state=loadDemoState();
+ state.vehicles=(state.vehicles||[]).map(v=>Object.assign({odometer:0,tankCapacity:5},v));
+ state.manualKmEntries=state.manualKmEntries||[];
+ return state;
+}
 let currentUser=null, watchId=null, trip={running:false,paused:false,points:[],km:0,tripB:0,movingMs:0,lastMoveAt:Date.now(),fuelLog:[]};
 
-function persist(){localStorage.setItem(KEY,JSON.stringify(state))}
+function persist(){ensureStateLoaded();localStorage.setItem(KEY,JSON.stringify(state))}
 function money(n){return '₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2})}
 function vehicle(id){return state.vehicles.find(v=>String(v.id)===String(id))}
 function hav(a,b){const R=6371, p=Math.PI/180, dLat=(b.lat-a.lat)*p,dLon=(b.lon-a.lon)*p;const x=Math.sin(dLat/2)**2+Math.cos(a.lat*p)*Math.cos(b.lat*p)*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))}
@@ -1159,6 +1185,7 @@ function hav(a,b){const R=6371, p=Math.PI/180, dLat=(b.lat-a.lat)*p,dLon=(b.lon-
    confirm, satisfying "ask permission on refresh" without ever skipping consent. */
 const REMEMBER_KEY='srd_remembered_user';
 function applyLoginSuccess(u){
+ ensureStateLoaded();
  currentUser=u;
  const loginScreen=document.getElementById('loginScreen');
  const app=document.getElementById('app');
@@ -1263,7 +1290,29 @@ function showView(id){
  if(id==='walking'){initWalkMap();setTimeout(()=>mapResize(walkMap,walkMapProvider),150);}
 }
 function renderAll(){renderDashboard();renderExpenses();renderVehicles();renderWalkers();renderSelects();renderTrips();renderWalkHistory();renderManualKm();renderUsers();document.getElementById('defaultRate').value=state.settings.rate;const gk=document.getElementById('gmapsKey');if(gk)gk.value=state.settings.gmapsKey||'';const at=document.getElementById('autoTripToggle');if(at)at.checked=state.settings.autoTrip!==false}
-function renderStartupFast(){renderDashboard();renderSelects();const r=document.getElementById('defaultRate');if(r)r.value=state.settings.rate;const g=document.getElementById('gmapsKey');if(g)g.value=state.settings.gmapsKey||'';const a=document.getElementById('autoTripToggle');if(a)a.checked=state.settings.autoTrip!==false;const finish=()=>{try{renderExpenses();renderVehicles();renderWalkers();renderTrips();renderWalkHistory();renderManualKm();renderUsers();}catch(e){console.warn('Deferred rendering:',e)}};if('requestIdleCallback' in window)requestIdleCallback(finish,{timeout:900});else setTimeout(finish,80)}
+function renderStartupFast(){
+  // Critical path: only paint the dashboard and required selectors immediately.
+  renderDashboard();
+  renderSelects();
+  const r=document.getElementById('defaultRate');if(r)r.value=state.settings.rate;
+  const g=document.getElementById('gmapsKey');if(g)g.value=state.settings.gmapsKey||'';
+  const a=document.getElementById('autoTripToggle');if(a)a.checked=state.settings.autoTrip!==false;
+  const jobs=[renderExpenses,renderVehicles,renderWalkers,renderTrips,renderWalkHistory,renderManualKm,renderUsers];
+  let i=0;
+  const pump=(deadline)=>{
+    const end=deadline&&typeof deadline.timeRemaining==='function'?deadline.timeRemaining():5;
+    const started=performance.now();
+    while(i<jobs.length && (performance.now()-started<Math.max(3,end))){
+      try{jobs[i++]();}catch(e){console.warn('Deferred rendering:',e);i++;}
+    }
+    if(i<jobs.length){
+      if('requestIdleCallback' in window) requestIdleCallback(pump,{timeout:1200});
+      else setTimeout(()=>pump(),32);
+    }
+  };
+  if('requestIdleCallback' in window) requestIdleCallback(pump,{timeout:1200});
+  else setTimeout(()=>pump(),32);
+}
 const CATEGORY_META={
  Fuel:{icon:'bi-fuel-pump-fill',color:'#0d6efd'},
  Food:{icon:'bi-cup-hot-fill',color:'#fd7e14'},
