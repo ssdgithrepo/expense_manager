@@ -48,7 +48,7 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
 .meter-stats{background:rgba(255,255,255,.04);border-radius:14px;padding:.6rem .3rem}
 #meterMap{height:150px;border-radius:14px;margin-top:10px;overflow:hidden;background:#1e293b}
 .mapbox{height:260px;border-radius:16px;background:repeating-linear-gradient(45deg,#eef2f7,#eef2f7 10px,#e7edf5 10px,#e7edf5 20px);display:flex;align-items:center;justify-content:center;color:#64748b}
-#tripMap,#walkMap{height:320px;border-radius:16px;z-index:0}
+#walkMap{height:320px;border-radius:16px;z-index:0}
 .footer{font-size:.8rem;color:#94a3b8}
 .mode-badge{font-size:.85rem;padding:.45rem .8rem;border-radius:30px}
 .mode-badge.walking{background:#dcfce7;color:#166534}
@@ -63,6 +63,19 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
 #liveMeterModal.meter-fullscreen-host .meter-modal-content{height:100vh;border-radius:0;display:flex;flex-direction:column}
 #liveMeterModal.meter-fullscreen-host .modal-body{overflow:auto;flex:1}
 /* Full-view bottom controls can be collapsed so the complete meter/map content below it is visible. */
+/* Glossy instrument-cluster finish: fixed dimensions so light effects never reflow the page. */
+.sport-meter-shell,.classic-meter-shell{position:relative;overflow:hidden;background-image:radial-gradient(circle at 50% 8%,rgba(255,255,255,.14),transparent 24%),radial-gradient(circle at 15% 55%,rgba(56,189,248,.10),transparent 30%),radial-gradient(circle at 85% 60%,rgba(168,85,247,.09),transparent 30%);}
+.sport-meter-shell::before,.classic-meter-shell::before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(120deg,transparent 0%,rgba(255,255,255,.055) 42%,rgba(255,255,255,.13) 50%,rgba(255,255,255,.055) 58%,transparent 100%);background-size:220% 100%;animation:meterGlossSweep 7s ease-in-out infinite;opacity:.65;}
+.sport-meter-shell>* ,.classic-meter-shell>*{position:relative;z-index:1;}
+@keyframes meterGlossSweep{0%,100%{background-position:120% 0}50%{background-position:-20% 0}}
+.meter-odo-instrument{position:absolute;left:50%;bottom:9%;transform:translateX(-50%);min-width:92px;padding:4px 10px;border:1px solid rgba(255,255,255,.18);border-radius:7px;background:linear-gradient(180deg,rgba(2,6,23,.92),rgba(15,23,42,.76));box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 0 12px rgba(56,189,248,.12);display:flex;align-items:baseline;justify-content:center;gap:5px;white-space:nowrap;}
+.meter-odo-instrument span,.classic-odo-instrument span{font-size:.48rem;letter-spacing:.12em;color:#94a3b8;font-weight:700;}
+.meter-odo-instrument b,.classic-odo-instrument b{font-size:.82rem;color:#f8fafc;letter-spacing:.04em;text-shadow:0 0 8px rgba(255,255,255,.28);}
+.meter-odo-instrument em,.classic-odo-instrument em{font-size:.44rem;font-style:normal;color:#64748b;font-weight:700;}
+.classic-odo-instrument{position:absolute;left:50%;bottom:10%;transform:translateX(-50%);min-width:82px;padding:4px 9px;border-radius:6px;background:linear-gradient(180deg,rgba(2,6,23,.94),rgba(15,23,42,.78));border:1px solid rgba(255,255,255,.18);box-shadow:inset 0 1px 0 rgba(255,255,255,.13),0 0 10px rgba(120,205,255,.12);display:flex;align-items:baseline;justify-content:center;gap:4px;white-space:nowrap;}
+.gps-toggle-btn{min-width:180px;font-weight:700;letter-spacing:.02em;transition:none;}
+.gps-toggle-btn.gps-enabled{background:rgba(25,135,84,.14);border-color:#20c997;color:#20c997;}
+@media(max-width:576px){.meter-odo-instrument{bottom:8%;}.classic-odo-instrument{bottom:9%;}.gps-toggle-btn{width:100%;max-width:280px;}}
 #liveMeterModal .meter-bottom-collapse-btn{display:none}
 #liveMeterModal.meter-fullscreen-host .meter-bottom-collapse-btn{display:inline-flex;align-items:center;gap:.35rem}
 #liveMeterModal.meter-fullscreen-host.meter-bottom-collapsed .modal-footer{padding-top:.25rem!important;padding-bottom:.25rem!important}
@@ -230,6 +243,11 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
  .sport-dial > .sport-dial-sub{width:43% !important;bottom:1%;}
  .classic-main-col > .classic-dial-wrap.classic-dial-sub{width:43% !important;top:52%;}
 }
+
+/* GPS placement: keep the live GPS section below the trip information without affecting the existing tracker logic. */
+#trip > .card.mt-3{position:relative;z-index:1;}
+#gpsInfo{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+@media(max-width:576px){#gpsInfo{width:100%;white-space:normal;}}
 </style>
 
 <style id="meter-context-icons">
@@ -731,18 +749,8 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
   <div class="col-md-4"><label class="form-label">Note</label><input id="walkPurpose" class="form-control" placeholder="Morning walk"></div>
  </div>
  <div id="walkPausedBanner" class="paused-banner mt-2 d-none"><i class="bi bi-pause-circle"></i> Auto-paused — no movement detected. Tracking will resume automatically as soon as you start moving again.</div>
- <div id="walkPermissionBox" class="alert alert-primary mt-3">
-   <div class="d-flex gap-2">
-     <i class="bi bi-shield-check fs-3"></i>
-     <div>
-       <b>Location Tracking Permission</b>
-       <div class="small mt-1">Your browser will show the location prompt the moment you press “Start Walk” below.</div>
-       <div class="mt-2"><span class="badge text-bg-secondary" id="walkPermissionState">Not Requested</span></div>
-     </div>
-   </div>
-   <div class="d-flex flex-wrap gap-2 mt-3">
-     <button id="walkPermissionBtn" class="btn btn-outline-primary btn-sm"><i class="bi bi-geo-alt-fill"></i> Grant Location Access Now (optional)</button>
-   </div>
+ <div class="mt-3">
+   <button id="walkPermissionBtn" type="button" class="d-none" aria-hidden="true">GPS</button>
  </div>
  <div class="alert alert-warning gmap-key-warning d-none mt-3 small gmap-key-warning-walk"><i class="bi bi-exclamation-triangle-fill me-1"></i> Add a Google Maps API key in <a href="#" onclick="showView('settings');return false;">Settings</a> to show the live map.</div>
  <div id="walkMap" class="mt-3"></div>
@@ -773,56 +781,13 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
 
 <section id="trip" class="view">
 <div class="row g-3"><div class="col-lg-7"><div class="card p-4">
-<div class="d-flex justify-content-between align-items-center flex-wrap gap-2"><h5 class="mb-0">Live GPS Trip</h5><span id="gpsStatus"><span class="gps-dot"></span> GPS idle</span></div>
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2"><h5 class="mb-0">Live Trip</h5><span id="gpsStatus" class="d-none"><span class="gps-dot"></span> GPS idle</span></div>
 <div class="row g-2 mt-2">
  <div class="col-md-6"><label class="form-label">Vehicle</label><select id="tripVehicle" class="form-select"></select></div>
  <div class="col-md-6"><label class="form-label">Purpose</label><input id="tripPurpose" class="form-control" placeholder="Delivery / personal / field work"></div>
 </div>
-<div id="pausedBanner" class="paused-banner mt-2 d-none"><i class="bi bi-pause-circle"></i> Auto-paused — no movement detected. Tracking will resume automatically as soon as you start moving again.</div>
-<div id="permissionBox" class="alert alert-primary mt-3">
-  <div class="d-flex gap-2">
-    <i class="bi bi-shield-check fs-3"></i>
-    <div>
-      <b>Location Tracking Permission</b>
-      <div class="small mt-1">
-        SRD DriveLedger will ask your browser for location access to calculate the distance travelled,
-        vehicle mileage and estimated fuel cost for this trip.
-      </div>
-      <div class="small mt-2"><b>Your browser will ask for location access when this page loads/reloads. If the browser requires a user gesture or the permission was previously blocked, use “Grant Location Access Now” or “Start Trip”.</b></div>
-      <div class="small mt-2 text-muted"><i class="bi bi-info-circle me-1"></i>To keep tracking running while you switch apps: keep this tab open (a screen wake-lock is requested automatically so the phone won't sleep) and, on Android, use "Add to Home screen" for the steadiest background behaviour. Locking the screen or fully closing the browser can still pause GPS updates — that's a phone/browser limit that applies to every website, not just this one. Whatever distance was recorded right up to that point is always saved automatically, so nothing is lost.</div>
-      <div class="mt-2"><span class="badge text-bg-secondary" id="permissionState">Not Requested</span></div>
-    </div>
-  </div>
-  <div class="d-flex flex-wrap gap-2 mt-3">
-    <button id="permissionBtn" class="btn btn-outline-primary btn-sm"><i class="bi bi-geo-alt-fill"></i> Grant Location Access Now (optional)</button>
-    <button id="retryLocationBtn" class="btn btn-outline-primary d-none"><i class="bi bi-arrow-repeat"></i> Check Again</button>
-  </div>
-  <div id="browserAskStatus" class="small border rounded p-2 mt-3 bg-white">
-    <i class="bi bi-browser-chrome"></i>
-    <b>Browser location permission:</b>
-    <span id="browserAskText">Ask first — the browser can request your location.</span>
-    <span id="browserPermissionBadge" class="badge text-bg-secondary ms-1">ASK FIRST</span>
-  </div>
-  <div id="locationHelp" class="mt-3 d-none">
-    <div class="card border-0 bg-light">
-      <div class="card-body py-3">
-        <div class="fw-semibold mb-2"><i class="bi bi-gear"></i> Enable location for this website</div>
-        <div class="small mb-2">If you previously selected <b>Block</b>, the browser may not show the permission popup again. Use the browser's site permission/settings for this website, allow <b>Location</b>, then return here and tap <b>Check Again</b>.</div>
-        <ul class="small mb-0 ps-3">
-          <li><b>Chrome / Edge:</b> open the site → tap/click the lock or site-controls icon near the address bar → Site permissions / Permissions → Location → Allow → reload or Check Again.</li>
-          <li><b>Firefox:</b> open the site → site information/lock icon → Permissions → Location → Allow → reload or Check Again.</li>
-          <li><b>Safari:</b> use Safari website settings / Website Settings → Location → Allow, then return to this page.</li>
-          <li><b>Android/iPhone:</b> if the browser itself has location disabled, enable Location permission for the browser in the phone's app/privacy settings first.</li>
-        </ul>
-        <div class="small text-muted mt-2"><i class="bi bi-shield-check"></i> The website cannot silently change browser or device permissions. You remain in control.</div>
-      </div>
-    </div>
-  </div>
-</div>
+<div id="pausedBanner" class="d-none" aria-hidden="true"></div>
 <div class="alert alert-warning gmap-key-warning d-none mt-3 small gmap-key-warning-trip"><i class="bi bi-exclamation-triangle-fill me-1"></i> Add a Google Maps API key in <a href="#" onclick="showView('settings');return false;">Settings</a> to show the live map.</div>
-<div id="tripMap" class="mt-3"></div>
-<div id="gpsInfo" class="small muted mt-2">Location permission has not been requested.</div>
-
 <div class="row text-center mt-3">
  <div class="col-4"><div class="metric" id="tripKm">0.00</div><small class="muted">Total KM</small></div>
  <div class="col-4"><div class="metric" id="tripTime">00:00</div><small class="muted">Moving Time</small></div>
@@ -854,10 +819,15 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
 <div class="table-responsive mt-3"><table class="table table-sm align-middle"><thead><tr><th>Date</th><th>Vehicle</th><th>KM</th><th>Note</th><th></th></tr></thead><tbody id="manualKmRows"></tbody></table></div>
 </div>
 </div></div>
-<div class="col-lg-5"><div class="card p-4"><h5><i class="bi bi-info-circle me-2"></i>How it works</h5><ol class="small mt-3"><li>Choose your vehicle.</li><li>Allow browser location permission once.</li><li>Press Start Trip — the app accumulates GPS distance automatically.</li><li>If you stop moving, tracking auto-pauses; it resumes by itself the moment you move again.</li><li>You can log fuel top-ups mid-trip and the totals update instantly.</li><li>Stop to save the trip with its distance and fuel cost breakdown.</li></ol>
+<div class="col-lg-5"><div class="card p-4"><h5><i class="bi bi-info-circle me-2"></i>How it works</h5><ol class="small mt-3"><li>Choose your vehicle.</li><li>Press Start Trip — the app accumulates GPS distance automatically.</li><li>If you stop moving, tracking auto-pauses; it resumes by itself the moment you move again.</li><li>You can log fuel top-ups mid-trip and the totals update instantly.</li><li>Stop to save the trip with its distance and fuel cost breakdown.</li></ol>
 <div class="alert alert-warning small mb-2">Browser GPS accuracy varies from device to device.</div>
 <div class="alert alert-info small mb-0"><i class="bi bi-info-circle"></i> <b>Keeping the trip running in the background:</b> this app requests a screen wake-lock and keeps listening for GPS updates while the tab is open, even if minimized briefly. However, phone browsers (especially Chrome/Safari on mobile) can pause JavaScript entirely once the screen locks or the browser is fully closed — that's an OS-level restriction no website can override. For uninterrupted long trips, keep the screen on and the tab open, or add this page to your home screen and keep it in the foreground.</div>
 </div></div></div>
+
+<div class="d-flex justify-content-center mt-3">
+ <button id="permissionBtn" type="button" class="btn btn-outline-primary gps-toggle-btn" aria-pressed="false"><i class="bi bi-geo-alt-fill me-1"></i><span>Enable GPS</span></button>
+ <button id="retryLocationBtn" type="button" class="d-none" aria-hidden="true">Check Again</button>
+</div>
 </section>
 
 <section id="trips" class="view"><div class="card p-4"><h5><i class="bi bi-clock-history me-2"></i>Trip History</h5><div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Date</th><th>Vehicle</th><th>Purpose</th><th>Distance</th><th>Est. Fuel</th><th>Est. Fuel Cost</th><th>Fuel Purchased</th><th></th></tr></thead><tbody id="tripRows"></tbody></table></div></div></section>
@@ -974,6 +944,7 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
        <div id="meterDigital" class="sport-digital-speed">0</div>
        <div class="sport-digital-unit">KM/H</div>
       </div>
+      <div class="meter-odo-instrument"><span>ODO</span><b id="meterOdoInDial">0.0</b><em>KM</em></div>
       <div id="meterGearPill" class="sport-gear-pill" title="Automatic gear — shifts with speed">N</div>
      </div>
      <div class="sport-dial sport-dial-sub">
@@ -983,7 +954,7 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
        <div class="sport-digital-unit">RPM</div>
       </div>
      </div>
-     <div class="w-100 small text-secondary text-center" style="font-size:.62rem;opacity:.75">Automatic transmission — gear shifts on its own as speed changes. RPM is an inset sub-meter. GPS auto-start / auto-pause / auto-save-stop remains active when Auto-detect is enabled.</div>
+     <div class="w-100 small text-secondary text-center" style="font-size:.62rem;opacity:.75">Automatic transmission — gear shifts on its own as speed changes. RPM is an inset sub-meter.</div>
      <div id="meterLeds" class="sport-led-row"></div>
      <div id="sportHazardIndicatorRow" class="meter-hazard-indicator-row" aria-live="polite">
       <span id="sportHazardLeft" class="meter-hazard-arrow" aria-label="Left hazard indicator"><i class="bi bi-arrow-left-short"></i></span>
@@ -1002,12 +973,11 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
       <div class="sport-sub"><b id="meterFuel">--</b><span><i class="bi bi-fuel-pump"></i> Fuel Used</span></div>
       <div class="sport-sub"><b id="meterRange">--</b><span><i class="bi bi-signpost"></i> Est. Range</span></div>
      </div>
-     <div id="meterMap"></div>
      <div class="row g-2 mt-2 meter-stats mx-0">
       <div class="col-3"><div class="meter-stat-label"><i class="bi bi-stopwatch"></i> Time</div><div class="meter-stat-val" id="meterTime">00:00</div></div>
       <div class="col-3"><div class="meter-stat-label"><i class="bi bi-arrow-repeat"></i> RPM</div><div class="meter-stat-val" id="meterRpm">0</div></div>
       <div class="col-3"><div class="meter-stat-label"><i class="bi bi-currency-rupee"></i> Fuel Cost</div><div class="meter-stat-val" id="meterCost">--</div></div>
-      <div class="col-3"><div class="meter-stat-label"><i class="bi bi-geo-alt"></i> GPS Accuracy</div><div class="meter-stat-val" id="meterVal8">--</div></div>
+      <div class="col-3"><div class="meter-stat-label"><i class="bi bi-signpost-split"></i> Distance</div><div class="meter-stat-val" id="meterDistanceVisible">0.00 km</div></div>
      </div>
      <!-- Existing IDs retained for compatibility with the current application logic. -->
      <span id="meterDistance" class="d-none"></span>
@@ -1022,6 +992,7 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
        <div class="classic-dial-wrap classic-dial-main">
         <svg id="classicSpeedoSvg" viewBox="0 0 200 200" aria-label="Speedometer gauge (main meter)"></svg>
         <div class="classic-digital-overlay"><div class="classic-digital-value" id="classicSpeedDigital">0</div><div class="classic-digital-unit" id="classicSpeedUnit">KM/H</div></div>
+        <div class="classic-odo-instrument"><span>ODO</span><b id="classicOdoInDial">0.0</b><em>KM</em></div>
        </div>
        <div class="classic-dial-wrap classic-dial-sub">
         <svg id="classicTachSvg" viewBox="0 0 200 200" aria-label="RPM sub-gauge"></svg>
@@ -1035,7 +1006,7 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
       <div class="classic-dial-col"><span class="classic-mini-label">F</span><div class="classic-mini-gauge"><div class="classic-mini-fill fuel" id="classicFuelFill"></div><div class="classic-mini-needle" id="classicFuelNeedle"></div></div><span class="classic-mini-label">E</span></div>
      </div>
      <div class="classic-info-panel">
-      <div class="classic-info-top"><span><i class="bi bi-geo-alt-fill"></i> GPS <span class="classic-gps-bars" id="classicGpsBars"><i></i><i></i><i></i><i></i></span></span><span id="classicClockTime">--:--</span></div>
+      <div class="classic-info-top"><span><i class="bi bi-speedometer2"></i> INSTRUMENT INFO</span><span id="classicClockTime">--:--</span></div>
       <div class="classic-road"><i class="bi bi-car-front-fill"></i></div>
       <div id="classicInfoBody"></div>
      </div>
@@ -1066,7 +1037,7 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
     <button class="btn btn-warning" id="meterPauseBtn" onclick="toggleMeterPause()"><i class="bi bi-pause-fill"></i> Pause</button>
     <button class="btn btn-danger" id="meterStopBtn" onclick="stopFromMeter()"><i class="bi bi-stop-fill"></i> Stop &amp; Save</button>
     <div class="w-100 small text-secondary text-center mt-1">RPM is a speed/GPS-based estimate; true engine RPM requires OBD/CAN data. Range is calculated automatically from recorded fuel expenses, vehicle mileage and tracked distance.</div>
-    <div class="w-100 meter-background-status justify-content-center mt-1"><i class="bi bi-broadcast-pin"></i> Background tracking: best-effort browser/OS support • screen wake lock active when supported</div>
+    
    </div>
    </div>
   </div>
@@ -1383,6 +1354,7 @@ function openMeterExpense(){
 function delExpense(id){state.expenses=state.expenses.filter(e=>e.id!==id);persist();renderAll()}
 let gpsPermission='not-requested';
 let locationConsent=false;
+let gpsEnabled=false;
 
 // Updates the small "Browser location permission" status strip. This was previously called
 // but never defined — that ReferenceError was silently aborting the Start Trip/Start Walk
@@ -1403,30 +1375,16 @@ function updateBrowserAskStatus(state){
 
 function setPermissionUI(state, message){
  gpsPermission=state;
- const badge=document.getElementById('permissionState'), btn=document.getElementById('permissionBtn'), info=document.getElementById('gpsInfo');
- const wbadge=document.getElementById('walkPermissionState'), wbtn=document.getElementById('walkPermissionBtn');
- const map={granted:['Granted','text-bg-success'],denied:['Denied','text-bg-danger'],prompt:['Not Requested','text-bg-secondary'],unsupported:['Unsupported','text-bg-danger']};
- const item=map[state]||map.prompt;
- badge.textContent=item[0]; badge.className='badge '+item[1];
- if(wbadge){wbadge.textContent=item[0]; wbadge.className='badge '+item[1];}
- // The Start Trip / Start Walk buttons stay enabled at every stage — pressing them is
- // itself what triggers the browser's location prompt (see startTrip/startWalk onclick).
- if(state==='granted'){
-   btn.classList.add('d-none');info.textContent=message||'Location access granted.';
-   if(wbtn)wbtn.classList.add('d-none');
+ const btn=document.getElementById('permissionBtn');
+ const wbtn=document.getElementById('walkPermissionBtn');
+ if(btn){
+   const enabled=gpsEnabled && state==='granted';
+   btn.classList.toggle('gps-enabled',enabled);
+   btn.setAttribute('aria-pressed',enabled?'true':'false');
+   btn.innerHTML=enabled ? '<i class="bi bi-geo-alt-fill me-1"></i><span>Disable GPS</span>' : '<i class="bi bi-geo-alt-fill me-1"></i><span>Enable GPS</span>';
+   btn.disabled=false;
  }
- else if(state==='denied'){
-   btn.classList.remove('d-none');info.textContent=message||'Location access was denied. Enable location permission in browser settings and try again.';
-   if(wbtn)wbtn.classList.remove('d-none');
- }
- else if(state==='unsupported'){
-   btn.classList.add('d-none');info.textContent='This browser/device does not support location services.';
-   if(wbtn)wbtn.classList.add('d-none');
- }
- else {
-   btn.classList.remove('d-none');info.textContent=message||'Location permission has not been requested yet — press Start to begin.';
-   if(wbtn)wbtn.classList.remove('d-none');
- }
+ if(wbtn){wbtn.classList.toggle('gps-enabled',gpsEnabled && state==='granted');}
 }
 
 async function syncBrowserLocationPermission(){
@@ -1475,21 +1433,21 @@ function requestGPSPermission(onGranted){
  navigator.geolocation.getCurrentPosition(
    pos=>{
      locationConsent=true;
-     setPermissionUI('granted',
-       `Location access granted • ±${Math.round(pos.coords.accuracy)}m accuracy.`);
+     gpsEnabled=true;
+     setPermissionUI('granted');
      updateBrowserAskStatus('granted');
      showLocationHelp(false);
      document.getElementById('gpsStatus').innerHTML='<span class="gps-dot on"></span> Location ready';
      btn.disabled=false; startBtn.disabled=false; if(startWalkBtn)startWalkBtn.disabled=false;
-     btn.innerHTML='<i class="bi bi-geo-alt-fill"></i> Location Access Granted';
-     retry.classList.add('d-none');
-     if(wbtn){wbtn.disabled=false;wbtn.innerHTML='<i class="bi bi-geo-alt-fill"></i> Location Access Granted';}
+     btn.innerHTML='<i class="bi bi-geo-alt-fill"></i><span>Disable GPS</span>';
+     if(retry) retry.classList.add('d-none');
+     if(wbtn){wbtn.disabled=false;wbtn.innerHTML='<i class="bi bi-geo-alt-fill"></i> Browser location permission';}
      beginTripWatch(); beginWalkWatch(); // start listening in the background so a trip/walk can be auto-detected for the rest of the day
      if(onGranted) onGranted();
    },
    err=>{
      btn.disabled=false; startBtn.disabled=false; if(startWalkBtn)startWalkBtn.disabled=false;
-     btn.innerHTML='<i class="bi bi-geo-alt-fill"></i> Grant Location Access Now (optional)';
+     btn.innerHTML='<i class="bi bi-geo-alt-fill"></i><span>Enable GPS</span>';
      if(wbtn){wbtn.disabled=false;wbtn.innerHTML='<i class="bi bi-geo-alt-fill"></i> Grant Location Access Now (optional)';}
 
      if(err.code===1){
@@ -1498,19 +1456,19 @@ function requestGPSPermission(onGranted){
          'The browser did not grant location access. If it shows a permission prompt, choose Allow, then press Start again. If no prompt appears, check this website’s Location permission in browser settings.');
        updateBrowserAskStatus('denied');
        showLocationHelp(true);
-       retry.classList.remove('d-none');
+       if(retry) retry.classList.remove('d-none');
      }else if(err.code===2){
        setPermissionUI('prompt',
          'The browser could not obtain a location fix. Check the phone Location/GPS setting and press Start again.');
        showLocationHelp(true);
-       retry.classList.remove('d-none');
+       if(retry) retry.classList.remove('d-none');
      }else if(err.code===3){
        setPermissionUI('prompt',
          'The location request timed out. Check Location/GPS services and press Start again.');
-       retry.classList.remove('d-none');
+       if(retry) retry.classList.remove('d-none');
      }else{
        setPermissionUI('prompt','The browser could not obtain your location. Please press Start again.');
-       retry.classList.remove('d-none');
+       if(retry) retry.classList.remove('d-none');
      }
    },
    {
@@ -1521,22 +1479,24 @@ function requestGPSPermission(onGranted){
  );
 }
 
-function showLocationHelp(show){
- const el=document.getElementById('locationHelp');
- if(el) el.classList.toggle('d-none',!show);
-}
+function showLocationHelp(show){ return; }
 
-document.getElementById('permissionBtn').onclick=()=>{
+function disableGpsTracking(){
+ gpsEnabled=false;
+ if(watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null;}
+ if(walkWatchId!==null){navigator.geolocation.clearWatch(walkWatchId);walkWatchId=null;}
+ setPermissionUI(gpsPermission);
+}
+function enableGpsTracking(){
+ if(!navigator.geolocation){setPermissionUI('unsupported');return;}
  locationConsent=true;
- showLocationHelp(false);
  requestGPSPermission();
+}
+document.getElementById('permissionBtn').onclick=()=>{
+ if(gpsEnabled){ disableGpsTracking(); } else { enableGpsTracking(); }
 };
-document.getElementById('retryLocationBtn').onclick=async()=>{
- locationConsent=true;
- const state=await syncBrowserLocationPermission();
- if(state==='prompt') requestGPSPermission();
- else if(state==='denied') showLocationHelp(true);
-};
+const retryLocationBtn=document.getElementById('retryLocationBtn');
+if(retryLocationBtn) retryLocationBtn.onclick=()=>enableGpsTracking();
 syncBrowserLocationPermission();
 
 /* ---------- Shared pause/resume + walking estimate constants ---------- */
@@ -2000,7 +1960,7 @@ function renderClassicInfoBody(){
  if(classicPanelMode==='trip') rows=[['Trip A',classicFmtDist(c.tripKm||0)],['Trip B',classicFmtDist(c.tripB||0)],['Elapsed',c.timeStr||'00:00']];
  else if(classicPanelMode==='economy') rows=[['Avg Mileage',c.avgMileage||'--'],['Instant Econ.',c.liveEcon||'--'],['Avg Speed',classicFmtSpeed(c.avgSpeed||0)],['Fuel Used',c.fuelUsed||'--']];
  else if(classicPanelMode==='range') rows=[['Range',c.range||'--'],['ODO',classicFmtDist(c.odo||0)],['Fuel Cost',c.fuelCost||'--']];
- else rows=[['Coordinates',c.coords||'--'],['Trip A',classicFmtDist(c.tripKm||0)],['Avg Speed',classicFmtSpeed(c.avgSpeed||0)],['Avg Mileage',c.avgMileage||'--'],['Instant Econ.',c.liveEcon||'--']];
+ else rows=[['Trip A',classicFmtDist(c.tripKm||0)],['Avg Speed',classicFmtSpeed(c.avgSpeed||0)],['Avg Mileage',c.avgMileage||'--'],['Instant Econ.',c.liveEcon||'--']];
  box.innerHTML=rows.map(([l,v])=>`<div class="classic-info-row"><span>${l}</span><b>${v}</b></div>`).join('');
 }
 function renderClassicStatBar(){
@@ -2031,7 +1991,7 @@ function syncClassicMeter(kind,speedKmh,accuracy){
      engineLoad:Math.round(Math.min(100,(rpm/rpmMax)*100)),
      fuelPct:range.available&&range.liters>0?Math.max(0,Math.min(1,range.km/(range.liters*Number(v.mileage||1)))):0.5,
      tempPct:trip.running?Math.min(.72,.22+(trip.movingMs/300000)*.5):.12};
-   const tb=document.getElementById('classicTripB'); if(tb) tb.textContent=classicFmtDist(classicVals.tripB);
+   const tb=document.getElementById('classicTripB'); if(tb) tb.textContent=classicFmtDist(classicVals.tripB); const co=document.getElementById('classicOdoInDial'); if(co) co.textContent=Number(classicVals.odo||0).toFixed(1);
    updateClassicGearUI(!trip.running?'P':(currentGear==='N'?'N':'D'),!trip.running?'P':currentGear);
    classicAnimateNeedle('classicTachSvg',(rpm||0)/8000,'rpm');
    const rd=document.getElementById('classicRpmDigital'); if(rd) rd.textContent=((rpm||0)/1000).toFixed(1);
@@ -2382,12 +2342,11 @@ function updateTripMeter(speedKmh,accuracy){
  const v=vehicle(document.getElementById('tripVehicle').value),meta=VEHICLE_GAUGE_META[v?.type]||VEHICLE_GAUGE_META.Other;
  const rpm=estimateEngineRpm(speedKmh,v),rpmMax={'Two Wheeler':10000,'Three Wheeler':6500,'Car':6500,'Pickup':5500,'Truck':3000,'Bus':2800,'Other':6000}[v?.type]||6000;
  updateMeterGauge(speedKmh,meta.max,rpm,rpmMax);
- document.getElementById('meterDistance').textContent=trip.km.toFixed(2)+' km';document.getElementById('meterTrip').textContent=trip.km.toFixed(2)+' km';document.getElementById('meterOdo').textContent=estimatedOdometer(v,trip.km).toFixed(1)+' km';
+ document.getElementById('meterDistance').textContent=trip.km.toFixed(2)+' km';document.getElementById('meterTrip').textContent=trip.km.toFixed(2)+' km';const odoVal=estimatedOdometer(v,trip.km).toFixed(1);document.getElementById('meterOdo').textContent=odoVal+' km';const odoDial=document.getElementById('meterOdoInDial');if(odoDial)odoDial.textContent=odoVal;const distVis=document.getElementById('meterDistanceVisible');if(distVis)distVis.textContent=trip.km.toFixed(2)+' km';
  document.getElementById('meterTime').textContent=fmtTime(trip.movingMs);const avg=trip.movingMs>0?trip.km/(trip.movingMs/3600000):0;document.getElementById('meterAvg').textContent=avg.toFixed(1)+' km/h';document.getElementById('meterMax').textContent=(trip.maxSpeed||0).toFixed(1)+' km/h';
  const live=v?estimateLiveMileage(v,speedKmh):0,avgMileage=v?averageLiveMileage(v,trip.points,speedKmh):0,fuel=v?trip.km/Number(v.mileage):0,cost=v?fuel*Number(v.rate):0;document.getElementById('meterVal4').textContent=v?live.toFixed(1)+' km/L':'--';document.getElementById('meterMileage').textContent=v?live.toFixed(1)+' km/L':'--';document.getElementById('meterAvgMileage').textContent=v?avgMileage.toFixed(1)+' km/L':'--';document.getElementById('meterVal6').textContent=v?fuel.toFixed(2)+' L':'--';document.getElementById('meterFuel').textContent=v?fuel.toFixed(2)+' L':'--';document.getElementById('meterVal7').textContent=v?money(cost):'--';document.getElementById('meterCost').textContent=v?money(cost):'--';
  const range=estimatedFuelRange(v,trip.km);document.getElementById('meterRange').textContent=v?(range.available?range.km.toFixed(0)+' km':'--'):'--';document.getElementById('meterEcoBar').style.width=Math.max(0,Math.min(100,(live/(Number(v?.mileage||1)*1.15))*100))+'%';document.getElementById('meterVal8').textContent=accuracy?'±'+Math.round(accuracy)+' m':'--';
  updateSportGear(speedKmh,v);setMeterStatus(trip.paused);
- if(meterModalOpen){const vv=v,cfg=VEHICLE_ICON_MAP[vv?.type]||VEHICLE_ICON_MAP.Other,last=trip.points.at(-1);if(last)meterMapUpdate(last,cfg);}
  syncClassicMeter('trip',speedKmh,accuracy);
 }
 function updateWalkMeter(speedKmh,accuracy){
@@ -2403,9 +2362,6 @@ function updateWalkMeter(speedKmh,accuracy){
  document.getElementById('meterVal7').textContent=formatPace(avg);
  document.getElementById('meterVal8').textContent=accuracy?'±'+Math.round(accuracy)+' m':'--';
  setMeterStatus(walk.paused);
- if(meterModalOpen){
-   const last=walk.points.at(-1); if(last) meterMapUpdate(last,WALK_ICON);
- }
  syncClassicMeter('walk',speedKmh,accuracy);
 }
 function toggleMeterPause(){ if(meterKind==='trip') toggleTripPause(); else toggleWalkPause(); }
@@ -2475,7 +2431,7 @@ function renderFuelLog(){
 document.getElementById('startTrip').onclick=()=>{
  // Ask the browser for location access right here, at the moment of the click — this is
  // what makes the permission prompt appear, and the trip starts the instant it's granted.
- if(locationConsent && gpsPermission==='granted'){ startTripInternal(false); openLiveMeter('trip'); return; }
+ if(gpsEnabled && locationConsent && gpsPermission==='granted'){ startTripInternal(false); openLiveMeter('trip'); return; }
  requestGPSPermission(()=>{ startTripInternal(false); openLiveMeter('trip'); });
 };
 document.getElementById('stopTrip').onclick=()=>finishTrip('manual');
@@ -2523,6 +2479,7 @@ function syncTripPauseButton(){
 }
 
 function beginTripWatch(){
+ if(!gpsEnabled) return;
  if(watchId!==null) return; // one continuous watch: handles standby auto-start AND active tracking
  watchId=navigator.geolocation.watchPosition(tripGpsTick,
    err=>{document.getElementById('gpsStatus').innerHTML='<span class="gps-dot"></span> GPS error';console.warn('GPS error:',err.message);},
@@ -2701,7 +2658,7 @@ function walkMapUpdate(p){
 }
 document.getElementById('walkPermissionBtn').onclick=()=>{ locationConsent=true; showLocationHelp(false); requestGPSPermission(); };
 document.getElementById('startWalk').onclick=()=>{
- if(locationConsent && gpsPermission==='granted'){ startWalkInternal(false); openLiveMeter('walk'); return; }
+ if(gpsEnabled && locationConsent && gpsPermission==='granted'){ startWalkInternal(false); openLiveMeter('walk'); return; }
  requestGPSPermission(()=>{ startWalkInternal(false); openLiveMeter('walk'); });
 };
 document.getElementById('stopWalk').onclick=()=>finishWalk('manual');
@@ -2764,6 +2721,7 @@ function setWalkingDetection(isWalking,speedKmh){
 }
 
 function beginWalkWatch(){
+ if(!gpsEnabled) return;
  if(walkWatchId!==null) return;
  walkWatchId=navigator.geolocation.watchPosition(walkGpsTick,
    err=>{document.getElementById('walkGpsStatus').innerHTML='<span class="gps-dot"></span> GPS error';console.warn('GPS error:',err.message);},
@@ -3003,3 +2961,6 @@ function syncMeterNightMode(forceFlash=false){
 </script>
 </body>
 </html>
+<style>
+#tripMap,#gpsInfo,#browserAskText,#browserPermissionBadge,#permissionState,#locationHelp,#retryLocationBtn,#classicGpsBars{display:none!important;}
+</style>
