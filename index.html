@@ -3900,3 +3900,175 @@ function syncMeterNightMode(forceFlash=false){
   #classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-dial-wrap.classic-dial-sub{width:32%!important;top:75%!important;}
 }
 </style>
+
+<style id="srd-final-classic-center-stack-fix">
+/* FINAL CLASSIC CENTER STACK
+   Dedicated non-overlapping bands:
+   1) live speed / KM-H
+   2) ODO
+   3) RPM sub-meter
+   4) P-R-N-D selector
+*/
+#classicMeterShell .classic-dial-wrap.classic-dial-main{
+  position:absolute!important;
+  left:50%!important;
+  top:50%!important;
+  transform:translate(-50%,-50%)!important;
+  overflow:visible!important;
+}
+
+/* Live speed: upper-middle band only. */
+#classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-digital-overlay{
+  position:absolute!important;
+  left:50%!important;
+  top:28%!important;
+  bottom:auto!important;
+  transform:translate(-50%,-50%)!important;
+  width:max-content!important;
+  min-width:72px!important;
+  z-index:70!important;
+  line-height:1!important;
+  pointer-events:none!important;
+}
+#classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-digital-overlay .classic-digital-value{
+  font-size:clamp(1.35rem,5vw,2.05rem)!important;
+  line-height:.9!important;
+  margin:0!important;
+}
+#classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-digital-overlay .classic-digital-unit{
+  display:block!important;
+  margin-top:4px!important;
+  font-size:clamp(.45rem,1vw,.58rem)!important;
+  line-height:1!important;
+}
+
+/* ODO: separate band below live speed. */
+#classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-odo-instrument{
+  position:absolute!important;
+  left:50%!important;
+  top:45%!important;
+  bottom:auto!important;
+  transform:translate(-50%,-50%)!important;
+  z-index:75!important;
+  min-width:clamp(82px,23%,116px)!important;
+  min-height:30px!important;
+  padding:4px 9px!important;
+  white-space:nowrap!important;
+  pointer-events:none!important;
+}
+
+/* RPM sub-meter: isolated lower band. */
+#classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-dial-wrap.classic-dial-sub{
+  position:absolute!important;
+  left:50%!important;
+  top:70%!important;
+  bottom:auto!important;
+  transform:translate(-50%,-50%)!important;
+  width:31%!important;
+  max-width:138px!important;
+  min-width:76px!important;
+  aspect-ratio:1/1!important;
+  height:auto!important;
+  margin:0!important;
+  padding:0!important;
+  z-index:40!important;
+  overflow:hidden!important;
+  border-radius:50%!important;
+  pointer-events:none!important;
+}
+#classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-dial-wrap.classic-dial-sub > svg{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  z-index:1!important;
+}
+#classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-dial-wrap.classic-dial-sub > .classic-digital-overlay{
+  position:absolute!important;
+  left:50%!important;
+  top:57%!important;
+  bottom:auto!important;
+  transform:translate(-50%,-50%)!important;
+  z-index:8!important;
+  width:max-content!important;
+  line-height:1!important;
+}
+#classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-dial-wrap.classic-dial-sub .classic-digital-value{
+  font-size:clamp(.68rem,2vw,.9rem)!important;
+  line-height:.9!important;
+  white-space:nowrap!important;
+}
+#classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-dial-wrap.classic-dial-sub .classic-digital-unit{
+  display:block!important;
+  margin-top:2px!important;
+  font-size:clamp(.30rem,.65vw,.40rem)!important;
+  white-space:nowrap!important;
+}
+
+/* P/R/N/D: dedicated band below RPM. It never sits over the RPM dial. */
+#classicMeterShell .classic-main-col > .classic-gear-row-wrap{
+  position:absolute!important;
+  left:50%!important;
+  top:94%!important;
+  bottom:auto!important;
+  transform:translate(-50%,-50%)!important;
+  width:max-content!important;
+  min-width:92px!important;
+  padding:2px 8px 3px!important;
+  margin:0!important;
+  z-index:90!important;
+  text-align:center!important;
+  background:rgba(2,6,23,.72)!important;
+  border:1px solid rgba(148,163,184,.20)!important;
+  border-radius:10px!important;
+  box-shadow:0 4px 14px rgba(0,0,0,.25)!important;
+}
+#classicMeterShell .classic-main-col > .classic-gear-row-wrap .classic-gear-big{
+  font-size:clamp(.9rem,3vw,1.25rem)!important;
+  line-height:1!important;
+  min-height:1em!important;
+  margin:0!important;
+}
+#classicMeterShell .classic-main-col > .classic-gear-row-wrap .classic-gear-row{
+  display:flex!important;
+  justify-content:center!important;
+  align-items:center!important;
+  gap:clamp(6px,1.5vw,10px)!important;
+  margin-top:3px!important;
+  line-height:1!important;
+  font-size:clamp(.55rem,1.5vw,.72rem)!important;
+}
+#classicMeterShell .classic-main-col > .classic-gear-row-wrap .classic-gear-row span{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-width:12px!important;
+  min-height:15px!important;
+}
+
+/* Keep the complete center stack above the dial graphics without allowing elements to collide. */
+#classicMeterShell .classic-dial-wrap.classic-dial-main > svg{z-index:1!important;position:relative!important;}
+
+@media(max-width:575.98px){
+  #classicMeterShell .classic-dial-wrap.classic-dial-main{
+    width:min(88vw,330px)!important;
+    max-width:calc(100% - 62px)!important;
+  }
+  #classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-digital-overlay{top:27%!important;}
+  #classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-odo-instrument{top:44%!important;min-width:82px!important;}
+  #classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-dial-wrap.classic-dial-sub{
+    width:30%!important;min-width:70px!important;top:70%!important;
+  }
+  #classicMeterShell .classic-main-col > .classic-gear-row-wrap{top:94%!important;}
+}
+@media(min-width:576px) and (max-width:991.98px){
+  #classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-digital-overlay{top:28%!important;}
+  #classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-odo-instrument{top:45%!important;}
+  #classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-dial-wrap.classic-dial-sub{top:70%!important;width:31%!important;}
+  #classicMeterShell .classic-main-col > .classic-gear-row-wrap{top:94%!important;}
+}
+@media(min-width:992px){
+  #classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-dial-wrap.classic-dial-sub{top:70%!important;width:31%!important;max-width:138px!important;}
+  #classicMeterShell .classic-main-col > .classic-gear-row-wrap{top:94%!important;}
+}
+</style>
