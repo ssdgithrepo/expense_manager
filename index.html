@@ -67,14 +67,16 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
 .sport-meter-shell,.classic-meter-shell{position:relative;overflow:hidden;background-image:radial-gradient(circle at 50% 8%,rgba(255,255,255,.14),transparent 24%),radial-gradient(circle at 15% 55%,rgba(56,189,248,.10),transparent 30%),radial-gradient(circle at 85% 60%,rgba(168,85,247,.09),transparent 30%);}
 .sport-meter-shell>* ,.classic-meter-shell>*{position:relative;z-index:1;}
 /* Static glossy illumination only. The animated sweeping background light is intentionally removed for performance. */
-.meter-odo-instrument{position:absolute;left:50%;bottom:14%;transform:translateX(-50%);min-width:104px;padding:5px 12px;border:1px solid rgba(255,255,255,.18);border-radius:7px;background:linear-gradient(180deg,rgba(2,6,23,.92),rgba(15,23,42,.76));box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 0 12px rgba(56,189,248,.12);display:flex;align-items:baseline;justify-content:center;gap:5px;white-space:nowrap;}
+.meter-odo-instrument{position:absolute;left:50%;bottom:27%;transform:translateX(-50%);min-width:104px;padding:5px 12px;border:1px solid rgba(255,255,255,.18);border-radius:7px;background:linear-gradient(180deg,rgba(2,6,23,.92),rgba(15,23,42,.76));box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 0 12px rgba(56,189,248,.12);display:flex;align-items:baseline;justify-content:center;gap:5px;white-space:nowrap;}
 .meter-odo-instrument span,.classic-odo-instrument span{font-size:.48rem;letter-spacing:.12em;color:#94a3b8;font-weight:700;}
 .meter-odo-instrument b,.classic-odo-instrument b{font-size:.88rem;color:#f8fafc;letter-spacing:.04em;text-shadow:0 0 8px rgba(255,255,255,.28);}
 .meter-odo-instrument em,.classic-odo-instrument em{font-size:.44rem;font-style:normal;color:#64748b;font-weight:700;}
-.classic-odo-instrument{position:absolute;left:50%;bottom:10%;transform:translateX(-50%);min-width:82px;padding:4px 9px;border-radius:6px;background:linear-gradient(180deg,rgba(2,6,23,.94),rgba(15,23,42,.78));border:1px solid rgba(255,255,255,.18);box-shadow:inset 0 1px 0 rgba(255,255,255,.13),0 0 10px rgba(120,205,255,.12);display:flex;align-items:baseline;justify-content:center;gap:4px;white-space:nowrap;}
+.meter-odo-instrument,.classic-odo-instrument{z-index:8;box-sizing:border-box;}
+.meter-odo-instrument b,.classic-odo-instrument b{font-family:'Courier New',monospace;font-variant-numeric:tabular-nums;}
+.classic-odo-instrument{position:absolute;left:50%;bottom:24%;transform:translateX(-50%);min-width:82px;padding:4px 9px;border-radius:6px;background:linear-gradient(180deg,rgba(2,6,23,.94),rgba(15,23,42,.78));border:1px solid rgba(255,255,255,.18);box-shadow:inset 0 1px 0 rgba(255,255,255,.13),0 0 10px rgba(120,205,255,.12);display:flex;align-items:baseline;justify-content:center;gap:4px;white-space:nowrap;}
 .gps-toggle-btn{min-width:180px;font-weight:700;letter-spacing:.02em;transition:none;}
 .gps-toggle-btn.gps-enabled{background:rgba(25,135,84,.14);border-color:#20c997;color:#20c997;}
-@media(max-width:576px){.meter-odo-instrument{bottom:13%;min-width:96px;padding:4px 10px;}.classic-odo-instrument{bottom:10%;}.gps-toggle-btn{width:100%;max-width:280px;}}
+@media(max-width:576px){.meter-odo-instrument{bottom:26%;min-width:96px;padding:4px 10px;}.classic-odo-instrument{bottom:23%;}.gps-toggle-btn{width:100%;max-width:280px;}}
 #liveMeterModal .meter-bottom-collapse-btn{display:none}
 #liveMeterModal.meter-fullscreen-host .meter-bottom-collapse-btn{display:inline-flex;align-items:center;gap:.35rem}
 #liveMeterModal.meter-fullscreen-host.meter-bottom-collapsed .modal-footer{padding-top:.25rem!important;padding-bottom:.25rem!important}
