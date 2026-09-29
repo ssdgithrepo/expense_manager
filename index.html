@@ -2426,15 +2426,39 @@ function renderFuelLog(){
  document.getElementById('fuelLogList').innerHTML=trip.fuelLog.map((f,i)=>`<div class="fuel-log-item d-flex justify-content-between"><span>${f.liters||0} L/kWh</span><span>${money(f.cost)}</span></div>`).join('');
  document.getElementById('tripFuelAdded').textContent=money(trip.fuelLog.reduce((s,f)=>s+f.cost,0));
 }
-document.getElementById('startTrip').onclick=()=>{
- // Open the live instrument cluster immediately on Start. GPS permission is requested
- // from the same user gesture, but the Sport/Classic meter is never blocked by the GPS fix.
+function openStartedTripMeter(){
+ // Restore the complete live-meter control surface every time a trip starts.
+ // This deliberately does not change the user's selected Sport/Classic style.
+ const modal=document.getElementById('liveMeterModal');
+ if(!modal) return;
+ modal.classList.remove('meter-bottom-collapsed','meter-fullscreen-host');
+ const collapseBtn=modal.querySelector('.meter-bottom-collapse-btn');
+ if(collapseBtn) collapseBtn.style.display='none';
+ const bottom=modal.querySelector('.meter-bottom-content');
+ if(bottom) bottom.style.display='flex';
+ const hazardBtn=document.getElementById('meterHazardBtn');
+ if(hazardBtn){
+   hazardBtn.classList.remove('active');
+   hazardBtn.setAttribute('aria-pressed','false');
+   hazardBtn.innerHTML='<i class="bi bi-exclamation-triangle-fill me-1"></i><span>Hazard Lights</span>';
+ }
+ stopHazardLights();
  openLiveMeter('trip');
+}
+
+document.getElementById('startTrip').onclick=()=>{
+ // Start the trip and open the complete Sport/Classic live meter from the same click.
+ // The meter opens immediately; GPS permission/tracking continues independently.
+ openStartedTripMeter();
  if(gpsEnabled && locationConsent && gpsPermission==='granted'){
    startTripInternal(false);
+   updateTripMeter(trip.points.at(-1)?.speed||0,trip.points.at(-1)?.acc);
    return;
  }
- requestGPSPermission(()=>{ startTripInternal(false); openLiveMeter('trip'); });
+ requestGPSPermission(()=>{
+   startTripInternal(false);
+   openStartedTripMeter();
+ });
 };
 document.getElementById('stopTrip').onclick=()=>finishTrip('manual');
 document.getElementById('tripPauseBtn').onclick=()=>{ toggleTripPause(); openLiveMeter('trip'); };
