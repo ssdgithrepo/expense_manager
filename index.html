@@ -1004,6 +1004,10 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
       </div>
       <div class="classic-dial-col classic-fuel-gauge-col"><div class="classic-mini-title"><i id="classicFuelPumpIcon" class="bi bi-fuel-pump-fill"></i><span>FUEL</span></div><span class="classic-mini-label">F</span><div class="classic-mini-gauge"><div class="classic-mini-fill fuel" id="classicFuelFill"></div><div class="classic-mini-needle" id="classicFuelNeedle"></div></div><span class="classic-mini-label">E</span></div>
      </div>
+     <div id="meterFuelAlert" class="meter-fuel-alert" role="status" aria-live="polite">
+      <i id="meterFuelAlertIcon" class="bi bi-fuel-pump-fill"></i>
+      <span id="meterFuelAlertText">Fuel level monitoring ready</span>
+     </div>
      <div class="classic-info-panel">
       <div class="classic-info-top"><span><i class="bi bi-speedometer2"></i> INSTRUMENT INFO</span><span id="classicClockTime">--:--</span></div>
       <div class="classic-road"><i class="bi bi-car-front-fill"></i></div>
@@ -1972,6 +1976,31 @@ function updateClassicGearUI(gearLetter,bigText){
  const big=document.getElementById('classicGearBig'); if(big) big.textContent=bigText!=null?bigText:gearLetter;
  document.querySelectorAll('#classicGearRow span').forEach(s=>s.classList.toggle('active',s.dataset.g===gearLetter));
 }
+function renderMeterFuelNotification(kind){
+ const box=document.getElementById('meterFuelAlert'), icon=document.getElementById('meterFuelAlertIcon'), text=document.getElementById('meterFuelAlertText');
+ if(!box||!icon||!text) return;
+ box.classList.remove('good','reserve','low','critical','unknown');
+ const v=kind==='trip'?vehicle(document.getElementById('tripVehicle')?.value):null;
+ const range=v?estimatedFuelRange(v,trip.km):null;
+ if(!v||!range||!range.available||!Number(v.mileage)){
+   box.classList.add('unknown'); icon.className='bi bi-fuel-pump-fill'; text.textContent='Fuel gauge: enter tank capacity and fuel details to monitor level'; return;
+ }
+ const fuelLoaded=Math.max(0,Number(range.liters)||0), tankCapacity=Math.max(0,Number(range.tankCapacity)||fuelLoaded), remaining=Math.max(0,Number(range.km||0)/Number(v.mileage||1));
+ const pct=tankCapacity>0?Math.max(0,Math.min(1,remaining/tankCapacity)):0;
+ const pctText=Math.round(pct*100), rangeText=Math.round(Number(range.km)||0);
+ const fuelCol=document.querySelector('.classic-fuel-gauge-col');
+ if(fuelCol) fuelCol.classList.toggle('reserve-fuel',pct>0&&pct<=.25), fuelCol.classList.toggle('low-fuel',pct<=.15), fuelCol.classList.toggle('critical-fuel',pct<=.05);
+ if(pct<=.05){
+   box.classList.add('critical'); icon.className='bi bi-exclamation-triangle-fill'; text.textContent=`CRITICAL FUEL • ${pctText}% remaining • approx. ${remaining.toFixed(1)} L • ${rangeText} km range • Refuel now`;
+ }else if(pct<=.15){
+   box.classList.add('low'); icon.className='bi bi-fuel-pump-fill'; text.textContent=`LOW FUEL • ${pctText}% remaining • approx. ${remaining.toFixed(1)} L • ${rangeText} km range • Refuel soon`;
+ }else if(pct<=.25){
+   box.classList.add('reserve'); icon.className='bi bi-fuel-pump-fill'; text.textContent=`RESERVE FUEL • ${pctText}% remaining • approx. ${remaining.toFixed(1)} L • ${rangeText} km estimated range`;
+ }else{
+   box.classList.add('good'); icon.className='bi bi-fuel-pump-fill'; text.textContent=`FUEL OK • ${pctText}% remaining • approx. ${remaining.toFixed(1)} L • ${rangeText} km estimated range`;
+ }
+}
+
 function syncClassicMeter(kind,speedKmh,accuracy){
  renderClassicGpsBars(accuracy);
  const clock=document.getElementById('classicClockTime'); if(clock) clock.textContent=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
@@ -1988,7 +2017,7 @@ function syncClassicMeter(kind,speedKmh,accuracy){
      coords:last?`${last.lat.toFixed(4)}° N, ${last.lon.toFixed(4)}° E`:'--',
      voltage:12.6+(trip.running&&!trip.paused?1.4+Math.sin(Date.now()/4000)*0.1:0),
      engineLoad:Math.round(Math.min(100,(rpm/rpmMax)*100)),
-     fuelPct:range.available&&range.liters>0?Math.max(0,Math.min(1,range.km/(range.liters*Number(v.mileage||1)))):0.5,
+     fuelPct:range.available&&(Number(range.tankCapacity)||Number(range.liters))>0?Math.max(0,Math.min(1,(range.km/Number(v.mileage||1))/(Number(range.tankCapacity)||Number(range.liters)))):0.5,
      tempPct:trip.running?Math.min(.72,.22+(trip.movingMs/300000)*.5):.12};
    const tb=document.getElementById('classicTripB'); if(tb) tb.textContent=classicFmtDist(classicVals.tripB); const sharedOdoText=(document.getElementById('meterOdoInDial')?.textContent||'').trim(); const co=document.getElementById('classicOdoInDial'); if(co) co.textContent=sharedOdoText || Number(classicVals.odo||0).toFixed(1);
    updateClassicGearUI(!trip.running?'P':(currentGear==='N'?'N':'D'),!trip.running?'P':currentGear);
@@ -2019,7 +2048,7 @@ function syncClassicMeter(kind,speedKmh,accuracy){
  if(sl) sl.textContent='Engine Load '+currentLoad+'%';
  if(cr) cr.textContent=currentRpm.toLocaleString('en-IN')+' RPM';
  if(cl) cl.textContent='Engine Load '+currentLoad+'%';
- renderClassicInfoBody(); renderClassicStatBar(); renderClassicTelltales();
+ renderClassicInfoBody(); renderClassicStatBar(); renderClassicTelltales(); renderMeterFuelNotification(kind);
 }
 function setMeterStyle(style){
  meterStyle=style; localStorage.setItem('srd_meter_style',style);
@@ -3033,11 +3062,32 @@ function syncMeterNightMode(forceFlash=false){
 
 <style id="srd-tach-fuel-final">
 /* Vehicle-style side gauges and tachometer information. */
-.classic-gauges-row{display:flex!important;flex-wrap:nowrap!important;align-items:center!important;justify-content:center!important;gap:clamp(8px,2vw,24px)!important;width:100%;}
-.classic-dial-col{flex:0 0 clamp(28px,4vw,42px)!important;align-self:center!important;}
-.classic-mini-title{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;margin-bottom:3px;font-size:.55rem;letter-spacing:.08em;color:#94a3b8;font-weight:800;}
-.classic-mini-title i{font-size:.82rem;color:#cbd5e1;}
-.classic-mini-gauge{width:clamp(20px,2.4vw,30px)!important;height:clamp(130px,17vw,210px)!important;}
+.classic-gauges-row{display:grid!important;grid-template-columns:minmax(34px,58px) minmax(220px,1fr) minmax(34px,58px)!important;flex-wrap:nowrap!important;align-items:center!important;justify-content:center!important;gap:clamp(8px,2vw,22px)!important;width:100%;}
+.classic-dial-col{width:100%!important;min-width:34px!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;align-self:center!important;}
+.classic-temp-gauge-col{order:1;}
+.classic-main-col{order:2;}
+.classic-fuel-gauge-col{order:3;}
+.classic-mini-title{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;margin-bottom:4px;font-size:.62rem;letter-spacing:.08em;color:#94a3b8;font-weight:900;white-space:nowrap;}
+.classic-mini-title i{font-size:1rem;color:#cbd5e1;filter:drop-shadow(0 0 5px currentColor);}
+.classic-mini-gauge{width:clamp(24px,3vw,34px)!important;height:clamp(145px,19vw,220px)!important;border-width:2px!important;background:linear-gradient(180deg,rgba(15,23,42,.95),rgba(2,6,23,.72))!important;box-shadow:inset 0 0 14px rgba(255,255,255,.05),0 0 10px rgba(56,189,248,.08);}
+.classic-temp-gauge-col .classic-mini-title i{color:#60a5fa;}
+.classic-temp-gauge-col .classic-mini-fill.temp{background:linear-gradient(180deg,#ef4444 0%,#f97316 42%,#facc15 70%,#3b82f6 100%)!important;box-shadow:0 0 8px rgba(96,165,250,.25);}
+.classic-temp-gauge-col .classic-mini-gauge{box-shadow:inset 0 0 14px rgba(96,165,250,.10),0 0 10px rgba(96,165,250,.10);}
+.classic-fuel-gauge-col .classic-mini-title i{color:#fbbf24;}
+.classic-fuel-gauge-col .classic-mini-gauge{box-shadow:inset 0 0 14px rgba(251,191,36,.10),0 0 10px rgba(251,191,36,.08);}
+.classic-fuel-gauge-col .classic-mini-fill.fuel{transition:height .25s linear,background .2s ease,box-shadow .2s ease;background:linear-gradient(180deg,#22c55e 0%,#84cc16 55%,#facc15 78%,#ef4444 100%)!important;}
+.classic-temp-gauge-col .classic-mini-label,.classic-fuel-gauge-col .classic-mini-label{font-size:.62rem;font-weight:900;color:#cbd5e1;}
+.meter-fuel-alert{width:min(96%,620px);margin:8px auto 0;min-height:34px;padding:7px 12px;border:1px solid rgba(148,163,184,.22);border-radius:12px;background:linear-gradient(180deg,rgba(15,23,42,.9),rgba(2,6,23,.8));display:flex;align-items:center;justify-content:center;gap:8px;font-size:.72rem;font-weight:800;letter-spacing:.03em;color:#cbd5e1;box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 0 10px rgba(15,23,42,.35);transition:border-color .2s ease,box-shadow .2s ease,color .2s ease;}
+.meter-fuel-alert i{font-size:1rem;}
+.meter-fuel-alert.good{border-color:rgba(34,197,94,.35);color:#86efac;}
+.meter-fuel-alert.reserve{border-color:rgba(250,204,21,.5);color:#fde68a;box-shadow:0 0 12px rgba(250,204,21,.12),inset 0 1px 0 rgba(255,255,255,.07);}
+.meter-fuel-alert.low{border-color:rgba(249,115,22,.65);color:#fdba74;box-shadow:0 0 14px rgba(249,115,22,.16),inset 0 1px 0 rgba(255,255,255,.07);}
+.meter-fuel-alert.critical{border-color:rgba(239,68,68,.8);color:#fca5a5;box-shadow:0 0 16px rgba(239,68,68,.25),inset 0 1px 0 rgba(255,255,255,.07);animation:fuelAlertPulse 1s steps(2,end) infinite;}
+@keyframes fuelAlertPulse{50%{opacity:.62;}}
+.meter-fuel-alert.unknown{border-color:rgba(148,163,184,.25);color:#94a3b8;}
+.meter-fuel-alert.good i{filter:drop-shadow(0 0 5px currentColor);}
+#liveMeterModal.night-meter-mode .meter-fuel-alert{background:linear-gradient(180deg,rgba(4,18,38,.96),rgba(2,8,22,.94));box-shadow:0 0 12px rgba(56,189,248,.10),inset 0 1px 0 rgba(255,255,255,.08);}
+#liveMeterModal.night-meter-mode .classic-mini-gauge{box-shadow:inset 0 0 16px rgba(56,189,248,.10),0 0 12px rgba(56,189,248,.12);}
 .classic-fuel-gauge-col .classic-mini-title i{color:#fbbf24;}
 .classic-fuel-gauge-col .classic-mini-gauge{box-shadow:inset 0 0 10px rgba(251,191,36,.08),0 0 8px rgba(251,191,36,.05);}
 .classic-fuel-gauge-col .classic-mini-fill.fuel{transition:height .25s linear,background .2s ease,box-shadow .2s ease;}
@@ -3046,7 +3096,18 @@ function syncMeterNightMode(forceFlash=false){
 .classic-fuel-gauge-col.low-fuel .classic-mini-fill.fuel{background:#ef4444!important;box-shadow:0 0 10px rgba(239,68,68,.8);}
 .classic-fuel-gauge-col.low-fuel .classic-mini-needle{background:#ef4444!important;box-shadow:0 0 7px rgba(239,68,68,.9);}
 .classic-fuel-gauge-col.low-fuel #classicFuelPumpIcon{animation:fuelPumpBlink .72s steps(2,end) infinite;}
+.classic-fuel-gauge-col.low-fuel .classic-mini-title{color:#ef4444!important;}
+.classic-fuel-gauge-col.reserve-fuel .classic-mini-title i{color:#facc15!important;}
+.classic-fuel-gauge-col.critical-fuel .classic-mini-title i{color:#ef4444!important;}
 @keyframes fuelPumpBlink{50%{opacity:.25;filter:drop-shadow(0 0 8px #ef4444);}}
+@media(max-width:575.98px){
+ .classic-gauges-row{grid-template-columns:34px minmax(0,1fr) 34px!important;gap:6px!important;}
+ .classic-mini-gauge{width:20px!important;height:120px!important;}
+ .classic-mini-title{font-size:.5rem!important;}
+ .classic-mini-title i{font-size:.82rem!important;}
+ .classic-temp-gauge-col .classic-mini-label,.classic-fuel-gauge-col .classic-mini-label{font-size:.52rem!important;}
+ .meter-fuel-alert{font-size:.65rem;padding:6px 8px;}
+}
 .tach-info-panel{width:min(92%,620px);margin:5px auto 0;padding:6px 10px;border:1px solid rgba(148,163,184,.16);border-radius:10px;background:linear-gradient(180deg,rgba(15,23,42,.88),rgba(2,6,23,.72));display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:inset 0 1px 0 rgba(255,255,255,.06);font-size:.68rem;}
 .tach-info-panel span{font-weight:800;letter-spacing:.08em;color:#94a3b8;}
 .tach-info-panel span i{margin-right:4px;color:#60a5fa;}
