@@ -65,9 +65,8 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
 /* Full-view bottom controls can be collapsed so the complete meter/map content below it is visible. */
 /* Glossy instrument-cluster finish: fixed dimensions so light effects never reflow the page. */
 .sport-meter-shell,.classic-meter-shell{position:relative;overflow:hidden;background-image:radial-gradient(circle at 50% 8%,rgba(255,255,255,.14),transparent 24%),radial-gradient(circle at 15% 55%,rgba(56,189,248,.10),transparent 30%),radial-gradient(circle at 85% 60%,rgba(168,85,247,.09),transparent 30%);}
-.sport-meter-shell::before,.classic-meter-shell::before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(120deg,transparent 0%,rgba(255,255,255,.055) 42%,rgba(255,255,255,.13) 50%,rgba(255,255,255,.055) 58%,transparent 100%);background-size:220% 100%;animation:meterGlossSweep 7s ease-in-out infinite;opacity:.65;}
 .sport-meter-shell>* ,.classic-meter-shell>*{position:relative;z-index:1;}
-@keyframes meterGlossSweep{0%,100%{background-position:120% 0}50%{background-position:-20% 0}}
+/* Static glossy illumination only. The animated sweeping background light is intentionally removed for performance. */
 .meter-odo-instrument{position:absolute;left:50%;bottom:9%;transform:translateX(-50%);min-width:92px;padding:4px 10px;border:1px solid rgba(255,255,255,.18);border-radius:7px;background:linear-gradient(180deg,rgba(2,6,23,.92),rgba(15,23,42,.76));box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 0 12px rgba(56,189,248,.12);display:flex;align-items:baseline;justify-content:center;gap:5px;white-space:nowrap;}
 .meter-odo-instrument span,.classic-odo-instrument span{font-size:.48rem;letter-spacing:.12em;color:#94a3b8;font-weight:700;}
 .meter-odo-instrument b,.classic-odo-instrument b{font-size:.82rem;color:#f8fafc;letter-spacing:.04em;text-shadow:0 0 8px rgba(255,255,255,.28);}
@@ -2398,6 +2397,7 @@ function initTripMap(){
  });
 }
 function mapUpdate(p){
+ if(!document.getElementById('tripMap')) return;
  withMapProvider(provider=>{
    if(!tripMap) initTripMap();
    if(!tripMap) return;
@@ -2408,17 +2408,54 @@ function mapUpdate(p){
    mapPanTo(tripMap,provider,p.lat,p.lon);
  });
 }
-async function requestWakeLock(){ try{ if('wakeLock' in navigator) wakeLock=await navigator.wakeLock.request('screen'); }catch(e){} }
+/* ---------- Background/Android host integration ----------
+   A normal browser/WebView cannot guarantee continuous execution after Android suspends it.
+   If this HTML is wrapped in an APK that exposes an Android bridge, these calls ask the
+   native host to run a foreground service while a trip/walk is active. In a normal browser
+   they safely do nothing. */
+function nativeForegroundTracking(start){
+ try{
+   const a=window.Android;
+   if(!a) return false;
+   if(start){
+     if(typeof a.startForegroundTracking==='function'){ a.startForegroundTracking(); return true; }
+     if(typeof a.startForegroundService==='function'){ a.startForegroundService(); return true; }
+   }else{
+     if(typeof a.stopForegroundTracking==='function'){ a.stopForegroundTracking(); return true; }
+     if(typeof a.stopForegroundService==='function'){ a.stopForegroundService(); return true; }
+   }
+ }catch(e){ console.warn('Native foreground tracking bridge unavailable:',e); }
+ return false;
+}
+
+async function requestWakeLock(){
+ try{
+   if('wakeLock' in navigator && (!wakeLock || wakeLock.released)) wakeLock=await navigator.wakeLock.request('screen');
+ }catch(e){}
+}
 function releaseWakeLock(){ try{ if(wakeLock){ wakeLock.release(); wakeLock=null; } }catch(e){} }
+function keepTrackingAlive(){
+ const active=trip.running||walk.running;
+ if(!active) return;
+ requestWakeLock();
+ if(trip.running) autosaveActiveTrip();
+ if(walk.running) autosaveActiveWalk();
+}
+
 document.addEventListener('visibilitychange',()=>{
- if(document.visibilityState==='visible' && (trip.running||walk.running)) requestWakeLock();
- if(document.visibilityState==='hidden'){
-   // Persist immediately before the browser/OS may throttle or suspend this page.
-   if(trip.running) autosaveActiveTrip();
-   if(walk.running) autosaveActiveWalk();
+ if(trip.running||walk.running){
+   keepTrackingAlive();
+   if(document.visibilityState==='hidden') nativeForegroundTracking(true);
  }
 });
-window.addEventListener('pagehide',()=>{if(trip.running)autosaveActiveTrip();if(walk.running)autosaveActiveWalk();});
+window.addEventListener('pagehide',()=>{
+ if(trip.running) autosaveActiveTrip();
+ if(walk.running) autosaveActiveWalk();
+ if(trip.running||walk.running) nativeForegroundTracking(true);
+});
+window.addEventListener('pageshow',()=>{ if(trip.running||walk.running){ requestWakeLock(); keepTrackingAlive(); nativeForegroundTracking(true); } });
+/* Lightweight heartbeat: persistence + wake-lock re-acquisition, not a visual animation. */
+setInterval(keepTrackingAlive,15000);
 
 function fmtTime(ms){ const s=Math.floor(ms/1000); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
 
@@ -2462,7 +2499,7 @@ let tripStandbyMovingSince=null, tripStandbyLastPoint=null, lastTripAutosave=0;
 function startTripInternal(auto){
  trip={running:true,paused:false,pausedManually:false,points:[],km:0,tripB:0,movingMs:0,maxSpeed:0,lastMoveAt:Date.now(),idleSince:null,fuelLog:[]};
  tripPath=[]; polylineReset(tripPolyline,tripMapProvider); markerRemove(tripMarker,tripMapProvider); tripMarker=null;
- if(meterKind==='trip') meterMapReset();
+ if(meterKind==='trip' && document.getElementById('meterMap')) meterMapReset();
  resetGear();
  tripStandbyMovingSince=null; tripStandbyLastPoint=null;
  document.getElementById('startTrip').disabled=true;document.getElementById('stopTrip').disabled=false;document.getElementById('tripPauseBtn').disabled=false;
@@ -2471,8 +2508,9 @@ function startTripInternal(auto){
  const gpsInfo=document.getElementById('gpsInfo'); if(gpsInfo) gpsInfo.textContent=auto?'Movement detected — trip started automatically.':'Tracking location…';
  document.getElementById('pausedBanner').classList.add('d-none');
  document.getElementById('fuelAddBox').classList.remove('d-none');
- initTripMap(); renderFuelLog();
+ if(document.getElementById('tripMap')) initTripMap(); renderFuelLog();
  requestWakeLock();
+ nativeForegroundTracking(true);
  beginTripWatch();
 }
 
@@ -2626,7 +2664,7 @@ document.getElementById('addFuelBtn').onclick=()=>{
 
 function finishTrip(reason){
  if(watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null;}
- if(!walk.running) releaseWakeLock();
+ if(!walk.running) { releaseWakeLock(); nativeForegroundTracking(false); }
  const v=vehicle(document.getElementById('tripVehicle').value);const fuel=v?trip.km/v.mileage:0,cost=v?fuel*v.rate:0;
  const fuelPurchased=trip.fuelLog.reduce((s,f)=>s+f.cost,0);
  const km=trip.km;
@@ -2697,7 +2735,7 @@ function startWalkInternal(auto){
  document.getElementById('walkGpsStatus').innerHTML='<span class="gps-dot on"></span> GPS tracking';
  document.getElementById('walkGpsInfo').textContent=auto?'Movement detected — walk started automatically.':'Tracking location…';
  document.getElementById('walkPausedBanner').classList.add('d-none');
- initWalkMap(); requestWakeLock();
+ if(document.getElementById('walkMap')) initWalkMap(); requestWakeLock(); nativeForegroundTracking(true);
  beginWalkWatch();
 }
 
