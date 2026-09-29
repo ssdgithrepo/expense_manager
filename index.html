@@ -992,10 +992,10 @@ body{background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,san
         <svg id="classicSpeedoSvg" viewBox="0 0 200 200" aria-label="Speedometer gauge (main meter)"></svg>
         <div class="classic-digital-overlay"><div class="classic-digital-value" id="classicSpeedDigital">0</div><div class="classic-digital-unit" id="classicSpeedUnit">KM/H</div></div>
         <div class="classic-odo-instrument"><span>ODO</span><b id="classicOdoInDial">0.0</b><em>KM</em></div>
-       </div>
-       <div class="classic-dial-wrap classic-dial-sub">
-        <svg id="classicTachSvg" viewBox="0 0 200 200" aria-label="RPM sub-gauge"></svg>
-        <div class="classic-digital-overlay"><div class="classic-digital-value" id="classicRpmDigital">0</div><div class="classic-digital-unit">RPM x1000</div></div>
+        <div class="classic-dial-wrap classic-dial-sub">
+         <svg id="classicTachSvg" viewBox="0 0 200 200" aria-label="RPM sub-gauge"></svg>
+         <div class="classic-digital-overlay"><div class="classic-digital-value" id="classicRpmDigital">0</div><div class="classic-digital-unit">RPM x1000</div></div>
+        </div>
        </div>
        <div class="classic-gear-row-wrap">
         <div class="classic-gear-big" id="classicGearBig">N</div>
@@ -3126,6 +3126,114 @@ function syncMeterNightMode(forceFlash=false){
 }
 </style>
 <style id="srd-brand-odo-finish">.srd-brand-lockup{display:flex;align-items:center;gap:12px;margin-bottom:4px}.srd-brand-mark{width:58px;height:58px;flex:0 0 auto;filter:drop-shadow(0 0 8px rgba(56,189,248,.18))}.srd-brand-tagline{font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:#64748b;font-weight:800;margin-top:2px}.meter-odo-instrument,.classic-odo-instrument{z-index:8!important;background:linear-gradient(180deg,rgba(7,17,31,.96),rgba(2,6,23,.96));border:1px solid rgba(148,163,184,.35);box-shadow:0 0 10px rgba(56,189,248,.10),inset 0 1px 0 rgba(255,255,255,.10)}.meter-odo-instrument b,.classic-odo-instrument b{font-family:"Courier New",monospace;font-variant-numeric:tabular-nums;letter-spacing:.08em;color:#e2f3ff;text-shadow:0 0 7px rgba(56,189,248,.35)}#liveMeterModal.night-meter-mode .meter-odo-instrument,#liveMeterModal.night-meter-mode .classic-odo-instrument{border-color:rgba(96,165,250,.55);box-shadow:0 0 12px rgba(56,189,248,.30),inset 0 0 12px rgba(30,64,175,.18)}#liveMeterModal.night-meter-mode .meter-odo-instrument b,#liveMeterModal.night-meter-mode .classic-odo-instrument b{color:#bde9ff;text-shadow:0 0 5px rgba(56,189,248,.75),0 0 12px rgba(56,189,248,.35)}@media(max-width:575.98px){.srd-brand-lockup{gap:8px}.srd-brand-mark{width:48px;height:48px}.srd-brand-tagline{font-size:.56rem}}</style>
+
+<style id="classic-meter-true-nested-submeter">
+/* True Classic instrument geometry: the speedometer is the single centered primary dial;
+   RPM is physically nested inside its lower portion as a real sub-meter. */
+#classicMeterShell .classic-gauges-row{
+  position:relative !important;
+  display:block !important;
+  width:100% !important;
+  min-height:clamp(280px,58vw,560px) !important;
+  margin:0 !important;
+  padding:0 !important;
+}
+#classicMeterShell .classic-main-col{
+  position:relative !important;
+  display:block !important;
+  width:100% !important;
+  height:100% !important;
+  min-height:inherit !important;
+  margin:0 !important;
+  padding:0 !important;
+}
+#classicMeterShell .classic-dial-wrap.classic-dial-main{
+  position:absolute !important;
+  left:50% !important;
+  top:50% !important;
+  transform:translate(-50%,-50%) !important;
+  width:clamp(250px,58vw,420px) !important;
+  max-width:calc(100% - 76px) !important;
+  aspect-ratio:1/1 !important;
+  margin:0 !important;
+  z-index:2 !important;
+}
+/* The tachometer is now a child of the main speedometer, not a second sibling dial. */
+#classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-dial-wrap.classic-dial-sub{
+  position:absolute !important;
+  left:50% !important;
+  top:auto !important;
+  bottom:7% !important;
+  transform:translateX(-50%) !important;
+  width:34% !important;
+  max-width:150px !important;
+  min-width:82px !important;
+  aspect-ratio:1/1 !important;
+  height:auto !important;
+  margin:0 !important;
+  z-index:12 !important;
+  pointer-events:none !important;
+  border-radius:50% !important;
+  overflow:hidden !important;
+  filter:drop-shadow(0 3px 7px rgba(0,0,0,.7));
+}
+#classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-dial-wrap.classic-dial-sub .classic-digital-overlay{
+  font-size:.48em !important;
+  z-index:13 !important;
+}
+#classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-dial-wrap.classic-dial-sub .classic-digital-value{font-size:.78rem !important;}
+#classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-dial-wrap.classic-dial-sub .classic-digital-unit{font-size:.38rem !important;}
+/* Side gauges are anchored to the cluster, never used to calculate the speedometer center. */
+#classicMeterShell .classic-temp-gauge-col,
+#classicMeterShell .classic-fuel-gauge-col{
+  position:absolute !important;
+  top:50% !important;
+  transform:translateY(-50%) !important;
+  z-index:20 !important;
+  width:clamp(30px,5vw,58px) !important;
+  min-width:30px !important;
+}
+#classicMeterShell .classic-temp-gauge-col{left:clamp(2px,1vw,16px) !important;}
+#classicMeterShell .classic-fuel-gauge-col{right:clamp(2px,1vw,16px) !important;}
+#classicMeterShell .classic-gear-row-wrap{
+  position:absolute !important;
+  left:50% !important;
+  bottom:clamp(1px,1vw,10px) !important;
+  transform:translateX(-50%) !important;
+  z-index:25 !important;
+  margin:0 !important;
+  white-space:nowrap !important;
+}
+/* ODO remains directly above the main needle hub and stays above the nested RPM layer. */
+#classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-odo-instrument{
+  left:50% !important;
+  top:50% !important;
+  bottom:auto !important;
+  transform:translate(-50%,calc(-50% - 10px)) !important;
+  z-index:18 !important;
+}
+@media(max-width:575.98px){
+  #classicMeterShell .classic-gauges-row{min-height:clamp(250px,72vw,350px) !important;}
+  #classicMeterShell .classic-dial-wrap.classic-dial-main{
+    width:min(88vw,340px) !important;
+    max-width:calc(100% - 62px) !important;
+  }
+  #classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-dial-wrap.classic-dial-sub{
+    width:32% !important; min-width:76px !important; bottom:7% !important;
+  }
+  #classicMeterShell .classic-temp-gauge-col,#classicMeterShell .classic-fuel-gauge-col{width:27px !important;}
+}
+@media(min-width:576px) and (max-width:991.98px){
+  #classicMeterShell .classic-gauges-row{min-height:clamp(310px,54vw,450px) !important;}
+  #classicMeterShell .classic-dial-wrap.classic-dial-main{width:min(58vw,390px) !important;}
+  #classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-dial-wrap.classic-dial-sub{width:33% !important;bottom:7% !important;}
+}
+@media(min-width:992px){
+  #classicMeterShell .classic-gauges-row{min-height:clamp(360px,43vw,560px) !important;}
+  #classicMeterShell .classic-dial-wrap.classic-dial-main{width:min(43vw,420px) !important;}
+  #classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-dial-wrap.classic-dial-sub{width:34% !important;bottom:7% !important;}
+}
+</style>
 </body>
 </html>
 <style>
