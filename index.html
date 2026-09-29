@@ -1787,12 +1787,39 @@ const WALK_GAUGE_META={max:12,color:'#198754'};
    and again at high speed (aerodynamic drag, harder engine load). This estimates the CURRENT
    km/L at the vehicle's present speed, scaled off its declared/rated mileage, purely as live
    driving-style feedback — the trip's actual fuel cost keeps using the rated mileage figure. */
-const VEHICLE_OPTIMAL_SPEED={'Two Wheeler':45,'Three Wheeler':35,'Car':60,'Pickup':55,'Truck':50,'Bus':45,'Other':50};
+/* Economy-speed bands used consistently by the live mileage calculation and meter colour state.
+   These are application targets (not manufacturer-certified figures):
+   Two Wheeler = 60–70 km/h, Car = 80–90 km/h. Other vehicle types use sensible defaults. */
+const VEHICLE_ECONOMY_SPEED_BANDS={
+ 'Two Wheeler':[60,70],
+ 'Three Wheeler':[40,50],
+ 'Car':[80,90],
+ 'Pickup':[70,80],
+ 'Truck':[50,60],
+ 'Bus':[50,60],
+ 'Other':[60,70]
+};
+const VEHICLE_OPTIMAL_SPEED=Object.fromEntries(Object.entries(VEHICLE_ECONOMY_SPEED_BANDS).map(([k,[lo,hi]])=>[k,(lo+hi)/2]));
+function economySpeedBand(vehicleType){ return VEHICLE_ECONOMY_SPEED_BANDS[vehicleType]||VEHICLE_ECONOMY_SPEED_BANDS.Other; }
+function economySpeedStatus(speedKmh,vehicleType){
+ const s=Number(speedKmh)||0, [lo,hi]=economySpeedBand(vehicleType);
+ if(s>=lo && s<=hi) return 'economy';
+ const margin=Math.max(8,(hi-lo)*0.75);
+ if(s>=lo-margin && s<=hi+margin) return 'near';
+ return 'inefficient';
+}
 function liveEfficiencyFactor(speedKmh,vehicleType){
- if(!speedKmh||speedKmh<=0.5) return 0.35; // idling / stationary with engine on: worst efficiency
- const opt=VEHICLE_OPTIMAL_SPEED[vehicleType]||50;
- const diff=speedKmh-opt;
- const factor=1.08*Math.exp(-(diff*diff)/(2*opt*opt*0.6));
+ const s=Number(speedKmh)||0;
+ if(s<=0.5) return 0.35;
+ const [lo,hi]=economySpeedBand(vehicleType), opt=(lo+hi)/2;
+ const half=Math.max(1,(hi-lo)/2);
+ const diff=s-opt;
+ /* Peak efficiency is centred on the requested economy band; outside it the estimate falls
+    smoothly, with a stronger penalty at high speed. */
+ const sigma=half*1.65;
+ let factor=1.10*Math.exp(-(diff*diff)/(2*sigma*sigma));
+ if(s<lo) factor*=Math.max(.72,1-(lo-s)*0.012);
+ if(s>hi) factor*=Math.max(.45,1-(s-hi)*0.018);
  return Math.max(0.35,Math.min(1.15,factor));
 }
 function estimateLiveMileage(v,speedKmh){
@@ -1928,6 +1955,7 @@ function updateClassicGauge(speed){
  classicAnimateNeedle('classicSpeedoSvg',kmh/280,'speed');
  const disp=classicUnit==='mph'?kmh*0.621371:kmh;
  const d=document.getElementById('classicSpeedDigital'); if(d) d.textContent=String(Math.round(disp));
+ const v=vehicle(document.getElementById('tripVehicle')?.value); applyEconomyMeterTheme(kmh,v?.type);
  const u=document.getElementById('classicSpeedUnit'); if(u) u.textContent=classicUnit==='mph'?'MPH':'KM/H';
 }
 function classicFmtDist(km){ return classicUnit==='mph'?(km*0.621371).toFixed(2)+' mi':km.toFixed(2)+' km'; }
@@ -2010,6 +2038,7 @@ function syncClassicMeter(kind,speedKmh,accuracy){
    const range=estimatedFuelRange(v,trip.km), avg=trip.movingMs>0?trip.km/(trip.movingMs/3600000):0;
    const avgLive=averageLiveMileage(v,trip.points,speedKmh);
    const rpm=estimateEngineRpm(speedKmh,v), rpmMax={'Two Wheeler':10000,'Three Wheeler':6500,'Car':6500,'Pickup':5500,'Truck':3000,'Bus':2800,'Other':6000}[v?.type]||6000;
+   applyEconomyMeterTheme(speedKmh,v?.type);
    classicVals={tripKm:trip.km,tripB:trip.tripB||0,timeStr:fmtTime(trip.movingMs),avgSpeed:avg,
      avgMileage:v&&avgLive>0?avgLive.toFixed(1)+' km/L':'--',
      liveEcon:v?live.toFixed(1)+' km/L':'--',fuelUsed:v?fuel.toFixed(2)+' L':'--',fuelCost:v?money(cost):'--',
@@ -2146,6 +2175,26 @@ const DRIVE_MODES={
  power:{label:'POWER',icon:'bi-lightning-charge-fill',color:'#f59e0b',shiftMul:1.18}
 };
 // Which drive modes exist for each vehicle type — heavy vehicles get Power instead of Sport.
+const METER_ECONOMY_PALETTE={
+ eco:{economy:'#22c55e',near:'#facc15',inefficient:'#ef4444'},
+ normal:{economy:'#60a5fa',near:'#facc15',inefficient:'#ef4444'},
+ sport:{economy:'#fb7185',near:'#f59e0b',inefficient:'#ef4444'},
+ power:{economy:'#f59e0b',near:'#facc15',inefficient:'#ef4444'}
+};
+function getMeterEconomyPalette(mode,status){
+ const p=METER_ECONOMY_PALETTE[mode]||METER_ECONOMY_PALETTE.normal;
+ const color=p[status]||p.near;
+ return {color,glow:hexToRgba(color,.28)};
+}
+function applyEconomyMeterTheme(speedKmh,vehicleType){
+ const status=economySpeedStatus(speedKmh,vehicleType), pal=getMeterEconomyPalette(driveMode,status);
+ const sport=document.querySelector('.sport-meter-shell'), classic=document.getElementById('classicMeterShell');
+ [sport,classic].forEach(el=>{if(el){el.style.setProperty('--economy-color',pal.color);el.style.setProperty('--economy-glow',pal.glow);el.dataset.economyStatus=status;el.dataset.driveMode=driveMode;}});
+ const sd=document.getElementById('meterDigital'),cd=document.getElementById('classicSpeedDigital');
+ [sd,cd].forEach(el=>{if(el){el.style.color=pal.color;el.style.textShadow=`0 0 16px ${pal.color}99`;el.dataset.economyStatus=status;}});
+ return status;
+}
+
 const VEHICLE_DRIVE_MODES={
  'Two Wheeler':['eco','normal','sport'],
  'Three Wheeler':['eco','normal'],
@@ -2294,7 +2343,15 @@ function updateMeterGauge(speed,maxSpeed,rpm,rpmMax){
  const a=document.getElementById('meterValueArc'),ra=document.getElementById('meterSubArc');if(a&&meterArcLen)a.style.strokeDashoffset=String(meterArcLen*(1-pct));if(ra&&meterSubArcLen)ra.style.strokeDashoffset=String(meterSubArcLen*(1-rp));
  const n=document.getElementById('meterNeedle'),rn=document.getElementById('meterSubNeedle');animateAnalogNeedle(n,-90+pct*180,'speed');animateAnalogNeedle(rn,-90+rp*180,'rpm');
  updateClassicGauge(speed);
- const d=document.getElementById('meterDigital');if(d){d.textContent=String(Math.round(speed||0));const z=pct<.6?'#4ade80':pct<.85?'#60a5fa':'#f87171';d.style.color=z;d.style.textShadow=`0 0 16px ${z}99`;}
+ const d=document.getElementById('meterDigital');
+ if(d){
+   d.textContent=String(Math.round(speed||0));
+   const v=vehicle(document.getElementById('tripVehicle')?.value), status=economySpeedStatus(speed,v?.type);
+   const pal=getMeterEconomyPalette(driveMode,status), shell=document.querySelector('.sport-meter-shell');
+   d.style.color=pal.color; d.style.textShadow=`0 0 16px ${pal.color}99`;
+   d.dataset.economyStatus=status;
+   if(shell){shell.style.setProperty('--economy-color',pal.color);shell.style.setProperty('--economy-glow',pal.glow);shell.dataset.economyStatus=status;}
+ }
  const rl=document.getElementById('meterSubDigital'),rb=document.getElementById('meterRpm');if(rl)rl.textContent=Math.round(rpm||0).toLocaleString('en-IN');if(rb)rb.textContent=Math.round(rpm||0).toLocaleString('en-IN');
  const leds=document.getElementById('meterLeds');if(leds){let h='',total=24,lit=Math.round(pct*total);for(let i=0;i<total;i++){const c=i<total*.6?'#22c55e':i<total*.84?'#eab308':'#ef4444';h+=`<i class="sport-led${i<lit?' active':''}" style="${i<lit?`background:${c};color:${c}`:''}"></i>`;}leds.innerHTML=h;}
 }
@@ -4070,5 +4127,45 @@ function syncMeterNightMode(forceFlash=false){
 @media(min-width:992px){
   #classicMeterShell .classic-dial-wrap.classic-dial-main > .classic-dial-wrap.classic-dial-sub{top:70%!important;width:31%!important;max-width:138px!important;}
   #classicMeterShell .classic-main-col > .classic-gear-row-wrap{top:94%!important;}
+}
+</style>
+
+<style id="economy-speed-meter-theme">
+/* Final responsive economy-speed presentation layer. The selected drive mode controls the
+   base palette; economy/near/inefficient speed status controls the live colour state. */
+.sport-digital-speed{
+  font-size:clamp(2.55rem,9.2vw,4.45rem)!important;
+  line-height:.92!important;
+  color:var(--economy-color,var(--mode-color,#60a5fa))!important;
+  text-shadow:0 0 18px var(--economy-glow,rgba(96,165,250,.45))!important;
+  transition:color .22s ease,text-shadow .22s ease,font-size .2s ease;
+}
+.classic-digital-value#classicSpeedDigital{
+  font-size:clamp(1.85rem,5.2vw,3rem)!important;
+  color:var(--economy-color,#60a5fa)!important;
+  text-shadow:0 0 14px var(--economy-glow,rgba(96,165,250,.42))!important;
+  transition:color .22s ease,text-shadow .22s ease,font-size .2s ease;
+}
+.sport-meter-shell .meter-odo-instrument,
+#classicMeterShell .classic-odo-instrument{
+  border-color:color-mix(in srgb,var(--economy-color,#60a5fa) 45%,transparent)!important;
+  box-shadow:0 0 16px var(--economy-glow,rgba(96,165,250,.18))!important;
+}
+.sport-meter-shell .sport-eco>i{
+  background:var(--economy-color,#60a5fa)!important;
+  box-shadow:0 0 8px var(--economy-glow,rgba(96,165,250,.25));
+}
+#classicMeterShell .classic-speedo .classic-needle,
+#classicMeterShell #classicSpeedoSvgNeedle{
+  filter:drop-shadow(0 0 5px var(--economy-color,#60a5fa));
+}
+.sport-meter-shell[data-economy-status="economy"] .sport-digital-speed,
+#classicMeterShell[data-economy-status="economy"] #classicSpeedDigital{font-weight:950!important;}
+@supports not (color:color-mix(in srgb, red 50%, transparent)){
+ .sport-meter-shell .meter-odo-instrument,#classicMeterShell .classic-odo-instrument{border-color:var(--economy-color,#60a5fa)!important;}
+}
+@media(max-width:575.98px){
+ .sport-digital-speed{font-size:clamp(2.55rem,12vw,3.35rem)!important;}
+ .classic-digital-value#classicSpeedDigital{font-size:clamp(1.7rem,7.5vw,2.35rem)!important;}
 }
 </style>
